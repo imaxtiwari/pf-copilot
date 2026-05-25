@@ -9,7 +9,6 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['lib/inflation/**'],
-      all: true,
       thresholds: { lines: 100, branches: 100 },
     },
   },

@@ -1,0 +1,62 @@
+[
+  {
+    "amc": "Parag Parikh",
+    "scheme_code": "122639",
+    "scheme_name": "Parag Parikh Flexi Cap Fund - Direct Plan - Growth",
+    "factsheet_url_pattern": "https://amc.ppfas.com/downloads/factsheet/factsheet-{YYYY}-{MM}.pdf"
+  },
+  {
+    "amc": "Mirae Asset",
+    "scheme_code": "118834",
+    "scheme_name": "Mirae Asset Large Cap Fund - Direct Plan - Growth",
+    "factsheet_url_pattern": "https://www.miraeassetmf.co.in/uploads/images/Factsheet/MAMCFactSheet{MM}{YYYY}.pdf"
+  },
+  {
+    "amc": "Axis Mutual Fund",
+    "scheme_code": "120505",
+    "scheme_name": "Axis Bluechip Fund - Direct Plan - Growth",
+    "factsheet_url_pattern": "https://www.axismf.com/api/v1/Downloads/PDF/Factsheet/AxisMutualFund-FactSheet-{MM}{YYYY}.pdf"
+  },
+  {
+    "amc": "SBI Mutual Fund",
+    "scheme_code": "119597",
+    "scheme_name": "SBI Bluechip Fund - Direct Plan - Growth",
+    "factsheet_url_pattern": "https://www.sbimf.com/en-us/Portals/0/Pdf/Factsheet/SBIMF_Factsheet_{MM}{YYYY}.pdf"
+  },
+  {
+    "amc": "ICICI Prudential",
+    "scheme_code": "120586",
+    "scheme_name": "ICICI Prudential Bluechip Fund - Direct Plan - Growth",
+    "factsheet_url_pattern": "https://www.icicipruamc.com/docs/default-source/scheme-related-documents/scheme-information-documents/factsheet/factsheet{MM}{YYYY}.pdf"
+  },
+  {
+    "amc": "HDFC Mutual Fund",
+    "scheme_code": "100444",
+    "scheme_name": "HDFC Flexi Cap Fund - Direct Plan - Growth",
+    "factsheet_url_pattern": "https://www.hdfcfund.com/content/dam/abc/india/assets/images/factsheet/HDFC_FactSheet_{MM}{YYYY}.pdf"
+  },
+  {
+    "amc": "Kotak Mahindra",
+    "scheme_code": "120255",
+    "scheme_name": "Kotak Flexicap Fund - Direct Plan - Growth",
+    "factsheet_url_pattern": "https://www.kotakmf.com/documents/factsheet/kotak-mf-factsheet-{MM}-{YYYY}.pdf"
+  },
+  {
+    "amc": "Nippon India",
+    "scheme_code": "118778",
+    "scheme_name": "Nippon India Large Cap Fund - Direct Plan - Growth",
+    "factsheet_url_pattern": "https://mf.nipponindiaim.com/Downloads/Factsheets/NIFactSheet{MM}{YYYY}.pdf"
+  },
+  {
+    "amc": "UTI Mutual Fund",
+    "scheme_code": "120716",
+    "scheme_name": "UTI Nifty 50 Index Fund - Direct Plan - Growth",
+    "factsheet_url_pattern": "https://utimf.com/downloads/common/factsheets/UTI_FactSheet_{MM}{YYYY}.pdf"
+  },
+  {
+    "amc": "Aditya Birla Sun Life",
+    "scheme_code": "119533",
+    "scheme_name": "Aditya Birla Sun Life Frontline Equity Fund - Direct Plan - Growth",
+    "factsheet_url_pattern": "https://mutualfund.adityabirlacapital.com/Docs/ABSLMFFactsheet{MM}{YYYY}.pdf"
+  }
+]
