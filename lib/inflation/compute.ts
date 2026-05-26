@@ -61,8 +61,10 @@ export function computePersonalInflation(profile: UserProfileInput): InflationRe
       rate: SLEEVE_RATES[s],
       contribution: 0.25 * SLEEVE_RATES[s],
     }))
-    const rate = Math.round(breakdown.reduce((sum, b) => sum + b.contribution, 0) * 10000) / 10000
-    return { rate, weights: fallbackWeights, breakdown, confidence: 'low' }
+    const fallbackRate = Math.round(
+      breakdown.reduce((s, b) => s + b.contribution, 0) * 10000,
+    ) / 10000
+    return { rate: fallbackRate, weights: fallbackWeights, breakdown, confidence: 'low' }
   }
 
   const confidence = missing === 0 ? 'high' : 'medium'

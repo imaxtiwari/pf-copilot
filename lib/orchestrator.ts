@@ -10,7 +10,7 @@ import { computePersonalInflationTool } from '@/lib/tools/compute-inflation'
 import { computeRealReturns } from '@/lib/tools/compute-real-returns'
 import { lookupChatHistory } from '@/lib/tools/lookup-chat-history'
 import { explainFundTool } from '@/lib/tools/explain-fund'
-import { ARG_SCHEMAS } from '@/lib/tools/arg-schemas'
+import { ToolArgSchemas } from '@/lib/tools/arg-schemas'
 import type { Citation } from '@/lib/contracts/refusal-types'
 import logger from '@/lib/logger'
 
@@ -41,22 +41,10 @@ export type OrchestratorResult = {
 
 async function dispatchTool(
   toolName: string,
-  rawArgs: Record<string, string>,
+  args: Record<string, string>,
   userId: string,
 ): Promise<unknown> {
-  // Validate LLM-supplied args against the Zod schema for tools that have one.
-  // Tools with no parameters skip validation (schema not present in ARG_SCHEMAS).
-  const schema = ARG_SCHEMAS[toolName]
-  let args = rawArgs
-  if (schema) {
-    const result = schema.safeParse(rawArgs)
-    if (!result.success) {
-      logger.warn({ toolName, errors: result.error.issues, rawArgs }, 'orchestrator: tool arg validation failed')
-      return { error: `Invalid arguments for ${toolName}: ${result.error.issues.map((i) => i.message).join(', ')}` }
-    }
-    args = result.data as Record<string, string>
-  }
-
+  // Args are validated by the call site (parsedArgs block) before reaching here.
   switch (toolName) {
     case 'get_portfolio':
       return getPortfolio(userId)
@@ -159,7 +147,21 @@ export async function runOrchestrator(
 
       let parsedArgs: Record<string, string> = {}
       try {
-        parsedArgs = JSON.parse(tc.function.arguments) as Record<string, string>
+        const raw = JSON.parse(tc.function.arguments)
+        const schema = ToolArgSchemas[tc.function.name as keyof typeof ToolArgSchemas]
+        if (schema) {
+          const validated = schema.safeParse(raw)
+          if (validated.success) {
+            parsedArgs = validated.data as Record<string, string>
+          } else {
+            logger.warn(
+              { toolName: tc.function.name, issues: validated.error.issues },
+              'orchestrator: tool arg validation failed — using empty args',
+            )
+          }
+        } else {
+          parsedArgs = raw as Record<string, string>
+        }
       } catch {
         parsedArgs = {}
       }

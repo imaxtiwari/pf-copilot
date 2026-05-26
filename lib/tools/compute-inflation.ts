@@ -5,7 +5,6 @@ import { computePersonalInflation } from '@/lib/inflation/compute'
 import type { UserProfileInput } from '@/lib/inflation/compute'
 import logger from '@/lib/logger'
 
-const STALENESS_THRESHOLD_MS = 90 * 24 * 60 * 60 * 1000 // 90 days
 
 export type ComputeInflationResult = {
   inflation_rate: number
@@ -39,11 +38,11 @@ export async function computePersonalInflationTool(userId: string): Promise<Comp
 
   // If already computed, return stored value (log a warning if stale)
   if (profile.inflationRate && profile.computedAt) {
-    const ageMs = Date.now() - profile.computedAt.getTime()
-    if (ageMs > STALENESS_THRESHOLD_MS) {
+    const ageDays = (Date.now() - profile.computedAt.getTime()) / 86_400_000
+    if (ageDays > 90) {
       logger.warn(
-        { userId, computedAt: profile.computedAt.toISOString(), ageDays: Math.floor(ageMs / 86400000) },
-        'inflation: stored rate is stale (>90 days) — user should redo onboarding',
+        { userId, ageDays: Math.floor(ageDays) },
+        'inflation_rate: serving cached rate older than 90 days',
       )
     }
     return {
@@ -51,7 +50,7 @@ export async function computePersonalInflationTool(userId: string): Promise<Comp
       confidence: (profile.inflationConfidence as 'low' | 'medium' | 'high') ?? 'low',
       breakdown: (profile.inflationBreakdown as ComputeInflationResult['breakdown']) ?? [],
       computed_at: profile.computedAt.toISOString(),
-      note: ageMs > STALENESS_THRESHOLD_MS
+      note: ageDays > 90
         ? 'Inflation rate was computed more than 90 days ago. Consider updating your profile at /onboarding.'
         : null,
     }

@@ -39,6 +39,14 @@ describe('fisherReal', () => {
     // nominal 20%, inflation 100% → (1.2 / 2.0) - 1 = -0.4
     expect(fisherReal(0.20, 1.0)).toBeCloseTo(-0.4, 10)
   })
+
+  it('fisherReal: inflation = -1 returns Infinity (division by zero)', () => {
+    expect(fisherReal(0.1, -1)).toBe(Infinity)
+  })
+
+  it('fisherReal: inflation below -1 returns NaN (negative denominator)', () => {
+    expect(fisherReal(0.1, -1.5)).toBeNaN()
+  })
 })
 
 // ── computeRealReturns ─────────────────────────────────────────────────────────

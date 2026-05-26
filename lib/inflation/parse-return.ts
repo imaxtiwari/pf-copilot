@@ -13,7 +13,10 @@ export function parseNominalReturn1y(text: string): number | null {
     /\b1Y\s*[:\s]+([+-]?\d+\.?\d*)\s*%/i,
     // Compact: "1yr 15.23%"
     /\b1yr[:\s]+([+-]?\d+\.?\d*)\s*%/i,
-    // Bare number fallback (no % symbol): "1Y: 15.23" | "1-Year 15.23"
+    // Bare table cell: "1Y   15.23" or "1-Year   15.23" — tighter match, must be
+    // followed by whitespace or end-of-line to avoid matching mid-number sequences
+    /\b1[-\s]?(?:year|yr|Y)\b[:\s]+([+-]?\d{1,3}\.?\d{0,4})(?:\s|$)/i,
+    // Bare number fallback (no % symbol, with optional "Return" keyword): "1 Year Return: 8.45"
     /\b1[\s\-]?(?:year|yr|Y)\s*(?:return)?[:\s]+([+-]?\d+\.?\d*)(?!\d)/i,
   ]
   for (const pattern of patterns) {

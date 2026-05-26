@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers'
-import { eq, and, desc, inArray } from 'drizzle-orm'
+import { eq, desc, sql } from 'drizzle-orm'
 import Link from 'next/link'
 import { db } from '@/lib/db'
 import * as schema from '@/db/schema'
@@ -102,33 +102,31 @@ export default async function PortfolioPage() {
     ...new Set(holdingRows.filter((h) => h.schemeCode).map((h) => h.schemeCode!)),
   ]
 
-  // DISTINCT ON (scheme_code) returns exactly one row per scheme — the most recent by date.
-  // Previously this fetched all rows and deduplicated in application layer.
-  const returnsChunks =
+  const returnsChunks: Array<{ schemeCode: string; chunkText: string; factsheetDate: string }> =
     schemeCodes.length > 0
-      ? await db
-          .selectDistinctOn([schema.factsheetChunks.schemeCode], {
-            schemeCode: schema.factsheetChunks.schemeCode,
-            chunkText: schema.factsheetChunks.chunkText,
-            factsheetDate: schema.factsheetChunks.factsheetDate,
-          })
-          .from(schema.factsheetChunks)
-          .where(
-            and(
-              inArray(schema.factsheetChunks.schemeCode, schemeCodes),
-              eq(schema.factsheetChunks.section, 'returns'),
-            ),
+      ? (
+          await db.execute<{ scheme_code: string; chunk_text: string; factsheet_date: string }>(
+            sql`
+              SELECT DISTINCT ON (scheme_code)
+                scheme_code,
+                chunk_text,
+                factsheet_date
+              FROM factsheet_chunks
+              WHERE scheme_code = ANY(${schemeCodes}::text[])
+                AND section = 'returns'
+              ORDER BY scheme_code, factsheet_date DESC
+            `,
           )
-          .orderBy(schema.factsheetChunks.schemeCode, desc(schema.factsheetChunks.factsheetDate))
+        ).rows.map((r) => ({
+          schemeCode: r.scheme_code,
+          chunkText: r.chunk_text,
+          factsheetDate: r.factsheet_date,
+        }))
       : []
 
-  const returnsMap = new Map<string, { chunkText: string; factsheetDate: string }>()
-  for (const chunk of returnsChunks) {
-    returnsMap.set(chunk.schemeCode, {
-      chunkText: chunk.chunkText,
-      factsheetDate: chunk.factsheetDate,
-    })
-  }
+  const returnsMap = new Map(
+    returnsChunks.map((c) => [c.schemeCode, { chunkText: c.chunkText, factsheetDate: c.factsheetDate }]),
+  )
 
   // ── assemble inputs for pure function ───────────────────────────────────────
   const holdingsForComputation = holdingRows.map((h) => {

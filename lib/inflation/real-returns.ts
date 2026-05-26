@@ -38,7 +38,12 @@ export type RealReturnsResult = {
  * (e.g. computing a weighted portfolio real return).
  */
 export function fisherReal(nominal: number, inflation: number): number {
-  return (1 + nominal) / (1 + inflation) - 1
+  if (inflation <= -1) {
+    // Division by zero or negative denominator — deflation beyond 100% is
+    // economically undefined; return Infinity as a sentinel rather than NaN.
+    return inflation === -1 ? Infinity : NaN
+  }
+  return Math.round(((1 + nominal) / (1 + inflation) - 1) * 10000) / 10000
 }
 
 // ── pure computation ──────────────────────────────────────────────────────────
@@ -64,17 +69,17 @@ export function computeRealReturns(
   const withData = per_holding.filter((h) => h.nominal_return_1y !== null)
   const weightedBase = withData.reduce((s, h) => s + h.market_value, 0)
 
-  const weighted_nominal_return_1y =
+  const rawWeightedNominal =
     weightedBase > 0
-      ? round4(withData.reduce((s, h) => s + h.nominal_return_1y! * h.market_value, 0) / weightedBase)
+      ? withData.reduce((s, h) => s + h.nominal_return_1y! * h.market_value, 0) / weightedBase
       : null
 
-  // Pass full-precision weighted nominal into Fisher to avoid double-rounding;
-  // round only the final portfolio real return value.
+  const weighted_nominal_return_1y =
+    rawWeightedNominal !== null ? Math.round(rawWeightedNominal * 10000) / 10000 : null
+
+  // Use the unrounded value for Fisher to avoid compounding rounding error
   const weighted_real_return_1y =
-    weighted_nominal_return_1y !== null
-      ? round4(fisherReal(weighted_nominal_return_1y, inflationRate))
-      : null
+    rawWeightedNominal !== null ? fisherReal(rawWeightedNominal, inflationRate) : null
 
   return {
     per_holding,
