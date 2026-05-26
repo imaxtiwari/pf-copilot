@@ -129,5 +129,20 @@ export async function parseCASVision(buffer: Buffer): Promise<CASExtraction | nu
     batches.map((batch, i) => callVisionBatch(batch, i)),
   )
 
+  const failedCount = batchResults.filter((r) => r === null).length
+  if (failedCount > 0) {
+    logger.warn(
+      { failedCount, totalBatches: batches.length },
+      'cas vision: some batches failed',
+    )
+  }
+  if (failedCount > batches.length / 2) {
+    logger.error(
+      { failedCount, totalBatches: batches.length },
+      'cas vision: majority of batches failed — aborting to prevent partial portfolio write',
+    )
+    return null
+  }
+
   return mergeBatchResults(batchResults)
 }

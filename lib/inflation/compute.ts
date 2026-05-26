@@ -48,8 +48,12 @@ const DEFAULTS = {
 export function computePersonalInflation(profile: UserProfileInput): InflationResult {
   const missing = countMissing(profile)
 
-  // 3+ fields missing: return fallback rate with equal weights
+  // 3+ fields missing: return fallback rate with equal weights.
+  // Rate is derived from the breakdown sum (same as the normal path) so the two
+  // can never diverge if SLEEVE_RATES change. FALLBACK_RATE is kept as a named
+  // constant only for documentation/reference purposes.
   if (missing >= 3) {
+    void FALLBACK_RATE // kept for documentation — actual rate computed from breakdown
     const fallbackWeights: Weights = { general: 0.25, medical: 0.25, education: 0.25, lifestyle: 0.25 }
     const breakdown = SLEEVE_NAMES.map((s) => ({
       sleeve: s,
@@ -57,7 +61,8 @@ export function computePersonalInflation(profile: UserProfileInput): InflationRe
       rate: SLEEVE_RATES[s],
       contribution: 0.25 * SLEEVE_RATES[s],
     }))
-    return { rate: FALLBACK_RATE, weights: fallbackWeights, breakdown, confidence: 'low' }
+    const rate = Math.round(breakdown.reduce((sum, b) => sum + b.contribution, 0) * 10000) / 10000
+    return { rate, weights: fallbackWeights, breakdown, confidence: 'low' }
   }
 
   const confidence = missing === 0 ? 'high' : 'medium'

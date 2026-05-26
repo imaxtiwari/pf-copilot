@@ -22,6 +22,16 @@ export type ValidationResult =
 const NAV_TOLERANCE = 0.5    // ±₹0.50 per holding
 const TOTAL_TOLERANCE = 0.01 // ±1% of total
 
+// Guards against NaN, Infinity, and non-positive values that slip past falsy checks
+function isValidPositiveNumber(n: unknown): n is number {
+  return typeof n === 'number' && isFinite(n) && n > 0
+}
+
+// market_value may legitimately be 0 for a fully-liquidated fund
+function isValidNonNegativeNumber(n: unknown): n is number {
+  return typeof n === 'number' && isFinite(n) && n >= 0
+}
+
 export function validateCAS(extraction: CASExtraction): ValidationResult {
   const errors: string[] = []
 
@@ -29,9 +39,11 @@ export function validateCAS(extraction: CASExtraction): ValidationResult {
     return { ok: false, errors: ['Holdings array is empty'] }
   }
 
+  // Compare both sides as UTC midnight so a CAS dated "today" in IST (UTC+5:30)
+  // is never rejected as "future" when the server clock hasn't yet crossed midnight UTC.
   const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const asOf = new Date(extraction.as_of_date)
+  today.setUTCHours(0, 0, 0, 0)
+  const asOf = new Date(extraction.as_of_date + 'T00:00:00Z') // explicit UTC midnight
   if (isNaN(asOf.getTime())) {
     errors.push(`Invalid as_of_date: "${extraction.as_of_date}"`)
   } else if (asOf > today) {
@@ -40,8 +52,8 @@ export function validateCAS(extraction: CASExtraction): ValidationResult {
 
   let computedTotal = 0
   for (const h of extraction.holdings) {
-    if (!h.units || !h.nav || !h.market_value) {
-      errors.push(`${h.scheme_name}: units, nav, or market_value is zero/missing`)
+    if (!isValidPositiveNumber(h.units) || !isValidPositiveNumber(h.nav) || !isValidNonNegativeNumber(h.market_value)) {
+      errors.push(`${h.scheme_name}: units or nav is zero/NaN/Infinity, or market_value is NaN/Infinity`)
       continue
     }
     const expected = h.units * h.nav

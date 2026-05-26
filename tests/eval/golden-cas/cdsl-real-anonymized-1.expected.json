@@ -1,0 +1,11 @@
+{
+  "_comment": "Expected extraction from cdsl-real-anonymized-1.pdf (synthetic placeholder). Replace with precise values when using real anonymized CAS.",
+  "holdings_count_min": 1,
+  "holdings_count_max": 4,
+  "total_value_approx": 12650,
+  "total_value_tolerance_pct": 5,
+  "expected_scheme_name_fragments": [
+    "Mirae Asset",
+    "SBI Small Cap"
+  ]
+}

@@ -18,12 +18,14 @@
 .env.production.local
 
 # drizzle
-/db/migrations/*.sql
+# (migration SQL is committed — fresh clones need it to run db:migrate)
 
 # testing
 /coverage
 /playwright-report
 /test-results
+tests/eval/results-*.json
+tests/eval/golden-cas/*.pdf
 
 # misc
 .DS_Store

@@ -1,0 +1,12 @@
+{
+  "_comment": "Expected extraction from nsdl-real-anonymized-1.pdf (synthetic placeholder). LLM extraction is non-deterministic; these are approximate targets. Replace with precise values when using real anonymized CAS.",
+  "holdings_count_min": 2,
+  "holdings_count_max": 5,
+  "total_value_approx": 24504,
+  "total_value_tolerance_pct": 5,
+  "expected_scheme_name_fragments": [
+    "Parag Parikh",
+    "Axis Bluechip",
+    "HDFC Mid"
+  ]
+}

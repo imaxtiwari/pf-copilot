@@ -1,193 +1,223 @@
-'use client'
-import { useState, useEffect, useRef, type ChangeEvent } from 'react'
+import { cookies } from 'next/headers'
+import { eq, and, desc, inArray } from 'drizzle-orm'
+import Link from 'next/link'
+import { db } from '@/lib/db'
+import * as schema from '@/db/schema'
+import { COOKIE_NAME } from '@/lib/auth/dev-user'
+import { computeRealReturns } from '@/lib/inflation/real-returns'
+import { computePersonalInflation } from '@/lib/inflation/compute'
+import { RealVsNominal } from '@/components/real-vs-nominal'
+import { PortfolioTable } from '@/components/portfolio-table'
+import { parseNominalReturn1y } from '@/lib/inflation/parse-return'
+import type { UserProfileInput } from '@/lib/inflation/compute'
+import type { InflationConfidence } from '@/lib/validation/schemas'
 
-type Holding = {
-  id: string
-  schemeName: string
-  folioNumber: string
-  units: string
-  nav: string
-  marketValue: string
-  asOfDate: string
-  source: string
-}
+// ── page ──────────────────────────────────────────────────────────────────────
 
-type UploadState =
-  | { status: 'idle' }
-  | { status: 'uploading' }
-  | { status: 'success'; holdingsCount: number; unmatched: string[]; fromCache?: boolean }
-  | { status: 'error'; message: string; details?: unknown }
+export default async function PortfolioPage() {
+  const cookieStore = await cookies()
+  const userId = cookieStore.get(COOKIE_NAME)?.value
 
-export default function PortfolioPage() {
-  const [holdings, setHoldings] = useState<Holding[]>([])
-  const [loadingHoldings, setLoadingHoldings] = useState(true)
-  const [upload, setUpload] = useState<UploadState>({ status: 'idle' })
-  const fileRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    fetchHoldings()
-  }, [])
-
-  async function fetchHoldings() {
-    setLoadingHoldings(true)
-    try {
-      const res = await fetch('/api/portfolio/holdings')
-      const json = await res.json()
-      if (json.ok) setHoldings(json.data.holdings)
-    } catch {
-      // silently ignore — holdings table may be empty
-    } finally {
-      setLoadingHoldings(false)
-    }
+  // ── no session ──────────────────────────────────────────────────────────────
+  if (!userId) {
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-16 text-center">
+        <div className="text-4xl">📊</div>
+        <h1 className="mt-4 text-2xl font-bold tracking-tight text-gray-900">
+          Your real returns view
+        </h1>
+        <p className="mt-2 text-gray-500">
+          Upload your CAS to see how your portfolio performs after personal inflation.
+        </p>
+        <Link
+          href="/portfolio/upload"
+          className="mt-6 inline-block rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white hover:bg-indigo-700"
+        >
+          Upload CAS PDF →
+        </Link>
+      </main>
+    )
   }
 
-  async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (file.type !== 'application/pdf') {
-      setUpload({ status: 'error', message: 'Only PDF files are accepted.' })
-      return
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      setUpload({ status: 'error', message: 'File must be under 10 MB.' })
-      return
-    }
+  // ── fetch holdings ──────────────────────────────────────────────────────────
+  const holdingRows = await db
+    .select({
+      schemeCode: schema.portfolioHoldings.schemeCode,
+      schemeName: schema.portfolioHoldings.schemeName,
+      units: schema.portfolioHoldings.units,
+      nav: schema.portfolioHoldings.nav,
+      marketValue: schema.portfolioHoldings.marketValue,
+    })
+    .from(schema.portfolioHoldings)
+    .where(eq(schema.portfolioHoldings.userId, userId))
+    .orderBy(desc(schema.portfolioHoldings.marketValue))
 
-    setUpload({ status: 'uploading' })
-    const form = new FormData()
-    form.append('file', file)
-
-    try {
-      const res = await fetch('/api/cas/ingest', { method: 'POST', body: form })
-      const json = await res.json()
-      if (json.ok) {
-        setUpload({
-          status: 'success',
-          holdingsCount: json.data.holdings_count,
-          unmatched: json.data.unmatched_schemes ?? [],
-          fromCache: json.data.from_cache,
-        })
-        fetchHoldings()
-      } else {
-        setUpload({ status: 'error', message: json.error?.message ?? 'Upload failed.', details: json.error?.details })
-      }
-    } catch {
-      setUpload({ status: 'error', message: 'Network error. Please try again.' })
-    } finally {
-      if (fileRef.current) fileRef.current.value = ''
-    }
+  // ── empty state ─────────────────────────────────────────────────────────────
+  if (holdingRows.length === 0) {
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-16 text-center">
+        <div className="text-4xl">📂</div>
+        <h1 className="mt-4 text-2xl font-bold tracking-tight text-gray-900">
+          No holdings yet
+        </h1>
+        <p className="mt-2 text-gray-500">Upload your CAS to see your portfolio.</p>
+        <Link
+          href="/portfolio/upload"
+          className="mt-6 inline-block rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white hover:bg-indigo-700"
+        >
+          Upload CAS PDF →
+        </Link>
+      </main>
+    )
   }
 
-  const totalValue = holdings.reduce((s, h) => s + parseFloat(h.marketValue || '0'), 0)
+  // ── inflation rate ──────────────────────────────────────────────────────────
+  const profile = await db.query.userProfile.findFirst({
+    where: eq(schema.userProfile.userId, userId),
+  })
+
+  let inflationRate: number
+  let inflationConfidence: InflationConfidence
+
+  if (profile?.inflationRate) {
+    inflationRate = Number(profile.inflationRate)
+    inflationConfidence = (profile.inflationConfidence as InflationConfidence) ?? 'low'
+  } else {
+    // Recompute from profile fields (may be low confidence)
+    const input: UserProfileInput = {
+      age: profile?.age ?? undefined,
+      city_tier: (profile?.cityTier as UserProfileInput['city_tier']) ?? undefined,
+      monthly_rent: profile?.monthlyRent ? Number(profile.monthlyRent) : undefined,
+      owns_home: profile?.ownsHome ?? undefined,
+      dependents: (profile?.dependents as UserProfileInput['dependents']) ?? undefined,
+      medical_conditions: profile?.medicalConditions ?? undefined,
+    }
+    const computed = computePersonalInflation(input)
+    inflationRate = computed.rate
+    inflationConfidence = computed.confidence
+  }
+
+  // ── factsheet returns ───────────────────────────────────────────────────────
+  const schemeCodes = [
+    ...new Set(holdingRows.filter((h) => h.schemeCode).map((h) => h.schemeCode!)),
+  ]
+
+  // DISTINCT ON (scheme_code) returns exactly one row per scheme — the most recent by date.
+  // Previously this fetched all rows and deduplicated in application layer.
+  const returnsChunks =
+    schemeCodes.length > 0
+      ? await db
+          .selectDistinctOn([schema.factsheetChunks.schemeCode], {
+            schemeCode: schema.factsheetChunks.schemeCode,
+            chunkText: schema.factsheetChunks.chunkText,
+            factsheetDate: schema.factsheetChunks.factsheetDate,
+          })
+          .from(schema.factsheetChunks)
+          .where(
+            and(
+              inArray(schema.factsheetChunks.schemeCode, schemeCodes),
+              eq(schema.factsheetChunks.section, 'returns'),
+            ),
+          )
+          .orderBy(schema.factsheetChunks.schemeCode, desc(schema.factsheetChunks.factsheetDate))
+      : []
+
+  const returnsMap = new Map<string, { chunkText: string; factsheetDate: string }>()
+  for (const chunk of returnsChunks) {
+    returnsMap.set(chunk.schemeCode, {
+      chunkText: chunk.chunkText,
+      factsheetDate: chunk.factsheetDate,
+    })
+  }
+
+  // ── assemble inputs for pure function ───────────────────────────────────────
+  const holdingsForComputation = holdingRows.map((h) => {
+    const returnsEntry = h.schemeCode ? returnsMap.get(h.schemeCode) : undefined
+    return {
+      scheme_code: h.schemeCode,
+      scheme_name: h.schemeName,
+      market_value: Number(h.marketValue),
+      nominal_return_1y: returnsEntry ? parseNominalReturn1y(returnsEntry.chunkText) : null,
+      factsheet_date: returnsEntry?.factsheetDate ?? null,
+    }
+  })
+
+  const result = computeRealReturns(holdingsForComputation, inflationRate)
+  const missingCount = result.per_holding.filter((h) => h.nominal_return_1y === null).length
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="mb-6 text-2xl font-bold tracking-tight">Portfolio</h1>
-
-      {/* Upload section */}
-      <section className="mb-8 rounded-xl border bg-white p-6 shadow-sm">
-        <h2 className="mb-1 text-base font-semibold">Upload CAS PDF</h2>
-        <p className="mb-4 text-sm text-gray-500">
-          NSDL or CDSL Consolidated Account Statement — PDF only, max 10 MB.
-        </p>
-        <label className="inline-block cursor-pointer rounded-lg border-2 border-dashed border-gray-300 px-6 py-4 text-sm text-gray-600 hover:border-indigo-400 hover:text-indigo-600 transition-colors">
-          {upload.status === 'uploading' ? 'Uploading…' : 'Click to select PDF'}
-          <input
-            ref={fileRef}
-            type="file"
-            accept="application/pdf"
-            onChange={handleFileChange}
-            disabled={upload.status === 'uploading'}
-            className="hidden"
-          />
-        </label>
-
-        {upload.status === 'success' && (
-          <div className="mt-4 rounded bg-green-50 px-4 py-3 text-sm text-green-800">
-            <strong>
-              {upload.fromCache ? 'Returned from cache — ' : ''}
-              {upload.holdingsCount} holding{upload.holdingsCount !== 1 ? 's' : ''} imported.
-            </strong>
-            {upload.unmatched.length > 0 && (
-              <p className="mt-1 text-xs text-green-700">
-                {upload.unmatched.length} scheme{upload.unmatched.length !== 1 ? 's' : ''} not found in AMFI master:{' '}
-                {upload.unmatched.join(', ')}
-              </p>
+    <main className="mx-auto max-w-4xl px-4 py-8">
+      {/* Header row */}
+      <div className="mb-6 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Portfolio</h1>
+          <p className="text-sm text-gray-500">
+            {holdingRows.length} holding{holdingRows.length !== 1 ? 's' : ''} ·{' '}
+            Total{' '}
+            <span className="font-semibold text-gray-800">
+              ₹{result.portfolio.total_value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+            </span>
+          </p>
+        </div>
+        <div className="flex items-center gap-3 text-sm text-gray-500">
+          <span>
+            Personal inflation:{' '}
+            <span className="font-semibold text-orange-600">
+              {(inflationRate * 100).toFixed(2)}%
+            </span>
+            {inflationConfidence === 'low' && (
+              <span className="ml-1 text-xs text-gray-400">(est.)</span>
             )}
-          </div>
-        )}
+          </span>
+          <Link href="/portfolio/upload" className="text-indigo-600 underline-offset-2 hover:underline">
+            Update CAS
+          </Link>
+        </div>
+      </div>
 
-        {upload.status === 'error' && (
-          <div className="mt-4 rounded bg-red-50 px-4 py-3 text-sm text-red-800">
-            <strong>{upload.message}</strong>
-            {Array.isArray(upload.details) && upload.details.length > 0 && (
-              <ul className="mt-1 list-inside list-disc text-xs text-red-700">
-                {(upload.details as string[]).slice(0, 5).map((d, i) => (
-                  <li key={i}>{String(d)}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-      </section>
+      {/* Big callout */}
+      <div className="mb-6">
+        <RealVsNominal portfolio={result.portfolio} inflationConfidence={inflationConfidence} />
+      </div>
 
       {/* Holdings table */}
-      <section>
-        <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="text-base font-semibold">
-            Holdings {loadingHoldings ? '' : `(${holdings.length})`}
-          </h2>
-          {totalValue > 0 && (
-            <span className="text-sm text-gray-500">
-              Total:{' '}
-              <span className="font-semibold text-gray-900">
-                ₹{totalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-              </span>
-            </span>
-          )}
+      <div className="mb-4">
+        <h2 className="mb-3 text-base font-semibold text-gray-800">Holdings breakdown</h2>
+        <PortfolioTable perHolding={result.per_holding} />
+      </div>
+
+      {/* Missing data note */}
+      {missingCount > 0 && (
+        <p className="mb-6 text-xs text-gray-400">
+          "—" means no factsheet returns data is available for that holding.{' '}
+          {missingCount === holdingRows.length
+            ? 'Run the factsheet ingestion script to populate return data.'
+            : `${missingCount} of ${holdingRows.length} holdings missing.`}
+        </p>
+      )}
+
+      {/* Disclaimer */}
+      <div className="mb-6">
+        <div className="rounded border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+          <strong>Educational estimates only.</strong> These figures are based on your CAS and AMFI
+          factsheet data. Returns shown are 1-year trailing from the most recent factsheet — not
+          your personal cost-basis return. Talk to your advisor before transacting.
         </div>
+      </div>
 
-        {loadingHoldings ? (
-          <p className="text-sm text-gray-400">Loading…</p>
-        ) : holdings.length === 0 ? (
-          <p className="rounded-xl border bg-gray-50 px-4 py-8 text-center text-sm text-gray-400">
-            No holdings yet. Upload your CAS PDF above.
-          </p>
-        ) : (
-          <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs uppercase text-gray-500">
-                <tr>
-                  <th className="px-4 py-2 text-left">Scheme</th>
-                  <th className="px-4 py-2 text-right">Units</th>
-                  <th className="px-4 py-2 text-right">NAV</th>
-                  <th className="px-4 py-2 text-right">Value (₹)</th>
-                  <th className="px-4 py-2 text-right">As of</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {holdings.map((h) => (
-                  <tr key={h.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-2">
-                      <div className="font-medium leading-snug">{h.schemeName}</div>
-                      <div className="text-xs text-gray-400">{h.folioNumber}</div>
-                    </td>
-                    <td className="px-4 py-2 text-right tabular-nums">{parseFloat(h.units).toFixed(4)}</td>
-                    <td className="px-4 py-2 text-right tabular-nums">{parseFloat(h.nav).toFixed(4)}</td>
-                    <td className="px-4 py-2 text-right tabular-nums font-semibold">
-                      {parseFloat(h.marketValue).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                    </td>
-                    <td className="px-4 py-2 text-right text-gray-500">{h.asOfDate}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      {/* Onboarding nudge if low confidence */}
+      {inflationConfidence === 'low' && (
+        <div className="mb-6 rounded border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-800">
+          Your inflation estimate is based on default assumptions.{' '}
+          <Link href="/onboarding" className="font-semibold underline underline-offset-2">
+            Complete onboarding →
+          </Link>{' '}
+          to get a personalised rate.
+        </div>
+      )}
 
-      <p className="mt-8 text-xs text-gray-400">
-        Educational tool only — not investment advice.
+      <p className="text-center text-xs text-gray-400">
+        PF Copilot · Educational tool · Not investment advice
       </p>
     </main>
   )

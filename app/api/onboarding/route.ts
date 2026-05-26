@@ -17,50 +17,37 @@ const OnboardingSchema = z.object({
 })
 
 export async function POST(req: NextRequest) {
-  const { userId, isNew } = await resolveOrCreateUserId()
+  try {
+    const { userId, isNew } = await resolveOrCreateUserId()
 
-  const body = await req.json().catch(() => null)
-  if (!body) {
-    return NextResponse.json(err('invalid_json', 'Request body must be valid JSON'), { status: 400 })
-  }
+    const body = await req.json().catch(() => null)
+    if (!body) {
+      return NextResponse.json(err('invalid_json', 'Request body must be valid JSON'), { status: 400 })
+    }
 
-  const parsed = OnboardingSchema.safeParse(body)
-  if (!parsed.success) {
-    return NextResponse.json(
-      err('validation_error', 'Invalid onboarding data', parsed.error.issues),
-      { status: 400 },
-    )
-  }
+    const parsed = OnboardingSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json(
+        err('validation_error', 'Invalid onboarding data', parsed.error.issues),
+        { status: 400 },
+      )
+    }
 
-  const data = parsed.data
-  const inflation = computePersonalInflation({
-    age: data.age,
-    city_tier: data.city_tier,
-    monthly_rent: data.monthly_rent,
-    owns_home: data.owns_home,
-    dependents: data.dependents,
-    medical_conditions: data.medical_conditions,
-  })
-
-  const now = new Date()
-  await db
-    .insert(userProfile)
-    .values({
-      userId,
+    const data = parsed.data
+    const inflation = computePersonalInflation({
       age: data.age,
-      cityTier: data.city_tier,
-      monthlyRent: String(data.monthly_rent),
-      ownsHome: data.owns_home,
+      city_tier: data.city_tier,
+      monthly_rent: data.monthly_rent,
+      owns_home: data.owns_home,
       dependents: data.dependents,
-      medicalConditions: data.medical_conditions,
-      inflationRate: String(inflation.rate),
-      inflationBreakdown: inflation.breakdown,
-      inflationConfidence: inflation.confidence,
-      computedAt: now,
+      medical_conditions: data.medical_conditions,
     })
-    .onConflictDoUpdate({
-      target: userProfile.userId,
-      set: {
+
+    const now = new Date()
+    await db
+      .insert(userProfile)
+      .values({
+        userId,
         age: data.age,
         cityTier: data.city_tier,
         monthlyRent: String(data.monthly_rent),
@@ -71,14 +58,35 @@ export async function POST(req: NextRequest) {
         inflationBreakdown: inflation.breakdown,
         inflationConfidence: inflation.confidence,
         computedAt: now,
-      },
-    })
+      })
+      .onConflictDoUpdate({
+        target: userProfile.userId,
+        set: {
+          age: data.age,
+          cityTier: data.city_tier,
+          monthlyRent: String(data.monthly_rent),
+          ownsHome: data.owns_home,
+          dependents: data.dependents,
+          medicalConditions: data.medical_conditions,
+          inflationRate: String(inflation.rate),
+          inflationBreakdown: inflation.breakdown,
+          inflationConfidence: inflation.confidence,
+          computedAt: now,
+        },
+      })
 
-  logger.info({ userId, rate: inflation.rate, confidence: inflation.confidence }, 'onboarding completed')
+    logger.info({ userId, rate: inflation.rate, confidence: inflation.confidence }, 'onboarding completed')
 
-  const response = NextResponse.json(ok({ userId, inflation }))
-  if (isNew) {
-    response.cookies.set(COOKIE_NAME, userId, cookieOptions())
+    const response = NextResponse.json(ok({ userId, inflation }))
+    if (isNew) {
+      response.cookies.set(COOKIE_NAME, userId, cookieOptions())
+    }
+    return response
+  } catch (e) {
+    logger.error({ err: e }, 'onboarding: database error')
+    return NextResponse.json(
+      err('DB_ERROR', e instanceof Error ? e.message : 'database error'),
+      { status: 500 },
+    )
   }
-  return response
 }

@@ -1,6 +1,7 @@
 export const FORBIDDEN_IN_ASSISTANT_OUTPUT = [
   'buy',
   'sell',
+  'invest in',
   'should',
   'recommend',
   'recommended',

@@ -1,0 +1,10 @@
+{
+  "_comment": "Expected extraction from synthetic-cdsl-1.pdf. Explicitly synthetic test data.",
+  "holdings_count_min": 1,
+  "holdings_count_max": 3,
+  "total_value_approx": 45062,
+  "total_value_tolerance_pct": 5,
+  "expected_scheme_name_fragments": [
+    "ICICI Prudential"
+  ]
+}

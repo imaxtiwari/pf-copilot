@@ -1,6 +1,6 @@
 import { db } from '../db'
 import { amfiSchemeMaster } from '../../db/schema'
-import { eq, or, sql } from 'drizzle-orm'
+import { or, sql } from 'drizzle-orm'
 import logger from '../logger'
 
 export type SchemeCheckResult = {
@@ -13,31 +13,34 @@ export async function crossCheckSchemes(
 ): Promise<SchemeCheckResult> {
   if (schemeNames.length === 0) return { matched: [], unmatched: [] }
 
+  // Single query: OR together one LIKE condition per input name.
+  // The application then reverse-maps DB results back to input names — O(n) after one round-trip.
+  const conditions = schemeNames.map(
+    (name) => sql`lower(${amfiSchemeMaster.schemeName}) like ${`%${name.slice(0, 30).toLowerCase()}%`}`,
+  )
+
+  let dbSchemeNames: string[] = []
+  try {
+    const rows = await db
+      .select({ schemeName: amfiSchemeMaster.schemeName })
+      .from(amfiSchemeMaster)
+      .where(or(...conditions))
+    dbSchemeNames = rows.map((r) => r.schemeName.toLowerCase())
+  } catch (e) {
+    logger.warn({ err: e }, 'amfi crossCheckSchemes batch query failed — marking all as unmatched')
+    return { matched: [], unmatched: [...schemeNames] }
+  }
+
   const matched: string[] = []
   const unmatched: string[] = []
-
-  // Check each scheme name against amfi_scheme_master using ILIKE for fuzzy match
   for (const name of schemeNames) {
-    try {
-      const rows = await db
-        .select({ schemeCode: amfiSchemeMaster.schemeCode })
-        .from(amfiSchemeMaster)
-        .where(sql`lower(${amfiSchemeMaster.schemeName}) like lower(${`%${name.slice(0, 30)}%`})`)
-        .limit(1)
-
-      if (rows.length > 0) {
-        matched.push(name)
-      } else {
-        unmatched.push(name)
-      }
-    } catch (e) {
-      logger.warn({ scheme: name, err: e }, 'amfi scheme lookup failed')
+    const prefix = name.slice(0, 30).toLowerCase()
+    if (dbSchemeNames.some((dbName) => dbName.includes(prefix))) {
+      matched.push(name)
+    } else {
       unmatched.push(name)
     }
   }
 
   return { matched, unmatched }
 }
-
-void or // suppress unused import
-void eq

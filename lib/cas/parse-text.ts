@@ -41,9 +41,11 @@ function extractTotal(text: string): number {
 
 // Extract as_of_date from header lines
 function extractDate(text: string): string | null {
-  // "Statement Period: 01-Apr-2023 to 31-Mar-2024" → take last date
-  const periodMatch = text.match(/statement\s+period.*?(\d{1,2}[-\s][A-Za-z]{3}[-\s]\d{4})/i)
-  if (periodMatch) return parseDate(periodMatch[1])
+  // "Statement Period: 01-Apr-2023 to 31-Mar-2024" → take the END date (second capture group)
+  const periodMatch = text.match(
+    /statement\s+period.*?(\d{1,2}[-\s][A-Za-z]{3}[-\s]\d{4})\s+to\s+(\d{1,2}[-\s][A-Za-z]{3}[-\s]\d{4})/i,
+  )
+  if (periodMatch) return parseDate(periodMatch[2])
   // "As On: 31-Mar-2024"
   const asOnMatch = text.match(/as\s+(?:on|of)[:\s]+(\d{1,2}[-/\s][A-Za-z0-9]{2,3}[-/\s]\d{4})/i)
   if (asOnMatch) return parseDate(asOnMatch[1])
@@ -95,7 +97,8 @@ function parseHoldings(text: string): CASHolding[] {
           candidate &&
           !candidate.match(/^Folio/i) &&
           !candidate.match(/^\d/) &&
-          !candidate.match(/^[A-Z]{2,4}\d/) // ISIN prefix
+          !candidate.match(/^[A-Z]{2,4}\d/) && // ISIN prefix (e.g. INF040A01726)
+          !candidate.match(/^[A-Z]{2}[0-9]{10}$/) // full ISIN (12-char)
         ) {
           schemeName = candidate.replace(/\s*-\s*INF\w+$/, '').trim()
           break
@@ -114,6 +117,8 @@ function parseHoldings(text: string): CASHolding[] {
     let match
     while ((match = tableRow.exec(text)) !== null) {
       const schemeName = match[1].trim()
+      // Skip header rows and summary lines that match the numeric pattern
+      if (/^(scheme|fund|folio|description|total|sub.?total|particulars)/i.test(schemeName)) continue
       const units = parseNumber(match[2])
       const nav = parseNumber(match[3])
       const marketValue = parseNumber(match[4])
