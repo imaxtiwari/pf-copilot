@@ -10,7 +10,12 @@ export default defineConfig({
     include: ['tests/unit/**/*.test.ts'],
     coverage: {
       provider: 'v8',
-      include: ['lib/inflation/**'],
+      include: [
+        'lib/inflation/**',
+        'lib/cas/parse-text-helpers.ts',
+        'lib/contracts/cas-validation.ts',
+        'lib/tools/arg-schemas.ts',
+      ],
       thresholds: { lines: 100, branches: 100 },
     },
   },
