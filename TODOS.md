@@ -2,7 +2,7 @@
 
 ---
 
-## [ ] Log a warning when CAS date extraction falls back to today's date
+## [x] Log a warning when CAS date extraction falls back to today's date
 
 **What:** Add a `logger.warn` in `parseCASText` when `extractDate` returns `null`, before the fallback to today's date.
 

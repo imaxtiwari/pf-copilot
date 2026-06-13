@@ -20,7 +20,11 @@ export async function parseCASText(buffer: Buffer): Promise<CASExtraction | null
     return null
   }
 
-  const as_of_date = extractDate(text) ?? new Date().toISOString().slice(0, 10)
+  const extractedDate = extractDate(text)
+  if (!extractedDate) {
+    logger.warn({ preview: text.slice(0, 200) }, 'cas: extractDate returned null — using today as fallback')
+  }
+  const as_of_date = extractedDate ?? new Date().toISOString().slice(0, 10)
   const total_value_reported = extractTotal(text)
   const holdings = parseHoldings(text)
 
