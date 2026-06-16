@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
 
   if (result.ok && result.fromCache) {
     const holdings = await db.query.portfolioHoldings.findMany({
-      where: (h, { eq }) => eq(h.casUploadId, result.uploadId),
+      where: (h: any, { eq }: any) => eq(h.casUploadId, result.uploadId),
     })
     const response = NextResponse.json(
       ok({ holdings_count: holdings.length, unmatched_schemes: [], from_cache: true }),
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
   // All-or-nothing: insert cas_upload + holdings in a transaction
   let uploadId: string
   try {
-    await db.transaction(async (tx) => {
+    await db.transaction(async (tx: any) => {
       const [upload] = await tx
         .insert(casUploads)
         .values({

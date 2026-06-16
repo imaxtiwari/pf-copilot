@@ -4,9 +4,12 @@ import * as schema from '../../db/schema'
 import { getGpt4o } from '../azure-openai'
 import { EXPLAIN_FUND_PROMPT } from '../prompts/explain-fund'
 
-// Module-level singleton — avoids creating a new HTTP agent on every RAG call
-const gpt4oClient = getGpt4o()
-const GPT4O_DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O!
+let gpt4oClient: any = null
+function getGpt4oClient() {
+  if (!gpt4oClient) gpt4oClient = getGpt4o()
+  return gpt4oClient
+}
+const GPT4O_DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O || 'gpt-4o'
 import { retrieveChunks } from './retrieval'
 import { validateRagResponse } from './validate-response'
 import type { RagResponseFormatted, RefusalReason, Citation } from '../contracts/refusal-types'
@@ -87,7 +90,7 @@ export async function explainFund(
       { role: 'user' as const, content: userContent },
     ]
     const start = Date.now()
-    const completion = await gpt4oClient.chat.completions.create({
+    const completion = await getGpt4oClient().chat.completions.create({
       model: GPT4O_DEPLOYMENT,
       messages,
       response_format: { type: 'json_object' },

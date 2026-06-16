@@ -24,6 +24,7 @@
 /coverage
 /playwright-report
 /test-results
+/tests/e2e/report/
 tests/eval/results-*.json
 tests/eval/golden-cas/*.pdf
 
@@ -37,3 +38,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local data
+data/

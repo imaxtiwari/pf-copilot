@@ -30,6 +30,30 @@ async function main() {
     WITH (m = 16, ef_construction = 64)
   `)
 
+  console.log('Creating immutable triggers for fund_snapshots...')
+  await db.execute(sql`
+    CREATE OR REPLACE FUNCTION prevent_update()
+    RETURNS TRIGGER AS $$
+    BEGIN
+      RAISE EXCEPTION 'NO UPDATES EVER: Rows in this table are immutable.';
+    END;
+    $$ LANGUAGE plpgsql;
+  `)
+  
+  await db.execute(sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger WHERE tgname = 'fund_snapshots_prevent_update'
+      ) THEN
+        CREATE TRIGGER fund_snapshots_prevent_update
+        BEFORE UPDATE ON fund_snapshots
+        FOR EACH ROW EXECUTE FUNCTION prevent_update();
+      END IF;
+    END
+    $$;
+  `)
+
   console.log('All migrations complete.')
   await pool.end()
 }

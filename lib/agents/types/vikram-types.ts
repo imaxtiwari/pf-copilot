@@ -1,0 +1,84 @@
+import { z } from 'zod'
+
+export const DecomposedGoalSchema = z.object({
+  goal_id: z.string().uuid(),
+  goal_type: z.enum([
+    'RETIREMENT',
+    'CHILD_EDUCATION',
+    'HOME_PURCHASE',
+    'EMERGENCY_CORPUS',
+    'WEALTH_CREATION',
+    'VACATION',
+    'CUSTOM',
+  ]),
+  description: z.string(),
+  target_corpus_lakh: z.number().positive(),
+  target_date: z.string(), // ISO date or string YYYY-MM-DD
+  current_corpus_lakh: z.number().nonnegative(),
+  monthly_sip_required_lakh: z.number().nonnegative(),
+  required_cagr_pct: z.number(),
+  inflation_adjusted_target_lakh: z.number().positive(),
+  inflation_rate_used_pct: z.number().nonnegative(),
+})
+
+export type DecomposedGoal = z.infer<typeof DecomposedGoalSchema>
+
+export const ClientGoalAssessmentSchema = z.object({
+  assessment_id: z.string().uuid(),
+  client_id: z.string().uuid(),
+  version: z.number().int().positive(),
+  assessed_at: z.string(),
+  expires_at: z.string(),
+  stated_goals: z.array(z.string()),
+  decomposed_goals: z.array(DecomposedGoalSchema),
+  achievability_verdict: z.enum(['ACHIEVABLE', 'REVISED', 'IMPOSSIBLE']),
+  revised_plan: z.string().optional(),
+  goal_sequence_conflicts: z.array(z.string()),
+  sources: z.array(
+    z.object({
+      url: z.string(),
+      retrieved_at: z.string(),
+    })
+  ),
+})
+
+export type ClientGoalAssessment = z.infer<typeof ClientGoalAssessmentSchema>
+
+export const StrategyFrameworkSchema = z.object({
+  framework_id: z.string().uuid(),
+  client_id: z.string().uuid(),
+  selected_frameworks: z.array(
+    z.object({
+      name: z.string(),
+      description: z.string(),
+      why_applicable: z.string(),
+      source_url: z.string(),
+      retrieved_at: z.string(),
+    })
+  ),
+  asset_allocation_guidance: z.object({
+    equity_pct_range: z.tuple([z.number(), z.number()]),
+    debt_pct_range: z.tuple([z.number(), z.number()]),
+    gold_pct_range: z.tuple([z.number(), z.number()]),
+    international_pct_range: z.tuple([z.number(), z.number()]),
+  }),
+})
+
+export type StrategyFramework = z.infer<typeof StrategyFrameworkSchema>
+
+export const MarketContextBriefSchema = z.object({
+  brief_id: z.string().uuid(),
+  generated_at: z.string(),
+  market_regime: z.enum(['EARLY_BULL', 'LATE_BULL', 'BEAR', 'RECOVERY', 'SIDEWAYS']),
+  confidence: z.enum(['HIGH', 'MEDIUM', 'LOW']),
+  evidence: z.array(z.string()),
+  implications_for_new_investors: z.string(),
+  sources: z.array(
+    z.object({
+      url: z.string(),
+      retrieved_at: z.string(),
+    })
+  ),
+})
+
+export type MarketContextBrief = z.infer<typeof MarketContextBriefSchema>

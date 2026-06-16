@@ -99,13 +99,13 @@ export default async function PortfolioPage() {
 
   // ── factsheet returns ───────────────────────────────────────────────────────
   const schemeCodes = [
-    ...new Set(holdingRows.filter((h) => h.schemeCode).map((h) => h.schemeCode!)),
+    ...new Set(holdingRows.filter((h: any) => h.schemeCode).map((h: any) => h.schemeCode!)),
   ]
 
   const returnsChunks: Array<{ schemeCode: string; chunkText: string; factsheetDate: string }> =
     schemeCodes.length > 0
       ? (
-          await db.execute<{ scheme_code: string; chunk_text: string; factsheet_date: string }>(
+          (await db.execute(
             sql`
               SELECT DISTINCT ON (scheme_code)
                 scheme_code,
@@ -116,8 +116,8 @@ export default async function PortfolioPage() {
                 AND section = 'returns'
               ORDER BY scheme_code, factsheet_date DESC
             `,
-          )
-        ).rows.map((r) => ({
+          )) as any
+        ).rows.map((r: any) => ({
           schemeCode: r.scheme_code,
           chunkText: r.chunk_text,
           factsheetDate: r.factsheet_date,
@@ -125,11 +125,11 @@ export default async function PortfolioPage() {
       : []
 
   const returnsMap = new Map(
-    returnsChunks.map((c) => [c.schemeCode, { chunkText: c.chunkText, factsheetDate: c.factsheetDate }]),
+    returnsChunks.map((c: any) => [c.schemeCode, { chunkText: c.chunkText, factsheetDate: c.factsheetDate }]),
   )
 
   // ── assemble inputs for pure function ───────────────────────────────────────
-  const holdingsForComputation = holdingRows.map((h) => {
+  const holdingsForComputation = holdingRows.map((h: any) => {
     const returnsEntry = h.schemeCode ? returnsMap.get(h.schemeCode) : undefined
     return {
       scheme_code: h.schemeCode,
@@ -141,7 +141,7 @@ export default async function PortfolioPage() {
   })
 
   const result = computeRealReturns(holdingsForComputation, inflationRate)
-  const missingCount = result.per_holding.filter((h) => h.nominal_return_1y === null).length
+  const missingCount = result.per_holding.filter((h: any) => h.nominal_return_1y === null).length
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">

@@ -20,8 +20,12 @@ const P95_LATENCY_BUDGET_MS = 12_000
 const MAX_TOOL_ITERATIONS = 5
 
 // Module-level singletons — avoids creating a new HTTP agent on every chat turn
-const _client = getGpt4oMini()
-const _deployment = process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O_MINI!
+let _client: any = null
+function getClient() {
+  if (!_client) _client = getGpt4oMini()
+  return _client
+}
+const _deployment = process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O_MINI || 'gpt-4o-mini'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
@@ -89,8 +93,8 @@ export async function runOrchestrator(
     { role: 'system', content: ORCHESTRATOR_PROMPT.text },
     ...history
       .reverse()
-      .filter((h) => h.role === 'user' || h.role === 'assistant')
-      .map((h) => ({
+      .filter((h: any) => h.role === 'user' || h.role === 'assistant')
+      .map((h: any) => ({
         role: h.role as 'user' | 'assistant',
         content: h.content,
       })),
@@ -101,7 +105,7 @@ export async function runOrchestrator(
 
   // 4. Tool-call loop with iteration cap
   for (let i = 0; i < MAX_TOOL_ITERATIONS; i++) {
-    const completion = await _client.chat.completions.create({
+    const completion = await getClient().chat.completions.create({
       model: _deployment,
       messages,
       tools: TOOL_DEFINITIONS,
