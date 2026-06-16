@@ -165,6 +165,9 @@ globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise
 
   if (urlStr.includes(':6333')) {
     if (urlStr.includes('/collections/')) {
+      if (urlStr.includes('/points/search')) {
+        return new Response(JSON.stringify({ result: [] }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+      }
       return new Response(JSON.stringify({ result: true }), { status: 200, headers: { 'Content-Type': 'application/json' } })
     }
     if (urlStr.includes('/collections')) {

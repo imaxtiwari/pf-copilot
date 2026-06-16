@@ -25,7 +25,8 @@ import { Vikram } from './vikram'
 import { Aria } from './aria'
 import { Soma } from './soma'
 import { Priya } from './priya'
-import { KnowledgeCommons } from '../research/knowledge-commons'
+import { KnowledgeCommons, WeeklyLearning } from '../research/knowledge-commons'
+import { AgentId } from '../deliberation/message-schema'
 import { getGpt4o } from '../azure-openai'
 import logger from '../logger'
 
@@ -104,6 +105,22 @@ export class Dhruv {
     const aria = new Aria(this.deliberationRoom, this.memoryStore, new WebResearchTool('ARIA', this.memoryStore, this.deliberationRoom), this.db)
     const soma = new Soma(this.deliberationRoom, this.memoryStore, new WebResearchTool('SOMA', this.memoryStore, this.deliberationRoom), this.db)
     const priya = new Priya(this.deliberationRoom, this.memoryStore, new WebResearchTool('PRIYA', this.memoryStore, this.deliberationRoom), this.db)
+
+    // Prime agents with relevant Knowledge Commons entries
+    try {
+      const kc = new KnowledgeCommons(this.memoryStore, this.deliberationRoom)
+      const [ariaKnowledge, kiranKnowledge] = await Promise.all([
+        kc.query('portfolio fault patterns concentration bias compliance', 3, 'ARIA'),
+        kc.query('macro risk market regime India VIX RBI rate', 3, 'KIRAN'),
+      ])
+      logger.info({
+        pipelineRunId,
+        ariaKnowledgeCount: ariaKnowledge.length,
+        kiranKnowledgeCount: kiranKnowledge.length,
+      }, 'DHRUV: Knowledge Commons primed for pipeline run')
+    } catch (err) {
+      logger.warn({ err, pipelineRunId }, 'DHRUV: Failed to query Knowledge Commons at pipeline start')
+    }
 
     // 1. KIRAN Risk Profile
     await this.stateMachine.transition('ONBOARDING', 'KIRAN_RISK_PROFILE', pipelineRunId)
@@ -346,6 +363,22 @@ export class Dhruv {
     const aria = new Aria(this.deliberationRoom, this.memoryStore, new WebResearchTool('ARIA', this.memoryStore, this.deliberationRoom), this.db)
     const soma = new Soma(this.deliberationRoom, this.memoryStore, new WebResearchTool('SOMA', this.memoryStore, this.deliberationRoom), this.db)
     const priya = new Priya(this.deliberationRoom, this.memoryStore, new WebResearchTool('PRIYA', this.memoryStore, this.deliberationRoom), this.db)
+
+    // Prime agents with relevant Knowledge Commons entries
+    try {
+      const kc = new KnowledgeCommons(this.memoryStore, this.deliberationRoom)
+      const [ariaKnowledge, kiranKnowledge] = await Promise.all([
+        kc.query('portfolio fault patterns concentration bias compliance', 3, 'ARIA'),
+        kc.query('macro risk market regime India VIX RBI rate', 3, 'KIRAN'),
+      ])
+      logger.info({
+        pipelineRunId,
+        ariaKnowledgeCount: ariaKnowledge.length,
+        kiranKnowledgeCount: kiranKnowledge.length,
+      }, 'DHRUV: Knowledge Commons primed for pipeline run')
+    } catch (err) {
+      logger.warn({ err, pipelineRunId }, 'DHRUV: Failed to query Knowledge Commons at pipeline start')
+    }
 
     try {
       if (!riskProfile) {
@@ -884,29 +917,49 @@ ${JSON.stringify(goalAssessment.stated_goals, null, 2)}
   async runWeeklyKnowledgeConsolidation(): Promise<void> {
     logger.info('DHRUV: runWeeklyKnowledgeConsolidation invoked')
     const kc = new KnowledgeCommons(this.memoryStore, this.deliberationRoom)
+    const consolidationRunId = randomUUID()
 
-    // Mock agent weekly learnings
-    const weeklyLearnings = {
-      ARIA: [
-        {
-          summary: 'Uncovered structural concentration bias in mid-cap indices under specific market regimes.',
-          source_urls: ['https://sebi.gov.in'],
-          tags: ['weekly_learning', 'concentration'],
-          agent: 'ARIA' as any
-        }
-      ],
-      KIRAN: [
-        {
-          summary: 'Hedge instruments performance under RBI policy shifts demonstrates dynamic correlation adjustments.',
-          source_urls: ['https://sebi.gov.in'],
-          tags: ['weekly_learning', 'risk_hedging'],
-          agent: 'KIRAN' as any
-        }
-      ]
+    try {
+      // Pull recent memories from each agent's Qdrant collection
+      const ariaMemories = await this.memoryStore.recall('ARIA', 'fault patterns concentration bias methodology', {
+        limit: 3, pipeline_run_id: consolidationRunId
+      })
+      const kiranMemories = await this.memoryStore.recall('KIRAN', 'macro risk bulletin market regime hedge', {
+        limit: 3, pipeline_run_id: consolidationRunId
+      })
+      const weeklyLearnings: Partial<Record<AgentId, WeeklyLearning[]>> = {}
+
+      if (ariaMemories.length > 0) {
+        weeklyLearnings['ARIA'] = ariaMemories
+          .filter(m => m.source_url && m.source_url.startsWith('http'))
+          .map(m => ({
+            summary: m.content,
+            source_urls: [m.source_url],
+            tags: ['weekly_learning', 'audit'],
+            agent: 'ARIA' as AgentId
+          }))
+      }
+
+      if (kiranMemories.length > 0) {
+        weeklyLearnings['KIRAN'] = kiranMemories
+          .filter(m => m.source_url && m.source_url.startsWith('http'))
+          .map(m => ({
+            summary: m.content,
+            source_urls: [m.source_url],
+            tags: ['weekly_learning', 'macro_risk'],
+            agent: 'KIRAN' as AgentId
+          }))
+      }
+
+      if (Object.keys(weeklyLearnings).length > 0) {
+        await kc.consolidate(weeklyLearnings, consolidationRunId)
+        logger.info('DHRUV: consolidated weekly learnings to Knowledge Commons')
+      } else {
+        logger.warn('DHRUV: No sourced agent memories found for consolidation this week')
+      }
+    } catch (err) {
+      logger.warn({ err }, 'DHRUV: Failed weekly knowledge consolidation')
     }
-
-    await kc.consolidate(weeklyLearnings, randomUUID())
-    logger.info('DHRUV: consolidated weekly learnings to Knowledge Commons')
   }
 
   async runWeeklyResearch(): Promise<void> {

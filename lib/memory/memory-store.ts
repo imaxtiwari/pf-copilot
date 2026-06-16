@@ -40,7 +40,10 @@ class MockQdrantClient {
     return list.slice(0, data.limit).map(p => ({
       id: p.id,
       score: 1.0,
-      payload: p.payload
+      payload: {
+        ...p.payload,
+        source_url: p.payload?.source_url || ''
+      }
     }))
   }
 
