@@ -3,7 +3,7 @@
 Personal Finance Copilot for Indian retail investors.
 **Educational tool — NOT investment advice.**
 
-Shows real returns after personal inflation, explains mutual fund factsheets with strict citations from official AMFI factsheets, and parses Consolidated Account Statements (CAS) from NSDL/CDSL.
+This platform calculates real returns adjusted for personal inflation, parses CDSL/NSDL Consolidated Account Statements (CAS), and runs a RAG-driven mutual fund factsheet explainer strictly grounded in official AMFI data. Additionally, it implements a sequential multi-agent advisory pipeline (consisting of DHRUV, KIRAN, VIKRAM, SOMA, PRIYA, and ARIA) that automates goal-based risk profiling, portfolio asset allocation, backtested fund selection, independent auditing, and committee deliberation.
 
 ---
 
