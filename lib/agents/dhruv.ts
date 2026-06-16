@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto'
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, asc } from 'drizzle-orm'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as schema from '../../db/schema'
@@ -14,7 +14,7 @@ import {
 } from './types/dhruv-types'
 import { PortfolioDraft } from './types/priya-types'
 import { CritiqueReport } from './types/aria-types'
-import { ClientRiskProfile } from './types/kiran-types'
+import { ClientRiskProfile, ClientRiskProfileSchema } from './types/kiran-types'
 import { ClientGoalAssessment, StrategyFramework } from './types/vikram-types'
 import { FundUniverse } from './types/soma-types'
 import { DeliberationRoom } from '../deliberation/deliberation-room'
@@ -292,7 +292,17 @@ export class Dhruv {
 
       // 2. VIKRAM Interview Questions
       await this.stateMachine.transition('KIRAN_RISK_PROFILE', 'VIKRAM_INTERVIEW', pipelineRunId)
-      await vikram.conductClientInterview(riskProfile, pipelineRunId)
+      const interviewQuestions = await vikram.conductClientInterview(riskProfile, pipelineRunId)
+
+      await this.db
+        .update(schema.pipelineRuns)
+        .set({
+          payload: {
+            kiran_risk_profile: riskProfile,
+            vikram_interview_questions: interviewQuestions
+          }
+        })
+        .where(eq(schema.pipelineRuns.runId, pipelineRunId))
       
       logger.info({ pipelineRunId }, 'DHRUV: runPhase1 completed successfully')
     } catch (err) {
@@ -312,6 +322,27 @@ export class Dhruv {
     providedAnswers: any
   ): Promise<void> {
     logger.info({ pipelineRunId }, 'DHRUV: runPhase2 started')
+
+    let riskProfile: ClientRiskProfile | undefined = undefined
+
+    try {
+      const [run] = await this.db
+        .select({ payload: schema.pipelineRuns.payload })
+        .from(schema.pipelineRuns)
+        .where(eq(schema.pipelineRuns.runId, pipelineRunId))
+        .limit(1)
+
+      if (run?.payload) {
+        const payloadObj = run.payload as any
+        const parsedProfile = ClientRiskProfileSchema.safeParse(payloadObj.kiran_risk_profile)
+        if (parsedProfile.success) {
+          riskProfile = parsedProfile.data
+        }
+      }
+    } catch (dbErr) {
+      logger.warn({ dbErr, pipelineRunId }, 'DHRUV: Failed to query pipeline payload for risk profile')
+    }
+
     const kiran = new Kiran(this.deliberationRoom, this.memoryStore, new WebResearchTool('KIRAN', this.memoryStore, this.deliberationRoom), this.db)
     const vikram = new Vikram(this.deliberationRoom, this.memoryStore, new WebResearchTool('VIKRAM', this.memoryStore, this.deliberationRoom), this.db)
     const aria = new Aria(this.deliberationRoom, this.memoryStore, new WebResearchTool('ARIA', this.memoryStore, this.deliberationRoom), this.db)
@@ -319,21 +350,23 @@ export class Dhruv {
     const priya = new Priya(this.deliberationRoom, this.memoryStore, new WebResearchTool('PRIYA', this.memoryStore, this.deliberationRoom), this.db)
 
     try {
-      // Re-fetch risk profile or build it again (it is quick and deterministic)
-      const riskProfile = await kiran.buildClientRiskProfile(
-        clientId,
-        {
-          age: clientData.age,
-          yearsToGoal: clientData.yearsToGoal || 10,
-          cityTier: clientData.cityTier || 'metro',
-          dependents: clientData.dependents || 'spouse',
-          monthlyRent: clientData.monthlyRent || 0,
-          medicalConditions: clientData.medicalConditions || false,
-          taxBracketPct: clientData.taxBracketPct || 30,
-          version: 1
-        },
-        pipelineRunId
-      )
+      if (!riskProfile) {
+        logger.warn({ pipelineRunId }, 'DHRUV: Phase 1 risk profile not found in payload — rebuilding')
+        riskProfile = await kiran.buildClientRiskProfile(
+          clientId,
+          {
+            age: clientData.age,
+            yearsToGoal: clientData.yearsToGoal || 10,
+            cityTier: clientData.cityTier || 'metro',
+            dependents: clientData.dependents || 'spouse',
+            monthlyRent: clientData.monthlyRent || 0,
+            medicalConditions: clientData.medicalConditions || false,
+            taxBracketPct: clientData.taxBracketPct || 30,
+            version: 1
+          },
+          pipelineRunId
+        )
+      }
 
       // 3. VIKRAM Goal Assessment
       await this.stateMachine.transition('VIKRAM_INTERVIEW', 'VIKRAM_GOAL_ASSESSMENT', pipelineRunId)
@@ -567,10 +600,129 @@ export class Dhruv {
   ): Promise<DeadlockReport> {
     logger.warn({ pipelineRunId }, 'DHRUV: PIPELINE DEADLOCK triggered')
 
-    // Propose compromise
-    const compromiseProposal = 'Objections analyzed. Recommend scaling back IT allocation to 50% and distributing remaining 30% into hybrid asset funds to reconcile ARIA concentration concerns.'
-    
-    // Select draft with highest confidence score as fallback
+    // 1. Pull all CommitteeVoteRecords for this pipelineRunId from the committeeVotes DB table (order by votedAt ASC)
+    let voteRecords: any[] = []
+    try {
+      voteRecords = await this.db
+        .select()
+        .from(schema.committeeVotes)
+        .where(eq(schema.committeeVotes.pipelineRunId, pipelineRunId))
+        .orderBy(asc(schema.committeeVotes.votedAt))
+    } catch (dbErr) {
+      logger.error({ dbErr, pipelineRunId }, 'DHRUV: failed to fetch committee votes from database')
+    }
+
+    // 2. Pull all CritiqueReports from deliberation room history and filter for message_type === 'CRITIQUE'
+    const critiqueMessages = (await this.deliberationRoom
+      .getHistory(pipelineRunId))
+      .filter(m => m.message_type === 'CRITIQUE')
+
+    // 3. Summarize all drafts
+    const draftsSummary = allDrafts.map(d => ({
+      portfolio_id: d.portfolio_id,
+      version: d.version,
+      revision_number: d.revision_number,
+      total_confidence_score: d.confidence_score.total,
+      fund_allocations: d.fund_allocations.map(fa => ({
+        fund_name: fa.fund_name,
+        allocation_pct: fa.allocation_pct
+      }))
+    }))
+
+    // 4. Build GPT-4o prompt and execute LLM call
+    let compromiseProposal = 'Objections analyzed. Recommend scaling back IT allocation to 50% and distributing remaining 30% into hybrid asset funds to reconcile ARIA concentration concerns.'
+    let rootCause = 'Objections regarding asset class concentration.'
+    let agentObjections: { agent: string; objection_summary: string; unresolved_faults: string[] }[] = [
+      {
+        agent: 'ARIA',
+        objection_summary: 'Concentration risk remains above targets.',
+        unresolved_faults: ['Large-cap IT sector allocation is 80%']
+      }
+    ]
+    let recommendedAction = ''
+
+    try {
+      const gpt = getGpt4o()
+      const prompt = `
+You are resolving a committee deadlock after 5 revision cycles in a multi-agent portfolio recommendation system.
+Analyze the objection and voting history across the revision cycles to determine the root cause of disagreement and formulate a specific, actionable compromise.
+
+Vote Records History (Ordered chronologically):
+${JSON.stringify(
+  voteRecords.map(r => ({
+    voter: r.voter,
+    vote: r.vote,
+    reasoning: r.reasoning,
+    critical_faults_count: r.criticalFaultsCount,
+    hedge_coverage_pct: r.hedgeCoveragePct,
+    voted_at: r.votedAt
+  })),
+  null,
+  2
+)}
+
+Deliberation Critique Messages:
+${JSON.stringify(
+  critiqueMessages.map(m => ({
+    sender: m.sender,
+    objections: m.payload.critique_points,
+    severity: m.payload.severity,
+    recommended_action: m.payload.recommended_action,
+    timestamp: m.timestamp
+  })),
+  null,
+  2
+)}
+
+Portfolio Drafts Evaluated (with total confidence scores):
+${JSON.stringify(draftsSummary, null, 2)}
+
+Instructions:
+1. Identify the root cause of disagreement between agents (e.g., ARIA's concentration concerns vs KIRAN's hedging targets vs VIKRAM's strategy rules).
+2. Propose a specific, actionable compromise (compromise_proposal) that addresses the primary unresolved concerns (e.g., reallocating weights, adjusting asset splits).
+3. List the objections raised by each agent, highlighting the unresolved faults.
+4. Recommend a clear next action (recommended_action) for fallback deployment.
+
+CRITICAL RULE:
+- Return valid JSON only with no markdown or backticks. Format:
+{
+  "compromise_proposal": "Compromise proposal string",
+  "root_cause": "Root cause string",
+  "agent_objections": [
+    {
+      "agent": "Agent name (e.g., ARIA or KIRAN)",
+      "objection_summary": "Objection summary",
+      "unresolved_faults": ["Fault 1", "Fault 2"]
+    }
+  ],
+  "recommended_action": "Recommended action string"
+}
+`
+
+      const response = await gpt.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: DHRUV_SYSTEM_PROMPT },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.3,
+        max_tokens: 800
+      })
+
+      const rawText = response.choices[0]?.message?.content?.trim() || ''
+      const cleanJson = rawText.replace(/^```json/, '').replace(/```$/, '').trim()
+      const parsed = JSON.parse(cleanJson)
+
+      if (parsed.compromise_proposal) compromiseProposal = parsed.compromise_proposal
+      if (parsed.root_cause) rootCause = parsed.root_cause
+      if (parsed.agent_objections) agentObjections = parsed.agent_objections
+      if (parsed.recommended_action) recommendedAction = parsed.recommended_action
+
+    } catch (err) {
+      logger.error({ err, pipelineRunId }, 'DHRUV: executeDeadlockProtocol LLM call failed. Using fallback compromise.')
+    }
+
+    // 5. Select draft with highest confidence score as fallback
     let bestDraft = allDrafts[0]
     for (const d of allDrafts) {
       if (d.confidence_score.total > bestDraft.confidence_score.total) {
@@ -578,21 +730,20 @@ export class Dhruv {
       }
     }
 
+    if (!recommendedAction) {
+      recommendedAction = `Deploying fallback portfolio draft ${bestDraft.portfolio_id} which has the highest confidence score: ${bestDraft.confidence_score.total}/100.`
+    }
+
+    // 6. Build and validate report
     const report: DeadlockReport = {
       report_id: randomUUID(),
       pipeline_run_id: pipelineRunId,
       triggered_at: new Date().toISOString(),
       revision_cycles_completed: allDrafts.length - 1,
-      agent_objections: [
-        {
-          agent: 'ARIA',
-          objection_summary: 'Concentration risk remains above targets.',
-          unresolved_faults: ['Large-cap IT sector allocation is 80%']
-        }
-      ],
+      agent_objections: agentObjections,
       dhruv_compromise_proposal: compromiseProposal,
       compromise_vote_outcome: 'ACCEPTED',
-      recommended_action: `Deploying fallback portfolio draft ${bestDraft.portfolio_id} which has the highest confidence score: ${bestDraft.confidence_score.total}/100.`
+      recommended_action: recommendedAction
     }
 
     const validated = DeadlockReportSchema.parse(report)

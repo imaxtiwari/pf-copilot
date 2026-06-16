@@ -209,6 +209,7 @@ export const pipelineRuns = pgTable('pipeline_runs', {
   startedAt: timestamp('started_at').defaultNow(),
   completedAt: timestamp('completed_at'),
   finalPortfolioId: uuid('final_portfolio_id'),
+  payload: jsonb('payload'),
 })
 
 export const portfolioDrafts = pgTable('portfolio_drafts', {
@@ -237,3 +238,20 @@ export const committeeVotes = pgTable('committee_votes', {
   hedgeCoveragePct: numeric('hedge_coverage_pct'),
   votedAt: timestamp('voted_at').defaultNow(),
 })
+
+export const deliberationMessages = pgTable('deliberation_messages', {
+  messageId: uuid('message_id').primaryKey(),
+  pipelineRunId: uuid('pipeline_run_id').references(() => pipelineRuns.runId),
+  sender: text('sender').notNull(),
+  recipient: text('recipient').notNull(),
+  messageType: text('message_type').notNull(),
+  payload: jsonb('payload').notNull(),
+  oracleValidation: jsonb('oracle_validation').notNull(),
+  references: jsonb('references').default([]),
+  timestamp: timestamp('timestamp').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table: any) => [
+  index('deliberation_messages_run_id_idx').on(table.pipelineRunId),
+  index('deliberation_messages_timestamp_idx').on(table.pipelineRunId, table.timestamp),
+])
+

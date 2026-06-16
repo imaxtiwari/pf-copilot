@@ -43,7 +43,7 @@ export async function GET(
       )
     }
 
-    const messages = deliberationRoom.getHistory(runId)
+    const messages = await deliberationRoom.getHistory(runId)
 
     return NextResponse.json({
       messages,

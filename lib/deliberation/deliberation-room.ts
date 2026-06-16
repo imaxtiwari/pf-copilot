@@ -1,6 +1,9 @@
 import { EventEmitter } from 'events'
 import { randomUUID } from 'crypto'
 import { ZodError } from 'zod'
+import { eq, asc } from 'drizzle-orm'
+import { db } from '@/lib/db'
+import { deliberationMessages } from '@/db/schema'
 import { DeliberationMessageSchema, DeliberationMessage, AgentId } from './message-schema'
 import { auditTrail, AuditActionType } from '../audit/audit-trail'
 import { oracleMiddleware } from '../oracle/oracle'
@@ -17,13 +20,18 @@ export interface BoundDeliberationRoom {
     rawMsg: Omit<DeliberationMessage, 'message_id' | 'timestamp' | 'oracle_validation' | 'pipeline_run_id'>
   ): Promise<DeliberationMessage>
   subscribe(agentId: AgentId | 'ALL', handler: (msg: DeliberationMessage) => void): () => void
-  getHistory(): DeliberationMessage[]
+  getHistory(): Promise<DeliberationMessage[]>
 }
 
 // ─── Deliberation Room ────────────────────────────────────────────────────────
 
 export class DeliberationRoom extends EventEmitter {
   private middlewares: MiddlewareFn[] = []
+  private cache = new Map<string, DeliberationMessage[]>()
+
+  constructor(private dbClient?: any) {
+    super()
+  }
 
   // Register a middleware (e.g. ORACLE interceptor in Step 5)
   addMiddleware(fn: MiddlewareFn): void {
@@ -59,6 +67,35 @@ export class DeliberationRoom extends EventEmitter {
       } catch (err) {
         logger.error({ err, message_id: message.message_id }, 'Middleware threw — aborting publish')
         throw err
+      }
+    }
+
+    // Write-through caching
+    const runId = message.pipeline_run_id
+    if (!this.cache.has(runId)) {
+      this.cache.set(runId, [])
+    }
+    this.cache.get(runId)!.push(message)
+
+    // Best-effort database write
+    if (this.dbClient) {
+      try {
+        await this.dbClient
+          .insert(deliberationMessages)
+          .values({
+            messageId: message.message_id,
+            pipelineRunId: message.pipeline_run_id,
+            sender: message.sender,
+            recipient: message.recipient,
+            messageType: message.message_type,
+            payload: message.payload,
+            oracleValidation: message.oracle_validation,
+            references: message.references,
+            timestamp: new Date(message.timestamp),
+          })
+          .onConflictDoNothing()
+      } catch (err) {
+        logger.warn({ err, message_id: message.message_id }, 'Failed to persist deliberation message to PostgreSQL')
       }
     }
 
@@ -113,8 +150,39 @@ export class DeliberationRoom extends EventEmitter {
     }
   }
 
-  // Return full deliberation history for a pipeline run (read from audit trail)
-  getHistory(pipeline_run_id: string): DeliberationMessage[] {
+  // Return full deliberation history for a pipeline run
+  async getHistory(pipeline_run_id: string): Promise<DeliberationMessage[]> {
+    if (this.dbClient) {
+      try {
+        const rows = await this.dbClient
+          .select()
+          .from(deliberationMessages)
+          .where(eq(deliberationMessages.pipelineRunId, pipeline_run_id))
+          .orderBy(asc(deliberationMessages.timestamp))
+
+        return rows.map((row: any) => ({
+          message_id: row.messageId,
+          pipeline_run_id: row.pipelineRunId,
+          timestamp: row.timestamp instanceof Date ? row.timestamp.toISOString() : row.timestamp,
+          sender: row.sender,
+          message_type: row.messageType,
+          recipient: row.recipient,
+          payload: row.payload,
+          oracle_validation: row.oracleValidation,
+          references: row.references || []
+        })) as DeliberationMessage[]
+      } catch (err) {
+        logger.warn({ err, pipeline_run_id }, 'Failed to read deliberation history from DB, falling back to cache/auditTrail')
+      }
+    }
+
+    // Fallback: Check local cache first
+    const cached = this.cache.get(pipeline_run_id)
+    if (cached && cached.length > 0) {
+      return cached
+    }
+
+    // Fallback to legacy audit trail query
     const logs = auditTrail.query({
       pipeline_run_id,
       action_type: AuditActionType.DELIBERATION_MESSAGE_SENT
@@ -123,9 +191,6 @@ export class DeliberationRoom extends EventEmitter {
     return logs.reduce<DeliberationMessage[]>((acc, log) => {
       try {
         const payload = JSON.parse(log.payload_json) as { message_id?: string }
-        // The full message was captured in audit payload — reconstruct if full msg stored
-        // Here we return what we have from the audit record
-        // For full message replay, agents should store full payload; this returns metadata
         acc.push(payload as unknown as DeliberationMessage)
       } catch {
         logger.warn({ log_id: log.log_id }, 'Could not parse deliberation log payload')
@@ -149,7 +214,7 @@ export class DeliberationRoom extends EventEmitter {
         return room.subscribe(agentId, handler)
       },
 
-      getHistory(): DeliberationMessage[] {
+      getHistory(): Promise<DeliberationMessage[]> {
         return room.getHistory(pipeline_run_id)
       }
     }
@@ -158,10 +223,11 @@ export class DeliberationRoom extends EventEmitter {
 
 // ─── Singleton Export ─────────────────────────────────────────────────────────
 
-export const deliberationRoom = new DeliberationRoom()
+export const deliberationRoom = new DeliberationRoom(db)
 
 // Increase max listeners to accommodate all 7 agents subscribing
 deliberationRoom.setMaxListeners(20)
 
 // ORACLE is ALWAYS first — registered before any agent middleware
 deliberationRoom.addMiddleware(oracleMiddleware)
+

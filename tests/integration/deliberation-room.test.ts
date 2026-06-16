@@ -157,7 +157,7 @@ describe('Deliberation Room Integration Tests', () => {
       references: []
     })
 
-    const history = room.getHistory(runId)
+    const history = await room.getHistory(runId)
     expect(history).toHaveLength(2)
     expect(history[0].message_id).toBe(m1.message_id)
     expect(history[1].message_id).toBe(m2.message_id)
