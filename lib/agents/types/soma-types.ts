@@ -71,3 +71,28 @@ export const FundWatchlistAlertSchema = z.object({
 })
 
 export type FundWatchlistAlert = z.infer<typeof FundWatchlistAlertSchema>
+
+export const FundUniverseSchema = z.object({
+  universe_id: z.string().uuid(),
+  generated_at: z.string(),
+  pipeline_run_id: z.string().uuid(),
+  filters_applied: z.array(z.object({
+    filter: z.string(),
+    threshold: z.string(),
+  })),
+  eligible_funds: z.array(z.object({
+    scheme_code: z.string(),
+    scheme_name: z.string(),
+    scheme_type: z.enum(['equity', 'debt', 'hybrid', 'index', 'etf', 'fof', 'solution-oriented']),
+    aum_cr: z.number().nullable(),
+    expense_ratio: z.number().nullable(),
+    return_3y: z.number().nullable(),
+    sharpe_3y: z.number().nullable(),
+    track_record_years: z.number(),
+  })),
+  total_screened: z.number().int(),
+  total_eligible: z.number().int(),
+})
+
+export type FundUniverse = z.infer<typeof FundUniverseSchema>
+

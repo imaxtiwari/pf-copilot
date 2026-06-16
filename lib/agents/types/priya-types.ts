@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { HedgeMapSchema, ScenarioStressTestSchema } from './kiran-types'
 import { CritiqueFaultSchema } from './aria-types'
+import { StrategyFrameworkSchema } from './vikram-types'
 
 export const GoalBucketSchema = z.object({
   bucket_id: z.string().uuid(),
@@ -102,6 +103,7 @@ export const PortfolioDraftSchema = z.object({
     })
   ),
   status: z.enum(['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED']),
+  strategy_framework: StrategyFrameworkSchema.optional(),
 })
 
 export type PortfolioDraft = z.infer<typeof PortfolioDraftSchema>

@@ -16,6 +16,7 @@ import { PortfolioDraft } from './types/priya-types'
 import { CritiqueReport } from './types/aria-types'
 import { ClientRiskProfile } from './types/kiran-types'
 import { ClientGoalAssessment, StrategyFramework } from './types/vikram-types'
+import { FundUniverse } from './types/soma-types'
 import { DeliberationRoom } from '../deliberation/deliberation-room'
 import { AgentMemoryStore } from '../memory/memory-store'
 import { WebResearchTool } from '../research/web-research-tool'
@@ -163,12 +164,13 @@ export class Dhruv {
 
     // 5. SOMA Fund Universe
     await this.stateMachine.transition('VIKRAM_GOAL_ASSESSMENT', 'SOMA_FUND_UNIVERSE', pipelineRunId)
-    // SOMA queries standard profile (e.g. scheme 119551) to ensure initialized in DB
-    try {
-      await soma.getFundProfile('119551', pipelineRunId)
-    } catch (e) {
-      logger.warn('DHRUV: soma initial profile check failed (expected if db sync incomplete)')
-    }
+    const fundUniverse = await soma.getEligibleFundUniverse({
+      max_expense_ratio_active: 1.5,
+      max_expense_ratio_index: 0.5,
+      min_aum_equity_cr: 500,
+      min_aum_debt_cr: 1000,
+      min_track_record_years: 3,
+    }, pipelineRunId)
 
     // 6. VIKRAM Strategy selection
     await this.stateMachine.transition('SOMA_FUND_UNIVERSE', 'VIKRAM_STRATEGY', pipelineRunId)
@@ -188,7 +190,8 @@ export class Dhruv {
         riskProfile,
         strategyFramework,
         hedgeMap: initialHedgeMap,
-        critiques: []
+        critiques: [],
+        fundUniverse
       },
       pipelineRunId
     )
@@ -209,7 +212,7 @@ export class Dhruv {
     while (cycle < maxCycles) {
       await this.stateMachine.transition(cycle === 0 ? 'DELIBERATION' : 'REVISION', 'COMMITTEE_VOTE', pipelineRunId)
       
-      const voteRecord = await this.runCommitteeSession(draft, pipelineRunId)
+      const voteRecord = await this.runCommitteeSession(draft, pipelineRunId, strategyFramework)
 
       if (voteRecord.outcome === 'APPROVED') {
         await this.stateMachine.transition('COMMITTEE_VOTE', 'APPROVED', pipelineRunId)
@@ -349,11 +352,13 @@ export class Dhruv {
 
       // 5. SOMA Fund Universe
       await this.stateMachine.transition('VIKRAM_GOAL_ASSESSMENT', 'SOMA_FUND_UNIVERSE', pipelineRunId)
-      try {
-        await soma.getFundProfile('119551', pipelineRunId)
-      } catch (e) {
-        logger.warn('DHRUV: soma initial profile check failed (expected if db sync incomplete)')
-      }
+      const fundUniverse = await soma.getEligibleFundUniverse({
+        max_expense_ratio_active: 1.5,
+        max_expense_ratio_index: 0.5,
+        min_aum_equity_cr: 500,
+        min_aum_debt_cr: 1000,
+        min_track_record_years: 3,
+      }, pipelineRunId)
 
       // 6. VIKRAM Strategy selection
       await this.stateMachine.transition('SOMA_FUND_UNIVERSE', 'VIKRAM_STRATEGY', pipelineRunId)
@@ -371,7 +376,8 @@ export class Dhruv {
           riskProfile,
           strategyFramework,
           hedgeMap: initialHedgeMap,
-          critiques: []
+          critiques: [],
+          fundUniverse
         },
         pipelineRunId
       )
@@ -391,7 +397,7 @@ export class Dhruv {
       while (cycle < maxCycles) {
         await this.stateMachine.transition(cycle === 0 ? 'DELIBERATION' : 'REVISION', 'COMMITTEE_VOTE', pipelineRunId)
         
-        const voteRecord = await this.runCommitteeSession(draft, pipelineRunId)
+        const voteRecord = await this.runCommitteeSession(draft, pipelineRunId, strategyFramework)
 
         if (voteRecord.outcome === 'APPROVED') {
           await this.stateMachine.transition('COMMITTEE_VOTE', 'APPROVED', pipelineRunId)
@@ -449,7 +455,8 @@ export class Dhruv {
 
   async runCommitteeSession(
     draft: PortfolioDraft,
-    pipelineRunId: string
+    pipelineRunId: string,
+    strategyFramework?: StrategyFramework
   ): Promise<CommitteeVoteRecord> {
     logger.info({ pipelineRunId }, 'DHRUV: runCommitteeSession voting session started')
 
@@ -487,13 +494,9 @@ export class Dhruv {
     })
 
     // 3. VIKRAM vote
-    // Vikram approves if strategy frameworks are respected. Mocking strategy match as APPROVE.
-    const vikramVote = 'APPROVE'
-    votes.push({
-      voter: 'VIKRAM',
-      vote: vikramVote,
-      reasoning: 'Portfolio allocations align with strategic asset allocations.'
-    })
+    const vikram = new Vikram(this.deliberationRoom, this.memoryStore, new WebResearchTool('VIKRAM', this.memoryStore, this.deliberationRoom), this.db)
+    const vikramAlignment = await vikram.evaluatePortfolioAlignment(draft, draft.strategy_framework ?? strategyFramework, pipelineRunId)
+    votes.push({ voter: 'VIKRAM', vote: vikramAlignment.vote, reasoning: vikramAlignment.reasoning })
 
     const { outcome, outcomeReason } = determineCommitteeOutcome(votes, hasCritical, hedgeCoverage)
 

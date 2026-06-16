@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto'
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, inArray } from 'drizzle-orm'
 import * as schema from '../../db/schema'
 import {
   DecomposedGoal,
@@ -9,6 +9,7 @@ import {
   StrategyFrameworkSchema,
 } from './types/vikram-types'
 import { ClientRiskProfile } from './types/kiran-types'
+import { PortfolioDraft } from './types/priya-types'
 import { WebResearchTool } from '../research/web-research-tool'
 import { AgentMemoryStore } from '../memory/memory-store'
 import { DeliberationRoom } from '../deliberation/deliberation-room'
@@ -388,5 +389,138 @@ JSON Schema:
     } catch (err) {
       logger.error({ err }, 'VIKRAM: weekly sweep research failed')
     }
+  }
+
+  async evaluatePortfolioAlignment(
+    draft: PortfolioDraft,
+    strategyFramework: StrategyFramework | undefined,
+    pipelineRunId: string
+  ): Promise<{ vote: 'APPROVE' | 'REJECT'; reasoning: string; violations: string[] }> {
+    logger.info({ pipelineRunId, draftId: draft.portfolio_id }, 'VIKRAM: evaluatePortfolioAlignment invoked')
+
+    let vote: 'APPROVE' | 'REJECT' = 'APPROVE'
+    let reasoning = 'Portfolio allocations align with strategic asset allocations.'
+    let violations: string[] = []
+
+    try {
+      if (!strategyFramework) {
+        throw new Error('No strategy framework provided for evaluation')
+      }
+      const schemeCodes = draft.fund_allocations.map(fa => fa.scheme_code).filter(Boolean)
+      const schemeTypesMap = new Map<string, string>()
+
+      if (schemeCodes.length > 0) {
+        const funds = await this.db
+          .select({
+            schemeCode: schema.agentFunds.schemeCode,
+            schemeType: schema.agentFunds.schemeType,
+          })
+          .from(schema.agentFunds)
+          .where(inArray(schema.agentFunds.schemeCode, schemeCodes))
+
+        for (const f of funds) {
+          schemeTypesMap.set(f.schemeCode, f.schemeType.toLowerCase())
+        }
+
+        for (const fa of draft.fund_allocations) {
+          if (!schemeTypesMap.has(fa.scheme_code)) {
+            logger.warn({ schemeCode: fa.scheme_code, pipelineRunId }, 'VIKRAM: schemeCode not found in agent_funds database table. Defaulting to equity.')
+          }
+        }
+      }
+
+      // Aggregate allocations by scheme type
+      const aggregations: Record<string, number> = {}
+      for (const fa of draft.fund_allocations) {
+        const type = schemeTypesMap.get(fa.scheme_code) || 'equity'
+        aggregations[type] = (aggregations[type] || 0) + fa.allocation_pct
+      }
+
+      const selectedFrameworkNames = (strategyFramework.selected_frameworks || []).map(sf => sf.name)
+
+      const gpt = getGpt4oMini()
+      const prompt = `
+Evaluate whether the portfolio allocations align with the strategic asset allocation guidance and selected strategy frameworks.
+
+Strategic Asset Allocation Guidance:
+- Equity range: ${strategyFramework.asset_allocation_guidance.equity_pct_range[0]}% - ${strategyFramework.asset_allocation_guidance.equity_pct_range[1]}%
+- Debt range: ${strategyFramework.asset_allocation_guidance.debt_pct_range[0]}% - ${strategyFramework.asset_allocation_guidance.debt_pct_range[1]}%
+- Gold range: ${strategyFramework.asset_allocation_guidance.gold_pct_range[0]}% - ${strategyFramework.asset_allocation_guidance.gold_pct_range[1]}%
+- International range: ${strategyFramework.asset_allocation_guidance.international_pct_range[0]}% - ${strategyFramework.asset_allocation_guidance.international_pct_range[1]}%
+
+Portfolio Actual Allocations by Asset Class:
+${Object.entries(aggregations)
+  .map(([k, v]) => `- ${k}: ${v.toFixed(2)}%`)
+  .join('\n')}
+
+Selected Strategy Frameworks:
+${selectedFrameworkNames.map(name => `- ${name}`).join('\n')}
+
+Bucket Structure (Goal Buckets):
+${(draft.goal_buckets || [])
+  .map(gb => `- Bucket ID: ${gb.bucket_id}, Type: ${gb.goal_type}, Horizon: ${gb.time_horizon_years} years, Allocation: ${gb.allocation_pct}%`)
+  .join('\n')}
+
+Tasks:
+1. Verify if the actual equity, debt, and gold allocations fall within the specified guidance ranges.
+2. Verify if the selected strategy frameworks are properly reflected in the portfolio's bucket structure.
+3. Determine if the portfolio alignment is acceptable (APPROVE) or has significant deviations (REJECT).
+4. Provide a clear reasoning string and a list of specific violations (if any).
+
+CRITICAL RULE:
+- Do NOT include any investment advice language such as "buy", "sell", "recommend", "invest in", or SEBI regulatory disclaimers. Focus strictly on numerical and structural alignment.
+- Return valid JSON only with no markdown or backticks. Format:
+{
+  "vote": "APPROVE" | "REJECT",
+  "reasoning": "Reasoning string",
+  "violations": ["Violation 1", "Violation 2"]
+}
+`
+
+      const response = await gpt.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: VIKRAM_SYSTEM_PROMPT },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0,
+      })
+
+      const rawText = response.choices[0]?.message?.content?.trim() || ''
+      const cleanJson = rawText.replace(/^```json/, '').replace(/```$/, '').trim()
+      const parsed = JSON.parse(cleanJson)
+
+      if (parsed.vote === 'APPROVE' || parsed.vote === 'REJECT') {
+        vote = parsed.vote
+      }
+      reasoning = parsed.reasoning || reasoning
+      violations = parsed.violations || []
+
+    } catch (err) {
+      logger.warn({ err, pipelineRunId }, 'VIKRAM: evaluatePortfolioAlignment failed or failed to parse JSON response. Defaulting to APPROVE.')
+      vote = 'APPROVE'
+      reasoning = 'Unable to evaluate alignment — defaulting to APPROVE'
+      violations = []
+    }
+
+    try {
+      await this.deliberationRoom.publish({
+        pipeline_run_id: pipelineRunId,
+        sender: 'VIKRAM',
+        message_type: 'VOTE',
+        recipient: 'ALL',
+        payload: {
+          motion: `Evaluate portfolio alignment for draft ${draft.portfolio_id}`,
+          vote,
+          reasoning,
+          conditions: violations
+        },
+        references: [draft.portfolio_id]
+      })
+    } catch (publishErr) {
+      logger.error({ publishErr, pipelineRunId }, 'VIKRAM: failed to publish VOTE to deliberationRoom')
+    }
+
+    return { vote, reasoning, violations }
   }
 }

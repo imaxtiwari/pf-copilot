@@ -1,4 +1,4 @@
-import { eq, desc, inArray } from 'drizzle-orm'
+import { eq, desc, inArray, sql } from 'drizzle-orm'
 import * as schema from '../../db/schema'
 import {
   FundProfile,
@@ -7,12 +7,15 @@ import {
   FundComparisonMatrixSchema,
   CompositionAudit,
   CompositionAuditSchema,
+  FundUniverse,
+  FundUniverseSchema,
 } from './types/soma-types'
 import { WebResearchTool } from '../research/web-research-tool'
 import { AgentMemoryStore } from '../memory/memory-store'
 import { DeliberationRoom } from '../deliberation/deliberation-room'
 import { getGpt4oMini } from '../azure-openai'
 import { parseAmfiDate } from '../../scripts/sync-amfi-master'
+import { randomUUID } from 'crypto'
 import logger from '../logger'
 
 const SOMA_SYSTEM_PROMPT = `You are SOMA (Systematic Observatory for Market Analysis), the Fund Analyst in a multi-agent portfolio intelligence system for Indian investors.
@@ -450,5 +453,148 @@ JSON Schema:
     } catch (err) {
       logger.error({ err }, 'SOMA: weekly sweep research failed')
     }
+  }
+
+  async getEligibleFundUniverse(
+    criteria: {
+      max_expense_ratio_active: number   // default 1.5
+      max_expense_ratio_index: number    // default 0.5
+      min_aum_equity_cr: number         // default 500
+      min_aum_debt_cr: number           // default 1000
+      min_track_record_years: number    // default 3
+    },
+    pipelineRunId: string
+  ): Promise<FundUniverse> {
+    logger.info({ pipelineRunId, criteria }, 'SOMA: getEligibleFundUniverse invoked')
+
+    const max_expense_ratio_active = criteria.max_expense_ratio_active ?? 1.5
+    const max_expense_ratio_index = criteria.max_expense_ratio_index ?? 0.5
+    const min_track_record_years = criteria.min_track_record_years ?? 3
+    const min_track_record_months = min_track_record_years * 12
+
+    const totalScreenedResult = await this.db.execute(sql`
+      SELECT COUNT(DISTINCT scheme_code) as count FROM agent_funds WHERE is_active = true
+    `)
+    const total_screened = parseInt(totalScreenedResult.rows[0]?.count || '0', 10)
+
+    const validSchemeTypes = new Set(['equity', 'debt', 'hybrid', 'index', 'etf', 'fof', 'solution-oriented'])
+    const sanitizeSchemeType = (val: string): 'equity' | 'debt' | 'hybrid' | 'index' | 'etf' | 'fof' | 'solution-oriented' => {
+      const lower = (val || '').toLowerCase().trim()
+      if (validSchemeTypes.has(lower)) {
+        return lower as any
+      }
+      if (lower.includes('equity')) return 'equity'
+      if (lower.includes('debt')) return 'debt'
+      if (lower.includes('hybrid')) return 'hybrid'
+      if (lower.includes('index')) return 'index'
+      if (lower.includes('etf')) return 'etf'
+      if (lower.includes('fof')) return 'fof'
+      if (lower.includes('solution')) return 'solution-oriented'
+      return 'equity' // fallback
+    }
+
+    const runQuery = async (minAumEquity: number, minAumDebt: number) => {
+      const queryResult = await this.db.execute(sql`
+        WITH latest_snapshots AS (
+          SELECT DISTINCT ON (scheme_code) *
+          FROM fund_snapshots
+          ORDER BY scheme_code, snapshot_date DESC
+        ),
+        track_records AS (
+          SELECT scheme_code, COUNT(DISTINCT DATE_TRUNC('month', snapshot_date::timestamp)) AS months
+          FROM fund_snapshots
+          GROUP BY scheme_code
+        )
+        SELECT 
+          af.scheme_code,
+          af.scheme_name,
+          af.scheme_type,
+          ls.aum_cr::float AS aum_cr,
+          ls.expense_ratio::float AS expense_ratio,
+          ls.return_3y::float AS return_3y,
+          ls.sharpe_3y::float AS sharpe_3y,
+          COALESCE(tr.months, 0)::int AS track_record_months
+        FROM agent_funds af
+        LEFT JOIN latest_snapshots ls ON af.scheme_code = ls.scheme_code
+        LEFT JOIN track_records tr ON af.scheme_code = tr.scheme_code
+        WHERE af.is_active = true
+          AND (
+            (af.scheme_type IN ('index', 'etf') AND ls.expense_ratio <= ${max_expense_ratio_index})
+            OR
+            (af.scheme_type NOT IN ('index', 'etf') AND ls.expense_ratio <= ${max_expense_ratio_active})
+          )
+          AND (
+            (af.scheme_type IN ('debt', 'hybrid') AND ls.aum_cr >= ${minAumDebt})
+            OR
+            (af.scheme_type NOT IN ('debt', 'hybrid') AND ls.aum_cr >= ${minAumEquity})
+          )
+          AND COALESCE(tr.months, 0) >= ${min_track_record_months}
+      `)
+      return queryResult.rows.map((row: any) => ({
+        scheme_code: row.scheme_code,
+        scheme_name: row.scheme_name,
+        scheme_type: sanitizeSchemeType(row.scheme_type),
+        aum_cr: row.aum_cr !== null ? parseFloat(row.aum_cr) : null,
+        expense_ratio: row.expense_ratio !== null ? parseFloat(row.expense_ratio) : null,
+        return_3y: row.return_3y !== null ? parseFloat(row.return_3y) : null,
+        sharpe_3y: row.sharpe_3y !== null ? parseFloat(row.sharpe_3y) : null,
+        track_record_years: row.track_record_months / 12.0
+      }))
+    }
+
+    let minAumEquity = criteria.min_aum_equity_cr ?? 500
+    let minAumDebt = criteria.min_aum_debt_cr ?? 1000
+
+    let eligibleFunds = await runQuery(minAumEquity, minAumDebt)
+
+    if (eligibleFunds.length < 10) {
+      logger.warn(
+        { count: eligibleFunds.length, minAumEquity, minAumDebt, pipelineRunId },
+        'SOMA: getEligibleFundUniverse filtered result is fewer than 10 funds. Relaxing min_aum filters by 50% and retrying once.'
+      )
+      minAumEquity = minAumEquity * 0.5
+      minAumDebt = minAumDebt * 0.5
+      eligibleFunds = await runQuery(minAumEquity, minAumDebt)
+    }
+
+    const universe: FundUniverse = {
+      universe_id: randomUUID(),
+      generated_at: new Date().toISOString(),
+      pipeline_run_id: pipelineRunId,
+      filters_applied: [
+        { filter: 'max_expense_ratio_active', threshold: `<=${max_expense_ratio_active}%` },
+        { filter: 'max_expense_ratio_index', threshold: `<=${max_expense_ratio_index}%` },
+        { filter: 'min_aum_equity_cr', threshold: `>=${minAumEquity} Cr` },
+        { filter: 'min_aum_debt_cr', threshold: `>=${minAumDebt} Cr` },
+        { filter: 'min_track_record_years', threshold: `>=${min_track_record_years} years` }
+      ],
+      eligible_funds: eligibleFunds,
+      total_screened,
+      total_eligible: eligibleFunds.length
+    }
+
+    const validated = FundUniverseSchema.parse(universe)
+
+    try {
+      await this.deliberationRoom.publish({
+        pipeline_run_id: pipelineRunId,
+        sender: 'SOMA',
+        message_type: 'FUND_REPORT',
+        recipient: 'ALL',
+        payload: {
+          message: 'Fund universe screening completed.',
+          total_screened: validated.total_screened,
+          total_eligible: validated.total_eligible,
+          filters_applied: validated.filters_applied,
+          source_url: 'https://amfiindia.com',
+          retrieved_at: new Date().toISOString()
+        },
+        references: []
+      })
+    } catch (publishErr) {
+      logger.error({ publishErr, pipelineRunId }, 'SOMA: failed to publish FUND_REPORT to deliberationRoom')
+    }
+
+    return validated
   }
 }

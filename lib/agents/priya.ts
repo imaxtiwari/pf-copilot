@@ -9,10 +9,10 @@ import {
   BacktestSummary,
   PortfolioConfidenceScore
 } from './types/priya-types'
-import { ClientGoalAssessment } from './types/vikram-types'
+import { ClientGoalAssessment, StrategyFramework } from './types/vikram-types'
 import { ClientRiskProfile, HedgeMap } from './types/kiran-types'
-import { StrategyFramework } from './types/vikram-types'
 import { CritiqueReport, CritiqueFault } from './types/aria-types'
+import { FundUniverse } from './types/soma-types'
 import { DeliberationRoom } from '../deliberation/deliberation-room'
 import { AgentMemoryStore } from '../memory/memory-store'
 import { WebResearchTool } from '../research/web-research-tool'
@@ -67,6 +67,7 @@ export class Priya {
       strategyFramework: StrategyFramework
       hedgeMap: HedgeMap
       critiques: CritiqueReport[]
+      fundUniverse: FundUniverse
     },
     pipelineRunId: string
   ): Promise<PortfolioDraft> {
@@ -79,6 +80,7 @@ export class Priya {
     if (!inputs.strategyFramework) missing.push('strategyFramework')
     if (!inputs.hedgeMap) missing.push('hedgeMap')
     if (!inputs.critiques) missing.push('critiques')
+    if (!inputs.fundUniverse) missing.push('fundUniverse')
 
     if (missing.length > 0) {
       const msg = `Missing required inputs: ${missing.join(', ')}`
@@ -98,77 +100,11 @@ export class Priya {
     }
 
     // Check TTL (SOMA FundProfile data older than 7 days)
-    // We assume the inputs passed are checked or we calculate fresh data status here.
     const now = new Date()
     const SOMA_TTL_DAYS = 7
-    let dataFresh = true
-
-    // Step 2 — Universe Filtering
-    logger.info('PRIYA: Filtering mutual fund universe')
-    const filtersApplied = [
-      { filter: 'active_expense_ratio', threshold: '< 1.5%' },
-      { filter: 'index_expense_ratio', threshold: '< 0.5%' },
-      { filter: 'track_record', threshold: '>= 3 years' },
-      { filter: 'equity_aum', threshold: '>= 500 Cr' },
-      { filter: 'debt_aum', threshold: '>= 1000 Cr' }
-    ]
-
-    // Query candidate funds from database
-    let candidates: any[] = []
-    try {
-      candidates = await this.db
-        .select({
-          schemeCode: schema.agentFunds.schemeCode,
-          isin: schema.agentFunds.isin,
-          schemeName: schema.agentFunds.schemeName,
-          schemeType: schema.agentFunds.schemeType,
-          amcName: schema.agentFunds.amcName,
-          expenseRatio: schema.fundSnapshots.expenseRatio,
-          aumCr: schema.fundSnapshots.aumCr,
-          return3y: schema.fundSnapshots.return3y,
-          retrievedAt: schema.fundSnapshots.retrievedAt
-        })
-        .from(schema.agentFunds)
-        .innerJoin(
-          schema.fundSnapshots,
-          eq(schema.agentFunds.schemeCode, schema.fundSnapshots.schemeCode)
-        )
-        .orderBy(desc(schema.fundSnapshots.snapshotDate))
-        .limit(200)
-    } catch (err) {
-      logger.error({ err }, 'PRIYA: Database query for fund universe failed')
-    }
-
-    // Apply filtering in TypeScript (robust fallback to return some elements if filter leaves empty list)
-    let filteredCandidates = candidates.filter(c => {
-      const expense = c.expenseRatio ? parseFloat(c.expenseRatio.toString()) : 1.0
-      const aum = c.aumCr ? parseFloat(c.aumCr.toString()) : 600
-      
-      const isIndexOrEtf = c.schemeType === 'index' || c.schemeType === 'etf'
-      if (isIndexOrEtf && expense >= 0.5) return false
-      if (!isIndexOrEtf && expense >= 1.5) return false
-      
-      if (c.schemeType === 'equity' && aum < 500) return false
-      if (c.schemeType === 'debt' && aum < 1000) return false
-      
-      return true
-    })
-
-    if (filteredCandidates.length < 5) {
-      logger.info('PRIYA: Filtered list too small, using raw candidates as fallback')
-      filteredCandidates = candidates.slice(0, 20)
-    }
-
-    // Check data freshness of candidate list
-    for (const c of filteredCandidates) {
-      if (c.retrievedAt) {
-        const ageMs = now.getTime() - new Date(c.retrievedAt).getTime()
-        const ageDays = ageMs / (1000 * 60 * 60 * 24)
-        if (ageDays > SOMA_TTL_DAYS) {
-          dataFresh = false
-        }
-      }
-    }
+    const ageMs = now.getTime() - new Date(inputs.fundUniverse.generated_at).getTime()
+    const ageDays = ageMs / (1000 * 60 * 60 * 24)
+    const dataFresh = ageDays <= SOMA_TTL_DAYS
 
     // Step 3 — Allocation Design (Weights using GPT-4o synthesis)
     logger.info('PRIYA: Designing allocations via LLM')
@@ -183,16 +119,10 @@ ${JSON.stringify(inputs.goalAssessment, null, 2)}
 Strategy Framework Guidance:
 ${JSON.stringify(inputs.strategyFramework, null, 2)}
 
-Candidate Funds Available:
-${JSON.stringify(filteredCandidates.slice(0, 15).map(c => ({
-  scheme_code: c.schemeCode,
-  isin: c.isin,
-  fund_name: c.schemeName,
-  scheme_type: c.schemeType,
-  amc: c.amcName,
-  expense_ratio: c.expenseRatio,
-  aum_cr: c.aumCr
-})), null, 2)}
+Available eligible funds (pre-screened by SOMA):
+${JSON.stringify(inputs.fundUniverse.eligible_funds, null, 2)}
+
+You MUST only select funds from this list. Do not invent scheme codes.
 
 JSON Output Schema:
 {
@@ -348,9 +278,10 @@ JSON Output Schema:
       confidence_score: confidenceScore,
       backtest_summary: backtest,
       open_critique_items: allCritiqueFaults.filter(f => f.severity === 'MINOR' || f.severity === 'OBSERVATION'),
-      universe_filters_applied: filtersApplied,
+      universe_filters_applied: inputs.fundUniverse.filters_applied,
       overlap_flags: overlapFlags,
-      status: 'DRAFT'
+      status: 'DRAFT',
+      strategy_framework: inputs.strategyFramework
     }
 
     const validated = PortfolioDraftSchema.parse(draft)
@@ -583,7 +514,8 @@ JSON Output Schema (same as build):
       open_critique_items: unresolvedMinor,
       universe_filters_applied: previousDraft.universe_filters_applied,
       overlap_flags: overlapFlags,
-      status: 'DRAFT'
+      status: 'DRAFT',
+      strategy_framework: previousDraft.strategy_framework
     }
 
     const validated = PortfolioDraftSchema.parse(draft)
