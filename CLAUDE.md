@@ -10,6 +10,7 @@ An educational tool for Indian retail investors. Shows real returns (nominal min
 4. **CAS validation gate is non-negotiable.** Partial-write of holdings is forbidden. All-or-nothing per upload. See `/lib/contracts/cas-validation.ts`.
 5. **Deployment mode v1: localhost-only.** No public URL, no auth, no rate limiting. Single user. Cloud + auth deferred to v2.
 6. **CAS PDF buffers are memory-only.** Never persist the raw PDF to disk or blob. Free buffer after extraction completes.
+7. **Advisory Committee Rule**: Votes require a 2/3 majority (2/3 of ARIA, KIRAN, VIKRAM) **AND** 0 CRITICAL compliance faults from ARIA **AND** `overall_hedge_coverage_pct >= 80` to approve. A single CRITICAL fault from ARIA is an automatic rejection. Max 5 revision cycles before deadlock.
 
 ## Stack lockdown
 - Next.js 15 (App Router) + TypeScript + Tailwind CSS v4
@@ -20,6 +21,7 @@ An educational tool for Indian retail investors. Shows real returns (nominal min
 - vitest (unit + eval tests), playwright (e2e)
 - pino (structured logging)
 - zod (runtime validation — including `ToolArgSchemas` in `/lib/tools/arg-schemas.ts`)
+- node-cron (for background agent scheduler tasks)
 
 ## File structure conventions
 - `/lib/contracts/` — invariants enforced across the codebase (`no-advice.ts`, `cas-validation.ts`, `error-envelope.ts`, `refusal-types.ts`)
@@ -32,13 +34,20 @@ An educational tool for Indian retail investors. Shows real returns (nominal min
 - `/lib/rag/` — factsheet retrieval + strict-RAG agent (`retrieval.ts`, `explain-fund.ts`, `validate-response.ts`)
 - `/lib/tools/` — orchestrator tool definitions, handlers, and Zod arg schemas
   - `arg-schemas.ts` — `ToolArgSchemas` with `z.coerce.string()` for scheme codes (handles LLM returning numbers)
+- `/lib/agents/` — agent definitions (DHRUV, KIRAN, SOMA, ARIA, VIKRAM, PRIYA) and their respective type interfaces
+- `/lib/pipeline/` — state machine orchestrator for sequential multi-agent stages
+- `/lib/scheduler/` — cron registration of background macro scans/checks
+- `/lib/deliberation/` — deliberation room where agents discuss the client portfolio draft
+- `/lib/memory/` — agent Memory Store (stores observations in Qdrant or uses MockQdrantClient under test)
 - `/lib/orchestrator.ts` — GPT-4o-mini tool-call loop (≤5 iterations, module-level client singleton)
 - `/lib/logger.ts` — structured logger (pino)
 - `/lib/db.ts` — Drizzle pool; throws at startup if `DATABASE_URL` is missing
 - `/db/schema.ts` — Drizzle schema (**read-only — don't add columns without explicit user direction**)
 - `/app/api/` — all routes return `ApiResponse<T>` from `/lib/contracts/error-envelope.ts`; all DB calls wrapped in try/catch
-- `/tests/unit/` — unit tests for pure functions
+- `/tests/mocks/` — testing mock helpers (such as `azure-openai.mock.ts`)
+- `/tests/unit/` — unit tests for pure functions and pipeline states
 - `/tests/eval/` — LLM eval cases + golden CAS fixtures
+- `/tests/e2e/` — Playwright end-to-end user path flows
 
 ## Before making changes
 1. Read this file.
@@ -78,13 +87,14 @@ LLM-supplied tool arguments are validated against `ToolArgSchemas` before dispat
 `computePersonalInflationTool` logs a warning (does not recompute) when the stored rate is >90 days old.
 
 ### CAS vision batch gate
-`parseCASVision` warns on any failed batch and aborts (returns `null`) if >50% of batches fail, preventing a partial-portfolio write from silently passing `validateCAS`.
+- `parseCASVision` warns on any failed batch and aborts (returns `null`) if >50% of batches fail, preventing a partial-portfolio write from silently passing `validateCAS`.
+- When verifying Kiran's portfolios/holdings, accept both database `fund_allocations` and UI `holdings` arrays to prevent validation mismatches.
 
 ## Testing convention
 - Every pure function in `/lib/inflation/` and `/lib/cas/` gets unit tests.
 - Every LLM surface gets eval cases.
 - After any change touching `/lib/prompts/` or `/lib/contracts/`, run `npm run eval`.
-- Eval suite tracks model deployment name in results.
+- Mocking is enabled when `MOCK_LLM=true` via `tests/mocks/azure-openai.mock.ts` and `MockQdrantClient`. Run `npm test` or `npx playwright test` with mock settings to run without connecting to live OpenAI/Qdrant servers.
 - Corrupted-PDF negative test: `passed = !result.ok` (a successful parse of a corrupted file is a test failure).
 
 ## What this product is NOT
