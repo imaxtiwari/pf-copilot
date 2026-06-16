@@ -224,6 +224,8 @@ describe('Step 13 Integration Smoke Tests', () => {
     const runIds = userRuns.map((r: any) => r.runId)
     if (runIds.length > 0) {
       const { inArray } = await import('drizzle-orm')
+      await dbInstance.delete(schema.deliberationMessages).where(inArray(schema.deliberationMessages.pipelineRunId, runIds))
+      await dbInstance.delete(schema.pipelineResults).where(inArray(schema.pipelineResults.pipelineRunId, runIds))
       await dbInstance.delete(schema.committeeVotes).where(inArray(schema.committeeVotes.pipelineRunId, runIds))
       await dbInstance.delete(schema.portfolioDrafts).where(inArray(schema.portfolioDrafts.pipelineRunId, runIds))
     }

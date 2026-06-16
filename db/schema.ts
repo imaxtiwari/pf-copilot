@@ -255,3 +255,12 @@ export const deliberationMessages = pgTable('deliberation_messages', {
   index('deliberation_messages_timestamp_idx').on(table.pipelineRunId, table.timestamp),
 ])
 
+export const pipelineResults = pgTable('pipeline_results', {
+  resultId: uuid('result_id').primaryKey().defaultRandom(),
+  pipelineRunId: uuid('pipeline_run_id').notNull().references(() => pipelineRuns.runId).unique(),
+  resultType: text('result_type').notNull(),  // 'packet' | 'deadlock'
+  data: jsonb('data').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+})
+
+

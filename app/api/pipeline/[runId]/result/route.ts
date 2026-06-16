@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { eq } from 'drizzle-orm'
-import * as fs from 'fs'
-import * as path from 'path'
 import { db } from '@/lib/db'
 import * as schema from '@/db/schema'
 import { resolveOrCreateUserId } from '@/lib/auth/dev-user'
@@ -44,32 +42,20 @@ export async function GET(
       )
     }
 
-    if (run.status === 'APPROVED') {
-      const filePath = path.join(process.cwd(), 'data', 'results', `${runId}.json`)
-      if (fs.existsSync(filePath)) {
-        const fileContent = fs.readFileSync(filePath, 'utf8')
-        const result = JSON.parse(fileContent)
-        return NextResponse.json(result.data)
-      } else {
-        return NextResponse.json(
-          { error: 'Final portfolio packet not found on disk', code: 'RESULT_FILE_NOT_FOUND' },
-          { status: 500 }
-        )
-      }
-    }
+    if (run.status === 'APPROVED' || run.status === 'DEADLOCKED') {
+      const [result] = await db
+        .select()
+        .from(schema.pipelineResults)
+        .where(eq(schema.pipelineResults.pipelineRunId, runId))
+        .limit(1)
 
-    if (run.status === 'DEADLOCKED') {
-      const filePath = path.join(process.cwd(), 'data', 'results', `${runId}.json`)
-      if (fs.existsSync(filePath)) {
-        const fileContent = fs.readFileSync(filePath, 'utf8')
-        const result = JSON.parse(fileContent)
-        return NextResponse.json(result.data)
-      } else {
+      if (!result) {
         return NextResponse.json(
-          { error: 'Deadlock report not found on disk', code: 'RESULT_FILE_NOT_FOUND' },
-          { status: 500 }
+          { error: 'Result not found', code: 'RESULT_NOT_FOUND' },
+          { status: 404 }
         )
       }
+      return NextResponse.json(result.data)
     }
 
     if (run.status === 'FAILED') {

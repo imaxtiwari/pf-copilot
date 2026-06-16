@@ -1,7 +1,5 @@
 import { randomUUID } from 'crypto'
 import { eq, desc, asc } from 'drizzle-orm'
-import * as fs from 'fs'
-import * as path from 'path'
 import * as schema from '../../db/schema'
 import {
   PipelineStage,
@@ -774,12 +772,15 @@ CRITICAL RULE:
       references: [bestDraft.portfolio_id]
     })
 
-    // Save to disk
-    const resultsDir = path.join(process.cwd(), 'data', 'results')
-    if (!fs.existsSync(resultsDir)) {
-      fs.mkdirSync(resultsDir, { recursive: true })
-    }
-    fs.writeFileSync(path.join(resultsDir, `${pipelineRunId}.json`), JSON.stringify({ type: 'deadlock', data: validated }, null, 2))
+    // Save to DB
+    await this.db.insert(schema.pipelineResults).values({
+      pipelineRunId,
+      resultType: 'deadlock',
+      data: validated,
+    }).onConflictDoUpdate({
+      target: schema.pipelineResults.pipelineRunId,
+      set: { data: validated, resultType: 'deadlock' }
+    })
 
     return validated
   }
@@ -867,12 +868,15 @@ ${JSON.stringify(goalAssessment.stated_goals, null, 2)}
       }
     })
 
-    // Save to disk
-    const resultsDir = path.join(process.cwd(), 'data', 'results')
-    if (!fs.existsSync(resultsDir)) {
-      fs.mkdirSync(resultsDir, { recursive: true })
-    }
-    fs.writeFileSync(path.join(resultsDir, `${pipelineRunId}.json`), JSON.stringify({ type: 'packet', data: validated }, null, 2))
+    // Save to DB
+    await this.db.insert(schema.pipelineResults).values({
+      pipelineRunId,
+      resultType: 'packet',
+      data: validated,
+    }).onConflictDoUpdate({
+      target: schema.pipelineResults.pipelineRunId,
+      set: { data: validated, resultType: 'packet' }
+    })
 
     return validated
   }
