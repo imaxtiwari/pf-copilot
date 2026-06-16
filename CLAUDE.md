@@ -90,6 +90,18 @@ LLM-supplied tool arguments are validated against `ToolArgSchemas` before dispat
 - `parseCASVision` warns on any failed batch and aborts (returns `null`) if >50% of batches fail, preventing a partial-portfolio write from silently passing `validateCAS`.
 - When verifying Kiran's portfolios/holdings, accept both database `fund_allocations` and UI `holdings` arrays to prevent validation mismatches.
 
+### Deliberation Room Durability
+- Deliberation messages are written to both the `deliberation_messages` table and an in-memory write-through cache.
+- `getHistory` queries the database (sorted by `timestamp ASC`) and falls back to local cache or legacy audit logs if the database query fails.
+
+### Pipeline Results Persistence
+- Final portfolio packets and deadlock reports are persisted in the `pipeline_results` table in PostgreSQL using `.onConflictDoUpdate()` on `pipelineRunId` to ensure safe overwrites.
+- The results API route retrieves records from this table. Writing results directly to the disk filesystem (`data/results/`) has been replaced.
+
+### Weekly Learnings & Priming
+- Knowledge Commons weekly consolidation pulls actual memories for ARIA and KIRAN, filters by valid HTTP source URL, and contributes them.
+- Agents are primed at the start of pipeline execution (`runFullPipeline` and `runPhase2`) with relevant observations query from Knowledge Commons (wrapped in `try/catch` to be robust against Qdrant state).
+
 ## Testing convention
 - Every pure function in `/lib/inflation/` and `/lib/cas/` gets unit tests.
 - Every LLM surface gets eval cases.

@@ -52,8 +52,8 @@ docker exec -it pf-pg psql -U postgres -c "CREATE DATABASE pf_copilot;"
 | `/api/pipeline/start` | POST | Start multi-agent advisory pipeline for a user |
 | `/api/pipeline/[runId]/status` | GET | Check status, stage, and revision cycle of a pipeline run |
 | `/api/pipeline/[runId]/interview` | POST | Submit Vikram's interview answers and trigger Phase 2 in background |
-| `/api/pipeline/[runId]/deliberation` | GET | Retrieve deliberation room chat transcript/history for a run |
-| `/api/pipeline/[runId]/result` | GET | Get the final portfolio package or deadlock report for a completed/deadlocked run |
+| `/api/pipeline/[runId]/deliberation` | GET | Retrieve deliberation room chat transcript/history for a run (persisted in `deliberation_messages` table with an in-memory cache) |
+| `/api/pipeline/[runId]/result` | GET | Get the final portfolio package or deadlock report for a completed/deadlocked run (retrieved from `pipeline_results` table) |
 | `/api/scheduler` | GET | Initialize or query the state and upcoming jobs of the agent scheduler |
 
 ---
