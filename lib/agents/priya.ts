@@ -164,26 +164,44 @@ JSON Output Schema:
     const cleanJson = rawText.replace(/^```json/, '').replace(/```$/, '').trim()
     const parsed = JSON.parse(cleanJson)
 
+    const zodUuidRegex = /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
+    const isUuid = (str: string) => typeof str === 'string' && zodUuidRegex.test(str)
+
+    // Decouple LLM bucket_ids but maintain matching fund connections
+    const bucketIdMap = new Map<string, string>()
+
     // Assign fresh UUIDs if LLM missed or provided string templates
-    const goalBuckets: GoalBucket[] = (parsed.goal_buckets || []).map((gb: any) => ({
-      bucket_id: gb.bucket_id.length > 10 ? gb.bucket_id : randomUUID(),
-      goal_id: gb.goal_id,
-      goal_type: gb.goal_type,
-      target_corpus_lakh: gb.target_corpus_lakh,
-      target_date: gb.target_date,
-      time_horizon_years: gb.time_horizon_years,
-      risk_profile: gb.risk_profile,
-      allocation_pct: gb.allocation_pct
-    }))
+    const goalBuckets: GoalBucket[] = (parsed.goal_buckets || []).map((gb: any) => {
+      const cleanBucketId = randomUUID()
+      if (gb.bucket_id) {
+        bucketIdMap.set(gb.bucket_id, cleanBucketId)
+      }
+
+      const actualGoal = inputs.goalAssessment.decomposed_goals.find(
+        g => g.goal_type === gb.goal_type
+      )
+      const goal_id = isUuid(gb.goal_id) ? gb.goal_id : (actualGoal?.goal_id || inputs.goalAssessment.decomposed_goals[0]?.goal_id || randomUUID())
+
+      return {
+        bucket_id: cleanBucketId,
+        goal_id,
+        goal_type: gb.goal_type,
+        target_corpus_lakh: gb.target_corpus_lakh,
+        target_date: gb.target_date,
+        time_horizon_years: gb.time_horizon_years,
+        risk_profile: gb.risk_profile,
+        allocation_pct: gb.allocation_pct
+      }
+    })
 
     const fundAllocations: FundAllocation[] = (parsed.fund_allocations || []).map((fa: any) => {
       // Find matching bucket_id by index if UUID mismatch
-      let matchedBucketId = fa.goal_bucket_id
-      if (goalBuckets.length > 0 && !goalBuckets.some(b => b.bucket_id === matchedBucketId)) {
+      let matchedBucketId = bucketIdMap.get(fa.goal_bucket_id) || fa.goal_bucket_id
+      if (goalBuckets.length > 0 && (!isUuid(matchedBucketId) || !goalBuckets.some(b => b.bucket_id === matchedBucketId))) {
         matchedBucketId = goalBuckets[0].bucket_id
       }
       return {
-        allocation_id: fa.allocation_id.length > 10 ? fa.allocation_id : randomUUID(),
+        allocation_id: randomUUID(), // Always generate fresh clean UUID
         fund_name: fa.fund_name,
         isin: fa.isin || 'IN0000000000',
         scheme_code: fa.scheme_code,
@@ -381,10 +399,31 @@ ${JSON.stringify(faultsToResolve, null, 2)}
 Hedge Map Updates:
 ${JSON.stringify(hedgeMap, null, 2)}
 
-JSON Output Schema (same as build):
+JSON Output Schema:
 {
-  "goal_buckets": [...],
-  "fund_allocations": [...]
+  "goal_buckets": [
+    {
+      "bucket_id": string (UUID),
+      "goal_id": string (UUID of target goal),
+      "goal_type": "RETIREMENT" | "CHILD_EDUCATION" | "HOME_PURCHASE" | "EMERGENCY_CORPUS" | "WEALTH_CREATION" | "VACATION" | "CUSTOM",
+      "target_corpus_lakh": number,
+      "target_date": string,
+      "time_horizon_years": number,
+      "risk_profile": "CONSERVATIVE" | "MODERATE" | "AGGRESSIVE",
+      "allocation_pct": number
+    }
+  ],
+  "fund_allocations": [
+    {
+      "allocation_id": string (UUID),
+      "fund_name": string,
+      "isin": string,
+      "scheme_code": string,
+      "allocation_pct": number,
+      "goal_bucket_id": string (UUID matching one of the buckets above),
+      "rationale": string
+    }
+  ]
 }
 `
     const response = await gpt.chat.completions.create({
@@ -399,30 +438,54 @@ JSON Output Schema (same as build):
     const rawText = response.choices[0]?.message?.content?.trim() || ''
     const cleanJson = rawText.replace(/^```json/, '').replace(/```$/, '').trim()
     const parsed = JSON.parse(cleanJson)
-
     const now = new Date()
-    const goalBuckets: GoalBucket[] = (parsed.goal_buckets || []).map((gb: any) => ({
-      bucket_id: gb.bucket_id.length > 10 ? gb.bucket_id : randomUUID(),
-      goal_id: gb.goal_id,
-      goal_type: gb.goal_type,
-      target_corpus_lakh: gb.target_corpus_lakh,
-      target_date: gb.target_date,
-      time_horizon_years: gb.time_horizon_years,
-      risk_profile: gb.risk_profile,
-      allocation_pct: gb.allocation_pct
-    }))
+
+    const zodUuidRegex = /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
+    const isUuid = (str: string) => typeof str === 'string' && zodUuidRegex.test(str)
+
+    // Decouple LLM bucket_ids but maintain matching fund connections
+    const bucketIdMap = new Map<string, string>()
+
+    const goalBuckets: GoalBucket[] = (parsed.goal_buckets || []).map((gb: any) => {
+      const cleanBucketId = randomUUID()
+      if (gb.bucket_id) {
+        bucketIdMap.set(gb.bucket_id, cleanBucketId)
+      }
+
+      const prevBucket = previousDraft.goal_buckets.find(b => b.goal_type === gb.goal_type)
+      const goal_id = isUuid(gb.goal_id) ? gb.goal_id : (prevBucket?.goal_id || previousDraft.goal_buckets[0]?.goal_id || randomUUID())
+
+      return {
+        bucket_id: cleanBucketId,
+        goal_id,
+        goal_type: gb.goal_type,
+        target_corpus_lakh: gb.target_corpus_lakh,
+        target_date: gb.target_date,
+        time_horizon_years: gb.time_horizon_years,
+        risk_profile: gb.risk_profile,
+        allocation_pct: gb.allocation_pct
+      }
+    })
 
     const fundAllocations: FundAllocation[] = (parsed.fund_allocations || []).map((fa: any) => {
-      let matchedBucketId = fa.goal_bucket_id
-      if (goalBuckets.length > 0 && !goalBuckets.some(b => b.bucket_id === matchedBucketId)) {
+      let matchedBucketId = bucketIdMap.get(fa.goal_bucket_id) || fa.goal_bucket_id
+      if (goalBuckets.length > 0 && (!isUuid(matchedBucketId) || !goalBuckets.some(b => b.bucket_id === matchedBucketId))) {
         matchedBucketId = goalBuckets[0].bucket_id
       }
+
+      // Try to find matching fund from previous draft for fallback scheme_code and isin
+      const prevAlloc = previousDraft.fund_allocations.find(pa => 
+        (pa.fund_name || '').toLowerCase() === (fa.fund_name || '').toLowerCase() ||
+        (fa.fund_name && pa.fund_name.toLowerCase().includes(fa.fund_name.toLowerCase())) ||
+        (fa.fund_name && fa.fund_name.toLowerCase().includes(pa.fund_name.toLowerCase()))
+      )
+
       return {
-        allocation_id: fa.allocation_id.length > 10 ? fa.allocation_id : randomUUID(),
-        fund_name: fa.fund_name,
-        isin: fa.isin || 'IN0000000000',
-        scheme_code: fa.scheme_code,
-        allocation_pct: fa.allocation_pct,
+        allocation_id: randomUUID(), // Always generate fresh clean UUID
+        fund_name: fa.fund_name || prevAlloc?.fund_name || 'Unknown Fund',
+        isin: fa.isin || prevAlloc?.isin || 'IN0000000000',
+        scheme_code: fa.scheme_code || prevAlloc?.scheme_code || '',
+        allocation_pct: typeof fa.allocation_pct === 'number' ? fa.allocation_pct : parseFloat(fa.allocation_pct || '0'),
         goal_bucket_id: matchedBucketId,
         rationale: fa.rationale || 'Revised allocation based on critique.',
         fund_profile_retrieved_at: now.toISOString(),

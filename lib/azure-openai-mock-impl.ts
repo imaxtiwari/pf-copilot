@@ -197,5 +197,35 @@ export function mockChatCompletion(model: string, messages: any[]): string {
     })
   }
 
+  // 9. Kiran Macro Scan bulletin
+  if (lastUserMessage.includes('compile the daily 8-point MacroRiskBulletin')) {
+    return JSON.stringify({
+      risk_level: "LOW",
+      rbi_policy_signal: "STABLE",
+      fed_signal: "STABLE",
+      india_vix: 13.5,
+      india_vix_trend: "STABLE",
+      brent_crude_usd: 82.0,
+      gold_mcx_inr: 72000.0,
+      usdinr_rate: 83.4,
+      usdinr_trend: "STABLE",
+      fii_net_flow_cr: 150.0,
+      geopolitical_alerts: [],
+      key_risks: ["Inflation risk"],
+      key_observations: ["Good growth numbers"]
+    })
+  }
+
+  // 10. Dhruv Portfolio Executive Summary
+  if (lastUserMessage.includes("Generate a concise executive summary for the client's final portfolio")) {
+    return "Mock final portfolio recommendation executive summary."
+  }
+
+  // 11. Simple OK response
+  if (lastUserMessage.includes('respond with OK')) {
+    return "OK"
+  }
+
   return '{}'
 }
+

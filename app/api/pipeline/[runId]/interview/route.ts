@@ -10,10 +10,16 @@ import { deliberationRoom } from '@/lib/deliberation/deliberation-room'
 import { agentMemoryStore } from '@/lib/memory/memory-store'
 import { WebResearchTool } from '@/lib/research/web-research-tool'
 import logger from '@/lib/logger'
+import { Vikram } from '@/lib/agents/vikram'
 
-const InterviewSchema = z.object({
-  answers: z.record(z.string(), z.string())
-})
+import { StructuredInterviewAnswersSchema } from '@/lib/agents/types/vikram-types'
+
+const InterviewSchema = z.union([
+  // Structured mode: client sends pre-validated structured object
+  z.object({ mode: z.literal('structured'), answers: StructuredInterviewAnswersSchema }),
+  // Legacy mode: freeform key-value (backward compatible, triggers LLM extraction)
+  z.object({ mode: z.literal('freeform').optional(), answers: z.record(z.string(), z.string()) }),
+])
 
 export async function POST(
   req: NextRequest,
@@ -102,38 +108,27 @@ export async function POST(
       version: 1
     }
 
-    // Extract income/goals from answers dynamically or fallback
-    let monthlyIncome = 2.0
-    let statedGoals = ['Retirement corpus']
-    let goalsData = [
-      {
-        goal_id: randomUUID(),
-        goal_type: 'RETIREMENT',
-        description: 'Retirement corpus',
-        target_corpus_lakh: 100.0,
-        current_corpus_lakh: 10.0,
-        monthly_sip_required_lakh: 0.2,
-        target_date: new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000).toISOString()
+    let providedAnswers: { monthly_income_lakh: number; stated_goals: string[]; answers: Record<string, string>; goals_data: any[] }
+    if (parsed.data.mode === 'structured') {
+      const sa = parsed.data.answers  // StructuredInterviewAnswers
+      providedAnswers = {
+        monthly_income_lakh: sa.monthly_income_lakh,
+        stated_goals: sa.goals.map(g => g.description),
+        answers: {},  // not needed in structured mode
+        goals_data: sa.goals.map(g => ({
+          goal_id: randomUUID(),
+          goal_type: g.goal_type,
+          description: g.description,
+          target_corpus_lakh: g.target_corpus_lakh,
+          current_corpus_lakh: g.current_corpus_lakh,
+          monthly_sip_required_lakh: g.monthly_sip_required_lakh,
+          target_date: g.target_date,
+        }))
       }
-    ]
-
-    for (const [q, a] of Object.entries(parsed.data.answers)) {
-      const qLower = q.toLowerCase()
-      if (qLower.includes('income') || qLower.includes('earn')) {
-        const match = a.match(/(\d+(?:\.\d+)?)/)
-        if (match) monthlyIncome = parseFloat(match[1])
-      }
-      if (qLower.includes('goal') || qLower.includes('target')) {
-        statedGoals = [a]
-        goalsData[0].description = a
-      }
-    }
-
-    const providedAnswers = {
-      monthly_income_lakh: monthlyIncome,
-      stated_goals: statedGoals,
-      answers: parsed.data.answers,
-      goals_data: goalsData
+    } else {
+      // Freeform mode: use LLM extraction via a new VIKRAM method
+      const vikramExtractor = new Vikram(deliberationRoom, agentMemoryStore, new WebResearchTool('VIKRAM', agentMemoryStore, deliberationRoom), db)
+      providedAnswers = await vikramExtractor.extractStructuredAnswers(parsed.data.answers, runId)
     }
 
     // Initialize Dhruv agent

@@ -82,3 +82,24 @@ export const MarketContextBriefSchema = z.object({
 })
 
 export type MarketContextBrief = z.infer<typeof MarketContextBriefSchema>
+
+export const InterviewGoalSchema = z.object({
+  goal_type: z.enum(['RETIREMENT', 'CHILD_EDUCATION', 'HOME_PURCHASE', 'EMERGENCY_CORPUS', 'WEALTH_CREATION', 'VACATION', 'CUSTOM']),
+  description: z.string(),
+  target_corpus_lakh: z.number().positive(),
+  current_corpus_lakh: z.number().nonnegative().default(0),
+  monthly_sip_required_lakh: z.number().nonnegative().default(0.1),
+  target_date: z.string(),   // ISO date or YYYY-MM-DD
+})
+
+export const StructuredInterviewAnswersSchema = z.object({
+  monthly_income_lakh: z.number().positive(),
+  monthly_expenses_lakh: z.number().nonnegative().optional(),
+  existing_investments_lakh: z.number().nonnegative().optional(),
+  goals: z.array(InterviewGoalSchema).min(1).max(5),
+  risk_appetite_self_reported: z.enum(['CONSERVATIVE', 'MODERATE', 'AGGRESSIVE']).optional(),
+  investment_horizon_years: z.number().int().positive().optional(),
+  notes: z.string().optional(),
+})
+
+export type StructuredInterviewAnswers = z.infer<typeof StructuredInterviewAnswersSchema>

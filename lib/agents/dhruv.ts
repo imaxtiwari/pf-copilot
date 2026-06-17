@@ -25,6 +25,7 @@ import { Vikram } from './vikram'
 import { Aria } from './aria'
 import { Soma } from './soma'
 import { Priya } from './priya'
+import { Mentor } from './mentor'
 import { KnowledgeCommons, WeeklyLearning } from '../research/knowledge-commons'
 import { AgentId } from '../deliberation/message-schema'
 import { getGpt4o } from '../azure-openai'
@@ -815,6 +816,11 @@ CRITICAL RULE:
       set: { data: validated, resultType: 'deadlock' }
     })
 
+    const mentor = new Mentor(this.deliberationRoom, this.memoryStore, this.db)
+    mentor.runPostPipelineAnalysis(pipelineRunId, 'DEADLOCKED').catch(err =>
+      logger.warn({ err, pipelineRunId }, 'DHRUV: MENTOR post-deadlock analysis failed — non-blocking')
+    )
+
     return validated
   }
 
@@ -910,6 +916,32 @@ ${JSON.stringify(goalAssessment.stated_goals, null, 2)}
       target: schema.pipelineResults.pipelineRunId,
       set: { data: validated, resultType: 'packet' }
     })
+
+    // Run MENTOR post-pipeline analysis (non-blocking)
+    const mentor = new Mentor(this.deliberationRoom, this.memoryStore, this.db)
+    mentor.runPostPipelineAnalysis(pipelineRunId, 'APPROVED').catch(err =>
+      logger.warn({ err, pipelineRunId }, 'DHRUV: MENTOR post-pipeline analysis failed — non-blocking')
+    )
+
+    // Write ARIA's open critique items back to her fault library
+    if (validated.open_observations && validated.open_observations.length > 0) {
+      for (const obs of validated.open_observations) {
+        try {
+          const sourceUrl = obs.evidence_sources?.[0]?.url || 'https://sebi.gov.in'
+          await this.memoryStore.write('ARIA', {
+            content: `[POST-APPROVAL OBSERVATION] ${obs.fault_description} | Remedy: ${obs.suggested_remedy} | Category: ${obs.fault_category}`,
+            memory_type: 'ARIA_CRITIQUE_REPORT',
+            source_url: sourceUrl,
+            confidence_tier: 'INFERRED',  // post-approval = INFERRED, not VERIFIED
+            tags: ['post_approval', obs.fault_category, 'aria_learning'],
+            pipeline_run_id: pipelineRunId
+          })
+        } catch (err) {
+          logger.warn({ err, fault_id: obs.fault_id }, 'DHRUV: Failed to persist ARIA fault to memory — continuing')
+        }
+      }
+      logger.info({ count: validated.open_observations.length, pipelineRunId }, 'DHRUV: Persisted ARIA post-approval observations to fault library')
+    }
 
     return validated
   }

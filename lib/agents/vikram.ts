@@ -14,6 +14,7 @@ import { WebResearchTool } from '../research/web-research-tool'
 import { AgentMemoryStore } from '../memory/memory-store'
 import { DeliberationRoom } from '../deliberation/deliberation-room'
 import { getGpt4oMini } from '../azure-openai'
+import { LifeEvent, MAJOR_LIFE_EVENTS } from './types/life-event-types'
 import logger from '../logger'
 
 const VIKRAM_SYSTEM_PROMPT = `You are VIKRAM (Visionary Intelligence for Kinetic Return & Asset Management), the Market Strategist in a multi-agent portfolio intelligence system for Indian investors.
@@ -522,5 +523,225 @@ CRITICAL RULE:
     }
 
     return { vote, reasoning, violations }
+  }
+
+  async assessLifeEventImpact(
+    lifeEvent: LifeEvent,
+    previousRunId: string,
+    pipelineRunId: string
+  ): Promise<{
+    requires_pipeline_restart: boolean
+    impact_level: 'MINOR' | 'MODERATE' | 'MAJOR'
+    reasoning: string
+    guidance: string
+    affected_goals: string[]
+  }> {
+    logger.info({ previousRunId, pipelineRunId, eventType: lifeEvent.event_type }, 'VIKRAM: assessLifeEventImpact invoked')
+
+    let prevGoalAssessmentSummary = 'No previous goal assessment found.'
+    try {
+      const [prevResult] = await this.db
+        .select()
+        .from(schema.pipelineResults)
+        .where(eq(schema.pipelineResults.pipelineRunId, previousRunId))
+        .limit(1)
+
+      if (prevResult && prevResult.data) {
+        const packet = prevResult.data as any
+        if (packet.client_goal_summary) {
+          prevGoalAssessmentSummary = JSON.stringify(packet.client_goal_summary)
+        } else if (packet.data && packet.data.client_goal_summary) {
+          prevGoalAssessmentSummary = JSON.stringify(packet.data.client_goal_summary)
+        }
+      }
+    } catch (dbErr) {
+      logger.warn({ dbErr, previousRunId }, 'VIKRAM: Failed to fetch previous goal assessment summary from database')
+    }
+
+    let result = {
+      requires_pipeline_restart: MAJOR_LIFE_EVENTS.includes(lifeEvent.event_type),
+      impact_level: 'MODERATE' as const,
+      reasoning: 'Unable to assess — defaulting based on event type',
+      guidance: 'Please consult a financial planner.',
+      affected_goals: [] as string[]
+    }
+
+    try {
+      const gpt = getGpt4oMini()
+      const prompt = `
+Assess the financial impact of this life event on the client's existing portfolio plan.
+Return a valid JSON object matching this schema:
+{
+  "requires_pipeline_restart": boolean,
+  "impact_level": "MINOR" | "MODERATE" | "MAJOR",
+  "reasoning": "detailed reasoning here",
+  "guidance": "instructions/guidance for client",
+  "affected_goals": ["goal1", "goal2"]
+}
+
+Do NOT include investment advice. Do NOT recommend specific funds.
+
+Life Event:
+- Type: ${lifeEvent.event_type}
+- Description: ${lifeEvent.description}
+- Financial Impact (Lakh): ${lifeEvent.financial_impact_lakh ?? 'N/A'}
+- New Monthly Income (Lakh): ${lifeEvent.new_monthly_income_lakh ?? 'N/A'}
+- Effective Date: ${lifeEvent.effective_date}
+
+Previous Pipeline Run Goal Assessment Summary:
+${prevGoalAssessmentSummary}
+`
+
+      const response = await gpt.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: VIKRAM_SYSTEM_PROMPT },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0,
+      })
+
+      const rawText = response.choices[0]?.message?.content?.trim() || ''
+      const cleanJson = rawText.replace(/^```json/, '').replace(/```$/, '').trim()
+      const parsed = JSON.parse(cleanJson)
+
+      if (typeof parsed.requires_pipeline_restart === 'boolean' && parsed.impact_level && parsed.reasoning && parsed.guidance && Array.isArray(parsed.affected_goals)) {
+        result = {
+          requires_pipeline_restart: parsed.requires_pipeline_restart,
+          impact_level: parsed.impact_level,
+          reasoning: parsed.reasoning,
+          guidance: parsed.guidance,
+          affected_goals: parsed.affected_goals
+        }
+      }
+    } catch (err) {
+      logger.warn({ err, pipelineRunId }, 'VIKRAM: assessLifeEventImpact failed or failed to parse LLM JSON response. Using defaults.')
+    }
+
+    // Publish directive message to Deliberation Room
+    try {
+      await this.deliberationRoom.publish({
+        pipeline_run_id: pipelineRunId,
+        sender: 'VIKRAM',
+        message_type: 'DIRECTIVE',
+        recipient: 'ALL',
+        payload: {
+          directive_type: 'PROCEED',
+          instructions: result.guidance
+        },
+        references: []
+      })
+    } catch (publishErr) {
+      logger.warn({ publishErr, pipelineRunId }, 'VIKRAM: Failed to publish life event directive to Deliberation Room')
+    }
+
+    return result
+  }
+
+  async extractStructuredAnswers(
+    rawAnswers: Record<string, string>,
+    pipelineRunId: string
+  ): Promise<{ monthly_income_lakh: number; stated_goals: string[]; answers: Record<string, string>; goals_data: any[] }> {
+    let extractionMode: 'LLM_EXTRACTION' | 'LEGACY_REGEX' = 'LEGACY_REGEX'
+
+    try {
+      const gpt = getGpt4oMini()
+      const prompt = `
+Extract the client's financial answers from this interview Q&A.
+Return valid JSON only matching this format:
+{
+  "monthly_income_lakh": number,
+  "goals": [
+    {
+      "goal_type": "RETIREMENT" | "CHILD_EDUCATION" | "HOME_PURCHASE" | "EMERGENCY_CORPUS" | "WEALTH_CREATION" | "VACATION" | "CUSTOM",
+      "description": string,
+      "target_corpus_lakh": number,
+      "current_corpus_lakh": number,
+      "monthly_sip_required_lakh": number,
+      "target_date": string
+    }
+  ]
+}
+
+If income is mentioned in annual terms, divide by 12 to get monthly income in lakhs.
+
+Interview Q&A Data:
+${JSON.stringify(rawAnswers, null, 2)}
+`
+
+      const response = await gpt.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: VIKRAM_SYSTEM_PROMPT },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0,
+      })
+
+      const rawText = response.choices[0]?.message?.content?.trim() || ''
+      const cleanJson = rawText.replace(/^```json/, '').replace(/```$/, '').trim()
+      const parsed = JSON.parse(cleanJson)
+
+      if (parsed && typeof parsed.monthly_income_lakh === 'number' && Array.isArray(parsed.goals)) {
+        extractionMode = 'LLM_EXTRACTION'
+        logger.info({ mode: extractionMode, pipelineRunId }, 'Interview extraction')
+
+        return {
+          monthly_income_lakh: parsed.monthly_income_lakh,
+          stated_goals: parsed.goals.map((g: any) => g.description || 'Goal'),
+          answers: rawAnswers,
+          goals_data: parsed.goals.map((g: any) => ({
+            goal_id: randomUUID(),
+            goal_type: g.goal_type || 'CUSTOM',
+            description: g.description || 'Goal',
+            target_corpus_lakh: g.target_corpus_lakh || 10.0,
+            current_corpus_lakh: g.current_corpus_lakh || 0,
+            monthly_sip_required_lakh: g.monthly_sip_required_lakh || 0.1,
+            target_date: g.target_date || new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000).toISOString()
+          }))
+        }
+      }
+    } catch (err) {
+      logger.warn({ err, pipelineRunId }, 'VIKRAM: LLM structured answer extraction failed. Falling back to legacy regex extraction.')
+    }
+
+    // Fallback to legacy regex extraction
+    logger.info({ mode: extractionMode, pipelineRunId }, 'Interview extraction')
+    return this.legacyExtract(rawAnswers)
+  }
+
+  private legacyExtract(answers: Record<string, string>): { monthly_income_lakh: number; stated_goals: string[]; answers: Record<string, string>; goals_data: any[] } {
+    let monthlyIncome = 2.0
+    let statedGoals = ['Retirement corpus']
+    let goalsData = [
+      {
+        goal_id: randomUUID(),
+        goal_type: 'RETIREMENT',
+        description: 'Retirement corpus',
+        target_corpus_lakh: 100.0,
+        current_corpus_lakh: 10.0,
+        monthly_sip_required_lakh: 0.2,
+        target_date: new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000).toISOString()
+      }
+    ]
+
+    for (const [q, a] of Object.entries(answers)) {
+      const qLower = q.toLowerCase()
+      if (qLower.includes('income') || qLower.includes('earn')) {
+        const match = a.match(/(\d+(?:\.\d+)?)/)
+        if (match) monthlyIncome = parseFloat(match[1])
+      }
+      if (qLower.includes('goal') || qLower.includes('target')) {
+        statedGoals = [a]
+        goalsData[0].description = a
+      }
+    }
+
+    return {
+      monthly_income_lakh: monthlyIncome,
+      stated_goals: statedGoals,
+      answers,
+      goals_data: goalsData
+    }
   }
 }

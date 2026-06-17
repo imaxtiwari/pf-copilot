@@ -145,14 +145,33 @@ JSON Schema:
         excerpt_summary: e.excerpt_summary || 'Excerpt summary details',
         retrieved_at: now.toISOString()
       }))
+
+      const allowedCategories = ['METHODOLOGY', 'CONCENTRATION', 'SURVIVORSHIP_BIAS', 'RECENCY_BIAS', 'GOAL_MISMATCH', 'COMPLIANCE', 'OTHER']
+      let category = (f.fault_category || '').toUpperCase().trim().replace(/\s+/g, '_')
+      if (!allowedCategories.includes(category)) {
+        category = 'OTHER'
+      }
+
+      const allowedSeverities = ['CRITICAL', 'MAJOR', 'MINOR', 'OBSERVATION']
+      let severity = (f.severity || '').toUpperCase().trim()
+      if (!allowedSeverities.includes(severity)) {
+        severity = 'OBSERVATION'
+      }
+
+      const allowedTiers = ['VERIFIED', 'INFERRED', 'ASSUMED']
+      let tier = (f.confidence_tier || '').toUpperCase().trim()
+      if (!allowedTiers.includes(tier)) {
+        tier = 'VERIFIED'
+      }
+
       return {
         fault_id: randomUUID(),
-        fault_category: f.fault_category,
-        fault_description: f.fault_description,
+        fault_category: category as any,
+        fault_description: f.fault_description || 'Compliance check flag',
         evidence_sources: evidence.length > 0 ? evidence : [{ url: 'https://sebi.gov.in', excerpt_summary: 'SEBI default verification', retrieved_at: now.toISOString() }],
-        severity: f.severity,
+        severity: severity as any,
         suggested_remedy: f.suggested_remedy,
-        confidence_tier: f.confidence_tier || 'VERIFIED',
+        confidence_tier: tier as any,
         from_fault_library: false,
       }
     })
@@ -254,14 +273,33 @@ JSON Schema:
         excerpt_summary: e.excerpt_summary || 'Excerpt summary details',
         retrieved_at: now.toISOString()
       }))
+
+      const allowedCategories = ['METHODOLOGY', 'CONCENTRATION', 'SURVIVORSHIP_BIAS', 'RECENCY_BIAS', 'GOAL_MISMATCH', 'COMPLIANCE', 'OTHER']
+      let category = (f.fault_category || '').toUpperCase().trim().replace(/\s+/g, '_')
+      if (!allowedCategories.includes(category)) {
+        category = 'OTHER'
+      }
+
+      const allowedSeverities = ['CRITICAL', 'MAJOR', 'MINOR', 'OBSERVATION']
+      let severity = (f.severity || '').toUpperCase().trim()
+      if (!allowedSeverities.includes(severity)) {
+        severity = 'OBSERVATION'
+      }
+
+      const allowedTiers = ['VERIFIED', 'INFERRED', 'ASSUMED']
+      let tier = (f.confidence_tier || '').toUpperCase().trim()
+      if (!allowedTiers.includes(tier)) {
+        tier = 'VERIFIED'
+      }
+
       return {
         fault_id: randomUUID(),
-        fault_category: f.fault_category,
-        fault_description: f.fault_description,
+        fault_category: category as any,
+        fault_description: f.fault_description || 'Compliance check flag',
         evidence_sources: evidence.length > 0 ? evidence : [{ url: 'https://sebi.gov.in', excerpt_summary: 'SEBI default verification', retrieved_at: now.toISOString() }],
-        severity: f.severity,
+        severity: severity as any,
         suggested_remedy: f.suggested_remedy,
-        confidence_tier: f.confidence_tier || 'VERIFIED',
+        confidence_tier: tier as any,
         from_fault_library: false,
       }
     })

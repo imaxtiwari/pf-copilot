@@ -30,8 +30,8 @@ export class KnowledgeCommons {
    * Rejects unsourced learnings with a hard error.
    */
   async contribute(agentId: AgentId, learning: WeeklyLearning): Promise<void> {
-    // Guard: source_urls must be non-empty
-    if (!learning.source_urls || learning.source_urls.length === 0) {
+    const validUrls = learning.source_urls?.filter(u => u.startsWith('http') || u.startsWith('internal://'))
+    if (!validUrls || validUrls.length === 0) {
       throw new Error(
         `KnowledgeCommons.contribute() rejected: agent ${agentId} attempted to write unsourced learning. ` +
         `All contributions must include at least one source_url.`
@@ -42,7 +42,7 @@ export class KnowledgeCommons {
       content: learning.summary,
       // Use a general-purpose memory type with long TTL for shared knowledge
       memory_type: 'ARIA_CRITIQUE_REPORT', // 365 days — longest non-infinite TTL
-      source_url: learning.source_urls[0],
+      source_url: validUrls[0],
       confidence_tier: 'VERIFIED',
       tags: [...learning.tags, agentId, 'knowledge_commons'],
       pipeline_run_id: randomUUID(),

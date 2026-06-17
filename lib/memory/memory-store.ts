@@ -73,7 +73,7 @@ class MockQdrantClient {
 }
 
 function makeQdrantClient() {
-  if (process.env.MOCK_LLM === 'true') {
+  if (process.env.MOCK_LLM === 'true' && process.env.VITEST !== 'true') {
     logger.info('AgentMemoryStore: Initialising mock Qdrant client')
     return new MockQdrantClient() as any
   }
@@ -122,7 +122,7 @@ export async function initQdrant() {
 
   try {
     const existing = await qdrant.getCollections()
-    const existingNames = existing.collections.map(c => c.name)
+    const existingNames = existing.collections.map((c: any) => c.name)
 
     for (const coll of collections) {
       if (!existingNames.includes(coll)) {
