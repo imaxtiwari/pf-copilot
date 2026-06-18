@@ -9,9 +9,10 @@ import {
   Severity,
 } from './types/aria-types'
 import { WebResearchTool } from '../research/web-research-tool'
-import { AgentMemoryStore } from '../memory/memory-store'
+import { AgentMemoryStore, makePipelineKey } from '../memory/memory-store'
 import { DeliberationRoom } from '../deliberation/deliberation-room'
-import { getGpt4oMini } from '../azure-openai'
+import { getGpt4o } from '../azure-openai'
+import { KnowledgeCommons } from '../research/knowledge-commons'
 import logger from '../logger'
 
 const ARIA_SYSTEM_PROMPT = `You are ARIA (Analytical Review & Intelligence Agent), the Contrarian Critic in a multi-agent portfolio intelligence system for Indian investors.
@@ -80,22 +81,22 @@ export class Aria {
   ): Promise<CritiqueReport> {
     logger.info({ pipelineRunId }, 'ARIA: critiquePortfolioDraft invoked')
 
-    // 1. Recall fault library from memory
+    // 1. Recall fault library from Knowledge Commons
     let faultLibraryText = ''
     try {
-      const recalled = await this.memoryStore.recall('ARIA', 'Portfolio fault patterns methodology concentration bias', {
-        limit: 5,
-        pipeline_run_id: pipelineRunId
-      })
+      const kc = new KnowledgeCommons(this.deliberationRoom)
+      const recalled = await kc.queryCommons('ARIA', 'critique_patterns')
       if (recalled.length > 0) {
-        faultLibraryText = recalled.map(entry => `Recalled fault: ${entry.content}`).join('\n')
+        faultLibraryText = recalled.map((entry: any) => `Recalled fault: ${entry.summary}`).join('\n')
       }
     } catch (err) {
-      logger.warn({ err }, 'ARIA: failed to recall fault library')
+      logger.warn({ err }, 'ARIA: failed to recall fault library from Knowledge Commons')
     }
 
     // 2. Call LLM with ARIA system prompt
-    const gpt = getGpt4oMini()
+    // GPT-4o: adversarial reasoning task — highest-stakes classification in the
+    // pipeline. A missed CRITICAL fault = bad portfolio approved. Do not downgrade.
+    const gpt = getGpt4o()
     const prompt = `
 Analyze the following portfolio draft. Compare it against past fault patterns if relevant.
 Identify any faults in sectors/stocks concentration, methodology, bias, goal mismatch, or compliance.
@@ -126,7 +127,7 @@ JSON Schema:
 }
 `
     const response = await gpt.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       messages: [
         { role: 'system', content: ARIA_SYSTEM_PROMPT },
         { role: 'user', content: prompt }
@@ -197,7 +198,10 @@ JSON Schema:
       memory_type: 'ARIA_CRITIQUE_REPORT',
       source_url: 'Deliberation',
       confidence_tier: 'VERIFIED',
-      tags: ['critique_report', pipelineRunId],
+      tags: [
+        makePipelineKey('ARIA', 'critique_report', context.client_id, pipelineRunId),
+        makePipelineKey('ARIA', 'fault_list', context.client_id, pipelineRunId)
+      ],
       pipeline_run_id: pipelineRunId
     })
 
@@ -225,8 +229,22 @@ JSON Schema:
   ): Promise<CritiqueReport> {
     logger.info({ pipelineRunId }, 'ARIA: critiqueGoalPlan invoked')
 
+    // 1. Recall fault library from Knowledge Commons
+    let faultLibraryText = ''
+    try {
+      const kc = new KnowledgeCommons(this.deliberationRoom)
+      const recalled = await kc.queryCommons('ARIA', 'goal_critique_patterns')
+      if (recalled.length > 0) {
+        faultLibraryText = recalled.map((entry: any) => `Recalled fault: ${entry.summary}`).join('\n')
+      }
+    } catch (err) {
+      logger.warn({ err }, 'ARIA: failed to recall goal fault library from Knowledge Commons')
+    }
+
     // Call LLM with ARIA system prompt targeting Vikram's ClientGoalAssessment
-    const gpt = getGpt4oMini()
+    // GPT-4o: adversarial reasoning task — highest-stakes classification in the
+    // pipeline. A missed CRITICAL fault = bad portfolio approved. Do not downgrade.
+    const gpt = getGpt4o()
     const prompt = `
 Analyze the following client goal plan assessment from Vikram.
 Identify any faults in stated goals, sequencing, math viability, or framework selection.
@@ -235,6 +253,10 @@ You must return a valid JSON object ONLY. Do not include markdown code blocks.
 
 Vikram's Goal Assessment:
 ${JSON.stringify(assessment, null, 2)}
+
+Recalled Fault Library Context:
+${faultLibraryText || 'None.'}
+
 
 JSON Schema:
 {
@@ -254,7 +276,7 @@ JSON Schema:
 }
 `
     const response = await gpt.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       messages: [
         { role: 'system', content: ARIA_SYSTEM_PROMPT },
         { role: 'user', content: prompt }
@@ -325,7 +347,10 @@ JSON Schema:
       memory_type: 'ARIA_CRITIQUE_REPORT',
       source_url: 'Deliberation',
       confidence_tier: 'VERIFIED',
-      tags: ['critique_report_goal_plan', pipelineRunId],
+      tags: [
+        makePipelineKey('ARIA', 'critique_report', assessment.client_id || 'UNKNOWN', pipelineRunId),
+        makePipelineKey('ARIA', 'fault_list', assessment.client_id || 'UNKNOWN', pipelineRunId)
+      ],
       pipeline_run_id: pipelineRunId
     })
 
@@ -354,7 +379,9 @@ JSON Schema:
   ): Promise<CritiqueFault> {
     logger.info({ faultId: originalFault.fault_id, pipelineRunId }, 'ARIA: respondToCounterArgument invoked')
 
-    const gpt = getGpt4oMini()
+    // GPT-4o: adversarial reasoning task — highest-stakes classification in the
+    // pipeline. A missed CRITICAL fault = bad portfolio approved. Do not downgrade.
+    const gpt = getGpt4o()
     const prompt = `
 Respond to the client or agent's counter-argument regarding this critique fault.
 You must EITHER:
@@ -381,7 +408,7 @@ JSON Schema:
 }
 `
     const response = await gpt.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       messages: [
         { role: 'system', content: ARIA_SYSTEM_PROMPT },
         { role: 'user', content: prompt }

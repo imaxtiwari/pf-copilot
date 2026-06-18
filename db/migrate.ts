@@ -30,6 +30,14 @@ async function main() {
     WITH (m = 16, ef_construction = 64)
   `)
 
+  console.log('Creating HNSW index on knowledge_commons.embedding...')
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS knowledge_commons_embedding_hnsw_idx
+    ON knowledge_commons
+    USING hnsw (embedding vector_cosine_ops)
+    WITH (m = 16, ef_construction = 64)
+  `)
+
   console.log('Creating immutable triggers for fund_snapshots...')
   await db.execute(sql`
     CREATE OR REPLACE FUNCTION prevent_update()

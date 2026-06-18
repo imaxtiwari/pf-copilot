@@ -263,4 +263,30 @@ export const pipelineResults = pgTable('pipeline_results', {
   createdAt: timestamp('created_at').defaultNow(),
 })
 
+export const schedulerLocks = pgTable('scheduler_locks', {
+  jobName: text('job_name').primaryKey(),
+  lockedAt: timestamp('locked_at').defaultNow().notNull(),
+  lockedBy: text('locked_by').notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+})
+
+export const schedulerRuns = pgTable('scheduler_runs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  jobName: text('job_name').notNull(),
+  firedAt: timestamp('fired_at').defaultNow().notNull(),
+  completedAt: timestamp('completed_at'),
+  status: text('status'),
+  durationMs: integer('duration_ms'),
+  errorMsg: text('error_msg'),
+})
+
+export const knowledgeCommons = pgTable('knowledge_commons', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  agentId: text('agent_id').notNull(),
+  summary: text('summary').notNull(),
+  sourceUrls: jsonb('source_urls').notNull(),
+  tags: jsonb('tags').notNull(),
+  embedding: vector('embedding', { dimensions: 1536 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
 

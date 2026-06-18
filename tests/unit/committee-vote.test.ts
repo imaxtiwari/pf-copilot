@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { determineCommitteeOutcome } from '../../lib/agents/dhruv'
+import { resolveVote } from '../../lib/agents/dhruv'
 import { Vikram } from '../../lib/agents/vikram'
 
 vi.mock('../../lib/azure-openai', () => {
@@ -25,62 +25,65 @@ vi.mock('../../lib/azure-openai', () => {
 })
 
 describe('Committee Vote Outcome Unit Tests', () => {
-  it('should approve with 3 APPROVE + 0 CRITICAL faults + hedge 85%', () => {
+  const mockDhruv = { castDecidingVote: vi.fn().mockResolvedValue({ outcome: 'APPROVED', outcomeReason: 'Dhruv decides' }) } as any
+  const mockDraft = { pipeline_run_id: 'test' } as any
+
+  it('should approve with 3 APPROVE + 0 CRITICAL faults + hedge 85%', async () => {
     const votes = [
       { voter: 'ARIA', vote: 'APPROVE', reasoning: '' },
       { voter: 'KIRAN', vote: 'APPROVE', reasoning: '' },
       { voter: 'VIKRAM', vote: 'APPROVE', reasoning: '' }
     ] as any
 
-    const result = determineCommitteeOutcome(votes, false, 85)
+    const result = await resolveVote(votes, mockDhruv, mockDraft, false, 85)
     expect(result.outcome).toBe('APPROVED')
-    expect(result.outcomeReason).toContain('Approved by 2/3 majority')
+    expect(result.outcomeReason).toContain('Approved by majority')
   })
 
-  it('should approve with 2 APPROVE + 0 CRITICAL faults + hedge 85% (majority)', () => {
+  it('should approve with 2 APPROVE + 0 CRITICAL faults + hedge 85% (majority)', async () => {
     const votes = [
       { voter: 'ARIA', vote: 'REJECT', reasoning: '' },
       { voter: 'KIRAN', vote: 'APPROVE', reasoning: '' },
       { voter: 'VIKRAM', vote: 'APPROVE', reasoning: '' }
     ] as any
 
-    const result = determineCommitteeOutcome(votes, false, 85)
+    const result = await resolveVote(votes, mockDhruv, mockDraft, false, 85)
     expect(result.outcome).toBe('APPROVED')
-    expect(result.outcomeReason).toContain('Approved by 2/3 majority')
+    expect(result.outcomeReason).toContain('Approved by majority')
   })
 
-  it('should reject with 1 APPROVE + 0 CRITICAL faults + hedge 85% (no majority)', () => {
+  it('should reject with 1 APPROVE + 0 CRITICAL faults + hedge 85% (no majority)', async () => {
     const votes = [
       { voter: 'ARIA', vote: 'REJECT', reasoning: '' },
       { voter: 'KIRAN', vote: 'REJECT', reasoning: '' },
       { voter: 'VIKRAM', vote: 'APPROVE', reasoning: '' }
     ] as any
 
-    const result = determineCommitteeOutcome(votes, false, 85)
+    const result = await resolveVote(votes, mockDhruv, mockDraft, false, 85)
     expect(result.outcome).toBe('REJECTED')
-    expect(result.outcomeReason).toContain('did not reach 2/3 majority')
+    expect(result.outcomeReason).toContain('Rejected by majority')
   })
 
-  it('should auto reject with 2 APPROVE + 1 CRITICAL fault from ARIA (CRITICAL veto)', () => {
+  it('should auto reject with 2 APPROVE + 1 CRITICAL fault from ARIA (CRITICAL veto)', async () => {
     const votes = [
       { voter: 'ARIA', vote: 'REJECT', reasoning: '' },
       { voter: 'KIRAN', vote: 'APPROVE', reasoning: '' },
       { voter: 'VIKRAM', vote: 'APPROVE', reasoning: '' }
     ] as any
 
-    const result = determineCommitteeOutcome(votes, true, 85)
+    const result = await resolveVote(votes, mockDhruv, mockDraft, true, 85)
     expect(result.outcome).toBe('REJECTED')
     expect(result.outcomeReason).toContain('Rejected automatically due to CRITICAL critique faults')
   })
 
-  it('should auto reject if hedge_coverage is 79% regardless of votes', () => {
+  it('should auto reject if hedge_coverage is 79% regardless of votes', async () => {
     const votes = [
       { voter: 'ARIA', vote: 'APPROVE', reasoning: '' },
       { voter: 'KIRAN', vote: 'APPROVE', reasoning: '' },
       { voter: 'VIKRAM', vote: 'APPROVE', reasoning: '' }
     ] as any
 
-    const result = determineCommitteeOutcome(votes, false, 79)
+    const result = await resolveVote(votes, mockDhruv, mockDraft, false, 79)
     expect(result.outcome).toBe('REJECTED')
     expect(result.outcomeReason).toContain('Rejected automatically because hedge coverage (79%) is below 80%')
   })

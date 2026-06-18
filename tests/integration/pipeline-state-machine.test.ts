@@ -25,10 +25,8 @@ describe('Pipeline State Machine Integration Tests', () => {
     const runId = 'run-sm-1'
     const sm = new PipelineStateMachine(mockDb)
 
-    await sm.transition('ONBOARDING', 'KIRAN_RISK_PROFILE', runId)
-    await sm.transition('KIRAN_RISK_PROFILE', 'VIKRAM_INTERVIEW', runId)
-    await sm.transition('VIKRAM_INTERVIEW', 'VIKRAM_GOAL_ASSESSMENT', runId)
-    await sm.transition('VIKRAM_GOAL_ASSESSMENT', 'SOMA_FUND_UNIVERSE', runId)
+    await sm.transition('ONBOARDING', 'PROFILING_AND_GOAL_ASSESSMENT', runId)
+    await sm.transition('PROFILING_AND_GOAL_ASSESSMENT', 'SOMA_FUND_UNIVERSE', runId)
     await sm.transition('SOMA_FUND_UNIVERSE', 'VIKRAM_STRATEGY', runId)
     await sm.transition('VIKRAM_STRATEGY', 'KIRAN_HEDGE_MAP', runId)
     await sm.transition('KIRAN_HEDGE_MAP', 'PRIYA_BUILD', runId)
@@ -57,10 +55,8 @@ describe('Pipeline State Machine Integration Tests', () => {
     const sm = new PipelineStateMachine(mockDb)
 
     // Transition to DEADLOCKED
-    await sm.transition('ONBOARDING', 'KIRAN_RISK_PROFILE', runId)
-    await sm.transition('KIRAN_RISK_PROFILE', 'VIKRAM_INTERVIEW', runId)
-    await sm.transition('VIKRAM_INTERVIEW', 'VIKRAM_GOAL_ASSESSMENT', runId)
-    await sm.transition('VIKRAM_GOAL_ASSESSMENT', 'SOMA_FUND_UNIVERSE', runId)
+    await sm.transition('ONBOARDING', 'PROFILING_AND_GOAL_ASSESSMENT', runId)
+    await sm.transition('PROFILING_AND_GOAL_ASSESSMENT', 'SOMA_FUND_UNIVERSE', runId)
     await sm.transition('SOMA_FUND_UNIVERSE', 'VIKRAM_STRATEGY', runId)
     await sm.transition('VIKRAM_STRATEGY', 'KIRAN_HEDGE_MAP', runId)
     await sm.transition('KIRAN_HEDGE_MAP', 'PRIYA_BUILD', runId)

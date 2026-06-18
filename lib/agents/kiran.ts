@@ -15,9 +15,10 @@ import {
   ScenarioStressTestSchema,
 } from './types/kiran-types'
 import { WebResearchTool } from '../research/web-research-tool'
-import { AgentMemoryStore } from '../memory/memory-store'
+import { AgentMemoryStore, makePipelineKey, makeGlobalKey } from '../memory/memory-store'
 import { DeliberationRoom } from '../deliberation/deliberation-room'
 import { getGpt4oMini } from '../azure-openai'
+import { KnowledgeCommons } from '../research/knowledge-commons'
 import logger from '../logger'
 
 const KIRAN_SYSTEM_PROMPT = `You are KIRAN (Kinetic Intelligence for Risk & Adaptive Navigation), the Risk Sentinel in a multi-agent portfolio intelligence system for Indian investors.
@@ -180,7 +181,7 @@ JSON Schema:
       memory_type: 'KIRAN_MACRO_BULLETIN',
       source_url: validated.sources[0]?.url || 'Scan',
       confidence_tier: 'VERIFIED',
-      tags: ['macro_scan', 'kiran', validated.risk_level],
+      tags: [makeGlobalKey('KIRAN', 'macro_bulletin'), validated.risk_level],
       pipeline_run_id: runId
     })
 
@@ -237,8 +238,14 @@ JSON Schema:
 
     // Research behavioural finance for client archetype
     const archetypeDescription = `${clientData.age} years old, ${clientData.ownsHome ? 'homeowner' : 'tenant'}, ${clientData.dependents || 'no'} dependents, income stability tier: ${clientData.cityTier || 'metro'}`
+    
     let searchResults: any[] = []
+    let priorLearnings: any[] = []
+
     try {
+      const kc = new KnowledgeCommons(this.deliberationRoom)
+      priorLearnings = await kc.queryCommons('KIRAN', 'macro_risk_patterns')
+      
       searchResults = await this.webResearchTool.research({
         query_text: `behavioral finance portfolio asset allocation risk factors for ${clientData.age} years old dependants ${clientData.dependents}`,
         intent: 'client_risk_research',
@@ -263,6 +270,9 @@ ${JSON.stringify(clientData, null, 2)}
 
 Behavioural Finance Research Context:
 ${researchContext}
+
+Learnings from prior runs:
+${priorLearnings.length > 0 ? priorLearnings.map(l => `- ${l.summary}`).join('\n') : 'None.'}
 
 JSON Schema:
 {
@@ -324,7 +334,7 @@ JSON Schema:
       memory_type: 'KIRAN_CLIENT_RISK_PROFILE',
       source_url: validated.factors[0]?.source_url || 'Registry',
       confidence_tier: 'VERIFIED',
-      tags: ['client_risk', clientId, validated.behavioural_risk_tolerance],
+      tags: [makePipelineKey('KIRAN', 'client_risk_profile', clientId, pipelineRunId), validated.behavioural_risk_tolerance],
       pipeline_run_id: pipelineRunId
     })
 
@@ -401,7 +411,7 @@ JSON Schema:
       memory_type: 'KIRAN_HEDGE_MAP',
       source_url: validated.sources[0].url,
       confidence_tier: 'VERIFIED',
-      tags: ['hedge_map', validated.portfolio_id],
+      tags: [makePipelineKey('KIRAN', 'hedge_map', portfolioDraft.client_id || portfolioDraft.clientId || 'UNKNOWN', pipelineRunId)],
       pipeline_run_id: pipelineRunId
     })
 
@@ -507,7 +517,18 @@ JSON Schema:
       scenarios: scenariosResult,
     }
 
-    return ScenarioStressTestSchema.parse(stressTest)
+    const validated = ScenarioStressTestSchema.parse(stressTest)
+
+    await this.memoryStore.write('KIRAN', {
+      content: JSON.stringify(validated),
+      memory_type: 'KIRAN_HEDGE_MAP', // using HEDGE_MAP TTL
+      source_url: 'Internal',
+      confidence_tier: 'VERIFIED',
+      tags: [makePipelineKey('KIRAN', 'scenario_stress_test', portfolioDraft.client_id || portfolioDraft.clientId || 'UNKNOWN', pipelineRunId)],
+      pipeline_run_id: pipelineRunId
+    })
+
+    return validated
   }
 
   async runWeeklyResearch(): Promise<void> {

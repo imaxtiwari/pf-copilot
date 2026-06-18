@@ -110,6 +110,14 @@ export interface WriteMemoryInput {
   pipeline_run_id?: string
 }
 
+export function makePipelineKey(agent: string, key: string, userId: string, runId: string): string {
+  return `${agent}:${key}:${userId}:${runId}`
+}
+
+export function makeGlobalKey(agent: string, key: string): string {
+  return `${agent}:${key}:global`
+}
+
 export interface RecallOptions {
   limit?: number
   include_stale?: boolean

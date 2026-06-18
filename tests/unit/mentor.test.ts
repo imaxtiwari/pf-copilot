@@ -108,13 +108,13 @@ describe('Mentor Post-Pipeline Analysis Unit Tests', () => {
     expect(mockContribute).toHaveBeenNthCalledWith(1, 'ARIA', {
       summary: 'ARIA needs to be less conservative on sector limits.',
       source_urls: ['internal://pipeline-run/test-run-123'],
-      tags: ['concentration', 'sector_limits', 'mentor_analysis', 'approved'],
+      tags: ['concentration', 'sector_limits', 'mentor_analysis', 'approved', 'MENTOR:pipeline_learnings:undefined:test-run-123'],
       agent: 'ARIA'
     })
     expect(mockContribute).toHaveBeenNthCalledWith(2, 'KIRAN', {
       summary: 'KIRAN should refine macro stress testing rules.',
       source_urls: ['internal://pipeline-run/test-run-123'],
-      tags: ['macro_risk', 'stress_test', 'mentor_analysis', 'approved'],
+      tags: ['macro_risk', 'stress_test', 'mentor_analysis', 'approved', 'MENTOR:pipeline_learnings:undefined:test-run-123'],
       agent: 'KIRAN'
     })
 

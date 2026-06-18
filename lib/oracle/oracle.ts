@@ -2,6 +2,7 @@ import { DeliberationMessage } from '../deliberation/message-schema'
 import { auditTrail, AuditActionType } from '../audit/audit-trail'
 import { getGpt4oMini } from '../azure-openai'
 import { HALLUCINATION_TRIPWIRES } from './tripwire-registry'
+import { scoreConfidence } from './confidence-scorer'
 import { MEMORY_TTL_DAYS } from '../memory/ttl-config'
 import logger from '../logger'
 
@@ -62,10 +63,12 @@ function findSourceUrls(payload: Record<string, unknown>): string[] {
  */
 export async function oracleMiddleware(msg: DeliberationMessage): Promise<DeliberationMessage> {
   const flags: string[] = []
+  let payloadStr = ''
+  let sourceUrls: string[] = []
 
   try {
-    const payloadStr = JSON.stringify(msg.payload)
-    const sourceUrls = findSourceUrls(msg.payload)
+    payloadStr = JSON.stringify(msg.payload)
+    sourceUrls = findSourceUrls(msg.payload)
     // ── CHECK 1: Source Presence ────────────────────────────────────────────
     // Detect factual claims: meaningful financial numbers (3+ digits), percentages, dates
     // 3+ digit threshold avoids flagging small operational numbers like deadline_minutes:30
@@ -172,6 +175,14 @@ export async function oracleMiddleware(msg: DeliberationMessage): Promise<Delibe
   // ── CHECK 5: Set Final Status ───────────────────────────────────────────────
   const status = flags.length === 0 ? 'PASSED' : 'FLAGGED'
 
+  const claim = {
+    content: payloadStr,
+    source_url: sourceUrls[0],
+    has_contradictions: flags.some(f => f.includes('CONTRADICTION'))
+  }
+  const tier = scoreConfidence(claim)
+  const confidence_score = tier === 'VERIFIED' ? 100 : tier === 'INFERRED' ? 70 : 30
+
   // ── CHECK 6: Audit Trail ────────────────────────────────────────────────────
   auditTrail.log({
     pipeline_run_id: msg.pipeline_run_id,
@@ -180,6 +191,7 @@ export async function oracleMiddleware(msg: DeliberationMessage): Promise<Delibe
       status === 'FLAGGED'
         ? AuditActionType.ORACLE_FLAG_RAISED
         : AuditActionType.ORACLE_VALIDATION_PASSED,
+    oracle_confidence: confidence_score,
     payload: {
       message_id: msg.message_id,
       sender: msg.sender,
@@ -199,6 +211,6 @@ export async function oracleMiddleware(msg: DeliberationMessage): Promise<Delibe
 
   return {
     ...msg,
-    oracle_validation: { status, flags }
+    oracle_validation: { status, flags, confidence_score }
   }
 }

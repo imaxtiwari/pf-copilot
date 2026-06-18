@@ -96,7 +96,8 @@ export const DeliberationMessageSchema = z.object({
   payload: z.record(z.string(), z.unknown()),
   oracle_validation: z.object({
     status: z.enum(['PASSED', 'FLAGGED', 'PENDING']),
-    flags: z.array(z.string())
+    flags: z.array(z.string()),
+    confidence_score: z.number().optional()
   }),
   references: z.array(z.string()).default([])
 })

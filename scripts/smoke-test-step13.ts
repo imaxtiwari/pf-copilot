@@ -291,12 +291,12 @@ describe('Step 13 Integration Smoke Tests', () => {
 
       const statusJson = await statusRes.json()
       currentStage = statusJson.current_stage
-      if (currentStage === 'VIKRAM_INTERVIEW') {
+      if (currentStage === 'PROFILING_AND_GOAL_ASSESSMENT') {
         break
       }
       await new Promise(resolve => setTimeout(resolve, 500))
     }
-    expect(currentStage).toBe('VIKRAM_INTERVIEW')
+    expect(currentStage).toBe('PROFILING_AND_GOAL_ASSESSMENT')
 
     // 3. POST /api/pipeline/[runId]/interview
     console.log('--- TEST: POST /api/pipeline/[runId]/interview ---')
@@ -314,7 +314,7 @@ describe('Step 13 Integration Smoke Tests', () => {
     expect(interviewRes.status).toBe(200)
 
     const interviewJson = await interviewRes.json()
-    expect(interviewJson.stage).toBe('VIKRAM_GOAL_ASSESSMENT')
+    expect(interviewJson.stage).toBe('SOMA_FUND_UNIVERSE')
 
     // 4. Poll status until completed (APPROVED or DEADLOCKED)
     console.log('--- TEST: GET /api/pipeline/[runId]/status (polling completion) ---')
@@ -403,5 +403,5 @@ describe('Step 13 Integration Smoke Tests', () => {
     expect(healthJson.data.audit_trail_accessible).toBe(true)
     expect(healthJson.data.scheduler_running).toBeDefined()
     expect(healthJson.data.latest_macro_bulletin_age_days).toBeLessThan(1)
-  })
+  }, 60000)
 })

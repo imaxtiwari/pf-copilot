@@ -1,0 +1,250 @@
+[PRIYA] -> [PORTFOLIO_DRAFT]
+{
+  "version": 1,
+  "cagr_pct": 12.5,
+  "allocations": [
+    {
+      "pct": 30,
+      "code": "123456",
+      "fund": "HDFC Short Term Debt Fund"
+    },
+    {
+      "pct": 30,
+      "code": "654321",
+      "fund": "ICICI Prudential Liquid Fund"
+    },
+    {
+      "pct": 10,
+      "code": "789012",
+      "fund": "SBI Gold Fund"
+    },
+    {
+      "pct": 30,
+      "code": "987654",
+      "fund": "Aditya Birla Sun Life Short Term Fund"
+    }
+  ],
+  "portfolio_id": "874784f8-e0f0-4351-ba10-c5adc2d68258",
+  "revision_number": 2,
+  "confidence_score": 60
+}
+---
+[KIRAN] -> [RISK_ALERT]
+{
+  "severity": "LOW",
+  "data_source": "https://rbi.org.in",
+  "risk_category": "PORTFOLIO_HEDGE_MAP",
+  "affected_funds": [
+    "Reliance Fixed Horizon Fund - XXIV - Series 10 - Direct Plan - Dividend Payout Option",
+    "Fund Code 654321",
+    "Fund Code 789012",
+    "Fund Code 987654"
+  ],
+  "risk_description": "Hedge Map built. Overall coverage is 85%."
+}
+---
+[KIRAN] -> [RISK_ALERT]
+{
+  "severity": "LOW",
+  "data_source": "https://rbi.org.in",
+  "risk_category": "PORTFOLIO_HEDGE_MAP",
+  "affected_funds": [
+    "Reliance Fixed Horizon Fund - XXIV - Series 10 - Direct Plan - Dividend Payout Option",
+    "Fund Code 654321",
+    "Fund Code 789012",
+    "Fund Code 987654"
+  ],
+  "risk_description": "Hedge Map built. Overall coverage is 85%."
+}
+---
+[ARIA] -> [CRITIQUE]
+{
+  "severity": "CRITICAL",
+  "critique_points": [
+    "The portfolio's allocation does not fully align with the client's conservative risk profile and short time horizon of less than one year. The inclusion of a 10% allocation to SBI Gold Fund introduces unnecessary volatility and may not provide the stability required for meeting immediate liabilities.",
+    "The portfolio has a 90% allocation to debt funds, with 60% concentrated in two short-term debt funds (HDFC Short Term Debt Fund and Aditya Birla Sun Life Short Term Fund). This creates a risk of overexposure to similar interest rate and credit risks.",
+    "The portfolio relies on proxy funds for backtesting due to insufficient historical data for the selected funds. This introduces potential inaccuracies in performance evaluation and may not reflect the actual risk-return characteristics of the portfolio.",
+    "The portfolio draft does not explicitly confirm adherence to SEBI guidelines, such as minimum AUM thresholds and expense ratio limits, despite applying universe filters. This lack of transparency could lead to non-compliance risks.",
+    "The stress-testing scenarios provided in the backtest summary lack quantitative metrics for portfolio return, drawdown, and recovery timelines. This undermines the reliability of the stress-testing process and the ability to assess portfolio resilience under adverse conditions."
+  ],
+  "target_message_id": "874784f8-e0f0-4351-ba10-c5adc2d68258",
+  "recommended_action": "The portfolio draft has critical flaws in goal alignment and major issues in concentration and methodology. These must be addressed before the portfolio can be considered viable. Minor improvements in compliance transparency and stress-testing reliability are also recommended."
+}
+---
+[VIKRAM] -> [VOTE]
+{
+  "vote": "REJECT",
+  "motion": "Evaluate portfolio alignment for draft 874784f8-e0f0-4351-ba10-c5adc2d68258",
+  "reasoning": "The portfolio's actual allocations deviate significantly from the strategic asset allocation guidance, with 100% equity allocation and no exposure to debt, gold, or international assets. Additionally, the selected strategy frameworks (Liability-Matching Strategy, Bucket Strategy, Goal-Based Investing) are not properly reflected in the portfolio's bucket structure, as the entire allocation is concentrated in a single custom bucket with a short horizon of 0.96 years, which is inconsistent with the diversification and horizon segmentation principles of these frameworks.",
+  "conditions": [
+    "Equity allocation (100%) exceeds the specified range of 20%-30%.",
+    "Debt allocation (0%) is below the specified range of 50%-70%.",
+    "Gold allocation (0%) is below the specified range of 5%-10%.",
+    "International allocation (0%) is below the specified range of 5%-10%.",
+    "The bucket structure lacks segmentation by horizon, with all assets concentrated in a single short-term bucket, violating the principles of the Bucket Strategy.",
+    "The portfolio does not align with the Liability-Matching Strategy, as there is no allocation to low-risk assets to match short-term liabilities."
+  ]
+}
+---
+[DHRUV] -> [VOTE]
+{
+  "votes": [
+    {
+      "vote": "REJECT",
+      "voter": "ARIA"
+    },
+    {
+      "vote": "APPROVE",
+      "voter": "KIRAN"
+    },
+    {
+      "vote": "REJECT",
+      "voter": "VIKRAM"
+    }
+  ],
+  "reason": "Rejected automatically due to CRITICAL critique faults from ARIA.",
+  "outcome": "REJECTED"
+}
+---
+[ARIA] -> [CRITIQUE]
+{
+  "severity": "CRITICAL",
+  "critique_points": [
+    "The portfolio's allocation does not fully align with the client's conservative risk profile and short time horizon of less than one year. The inclusion of a 10% allocation to SBI Gold Fund introduces unnecessary volatility and may not provide the stability required to meet the client's immediate liabilities.",
+    "The portfolio has a 90% allocation to debt funds, with 60% concentrated in two short-term debt funds (HDFC Short Term Debt Fund and Aditya Birla Sun Life Short Term Fund). This creates a risk of overexposure to similar interest rate and credit risks, reducing diversification benefits.",
+    "The portfolio relies on proxy funds for backtesting due to insufficient historical data for the selected funds. This introduces potential inaccuracies in performance evaluation and may not reflect the actual risk-return characteristics of the portfolio.",
+    "The portfolio draft does not explicitly confirm adherence to SEBI guidelines, such as minimum AUM thresholds and expense ratio limits, despite applying universe filters. This lack of transparency could lead to non-compliance risks.",
+    "The stress-testing scenarios provided in the backtest summary lack quantitative metrics for portfolio return, drawdown, and recovery timelines. This undermines the reliability of the stress-testing process and the ability to assess portfolio resilience under adverse conditions."
+  ],
+  "target_message_id": "874784f8-e0f0-4351-ba10-c5adc2d68258",
+  "recommended_action": "The portfolio draft has critical flaws in goal alignment and methodology, as well as major issues in concentration. These must be addressed before the portfolio can be considered viable. Minor improvements in compliance transparency and stress-testing reliability are also recommended."
+}
+---
+[PRIYA] -> [PORTFOLIO_DRAFT]
+{
+  "version": 1,
+  "cagr_pct": 12.5,
+  "allocations": [
+    {
+      "pct": 25,
+      "code": "123456",
+      "fund": "HDFC Short Term Debt Fund"
+    },
+    {
+      "pct": 25,
+      "code": "654321",
+      "fund": "ICICI Prudential Liquid Fund"
+    },
+    {
+      "pct": 25,
+      "code": "987654",
+      "fund": "Aditya Birla Sun Life Short Term Fund"
+    },
+    {
+      "pct": 25,
+      "code": "112233",
+      "fund": "Kotak Floating Rate Fund"
+    }
+  ],
+  "portfolio_id": "9deaa065-7d57-4c06-9719-96577d4a712e",
+  "revision_number": 3,
+  "confidence_score": 60
+}
+---
+[KIRAN] -> [RISK_ALERT]
+{
+  "severity": "LOW",
+  "data_source": "https://rbi.org.in",
+  "risk_category": "PORTFOLIO_HEDGE_MAP",
+  "affected_funds": [
+    "Reliance Fixed Horizon Fund - XXIV - Series 10 - Direct Plan - Dividend Payout Option",
+    "Fund Code 654321",
+    "Fund Code 987654",
+    "Fund Code 112233"
+  ],
+  "risk_description": "Hedge Map built. Overall coverage is 85%."
+}
+---
+[KIRAN] -> [RISK_ALERT]
+{
+  "severity": "LOW",
+  "data_source": "https://rbi.org.in",
+  "risk_category": "PORTFOLIO_HEDGE_MAP",
+  "affected_funds": [
+    "Reliance Fixed Horizon Fund - XXIV - Series 10 - Direct Plan - Dividend Payout Option",
+    "Fund Code 654321",
+    "Fund Code 987654",
+    "Fund Code 112233"
+  ],
+  "risk_description": "Hedge Map built. Overall coverage is 85%."
+}
+---
+[ARIA] -> [CRITIQUE]
+{
+  "severity": "MAJOR",
+  "critique_points": [
+    "The portfolio's allocation to short-term debt and liquid funds aligns with the client's conservative risk profile and short time horizon. However, the inclusion of floating rate funds introduces interest rate sensitivity, which may not be ideal for a portfolio designed to meet immediate liabilities. This could lead to potential volatility in returns, misaligning with the client's stated goal of stability and liquidity.",
+    "The portfolio allocates 100% to debt instruments, which, while aligned with the client's conservative risk profile, lacks diversification into other asset classes like gold or international funds. This over-reliance on debt could expose the portfolio to risks such as inflation erosion or interest rate volatility.",
+    "The backtest summary uses proxy funds for all selected funds due to insufficient historical data. This reliance on proxies undermines the reliability of the backtest results, as the performance of the proxies may not accurately reflect the selected funds' behavior.",
+    "The portfolio draft does not explicitly confirm adherence to SEBI guidelines, such as minimum AUM thresholds and expense ratio limits, despite applying universe filters. This lack of transparency could lead to non-compliance risks.",
+    "The stress-testing scenarios provided in the backtest summary lack quantitative metrics for portfolio return, drawdown, and recovery timelines. This undermines the reliability of the stress-testing process and the ability to assess portfolio resilience under adverse conditions."
+  ],
+  "target_message_id": "9deaa065-7d57-4c06-9719-96577d4a712e",
+  "recommended_action": "The portfolio draft has major issues in goal alignment, concentration, and methodology, which must be addressed before it can be considered viable. Minor improvements in compliance transparency and stress-testing reliability are also recommended. The portfolio's current structure does not fully align with the client's stated goals and risk profile, particularly in terms of stability and diversification."
+}
+---
+[VIKRAM] -> [VOTE]
+{
+  "vote": "REJECT",
+  "motion": "Evaluate portfolio alignment for draft 9deaa065-7d57-4c06-9719-96577d4a712e",
+  "reasoning": "The portfolio's actual allocations deviate significantly from the strategic asset allocation guidance, with 100% equity allocation and no exposure to debt, gold, or international assets. Additionally, the selected strategy frameworks (Liability-Matching, Bucket Strategy, Goal-Based Investing) are not properly reflected in the portfolio's bucket structure, as there is only one bucket with a short-term horizon and 100% equity allocation, which contradicts the principles of diversification and risk management inherent in these frameworks.",
+  "conditions": [
+    "Equity allocation (100%) exceeds the specified range of 20%-30%.",
+    "Debt allocation (0%) is below the specified range of 50%-70%.",
+    "Gold allocation (0%) is below the specified range of 5%-10%.",
+    "International allocation (0%) is below the specified range of 5%-10%.",
+    "The bucket structure lacks diversification and does not align with the principles of the selected strategy frameworks."
+  ]
+}
+---
+[DHRUV] -> [VOTE]
+{
+  "votes": [
+    {
+      "vote": "APPROVE",
+      "voter": "ARIA"
+    },
+    {
+      "vote": "APPROVE",
+      "voter": "KIRAN"
+    },
+    {
+      "vote": "REJECT",
+      "voter": "VIKRAM"
+    }
+  ],
+  "reason": "Approved by 2/3 majority committee vote (2 approvals, 1 rejections).",
+  "outcome": "APPROVED"
+}
+---
+[2026-06-17 23:16:04.806 +0530] ERROR (98124): MENTOR: Failed to parse LLM response as JSON
+    rawText: "```json\n{\n  \"learnings\": [\n    {\n      \"agent\": \"ARIA\",\n      \"learning\": \"ARIA should ensure that critiques explicitly address whether the portfolio adheres to the client's stated goals and risk profile, and provide actionable recommendations for aligning the portfolio with these goals.\",\n      \"reason\": \"ARIA consistently identified critical faults related to misalignment with the client's conservative risk profile and short time horizon but did not provide clear, actionable steps to resolve these issues. For example, ARIA flagged the inclusion of equity-focused funds as inconsistent with the client's risk profile but did not suggest alternative allocations to address this misalignment (e.g., messageId: 037b3ddc-6026-4002-a395-8d8c992ffffc).\",\n      \"tags\": [\"goal alignment\", \"actionable feedback\", \"risk profile\"]\n    },\n    {\n      \"agent\": \"ARIA\",\n      \"learning\": \"ARIA should improve the clarity and consistency of backtest critiques by specifying the exact data gaps and their implications for portfolio reliability.\",\n      \"reason\": \"ARIA frequently criticized the use of proxy funds and the lack of backtest quality (e.g., messageId: 037b3ddc-6026-4002-a395-8d8c992ffffc), but did not provide detailed guidance on how to address these issues or improve the reliability of backtesting.\",\n      \"tags\": [\"backtesting\", \"data quality\", \"methodology\"]\n    },\n    {\n      \"agent\": \"KIRAN\",\n      \"learning\": \"KIRAN should expand its risk assessment to include diversification and alignment with the client's stated goals, rather than focusing solely on hedge coverage.\",\n      \"reason\": \"KIRAN consistently approved portfolios based on hedge coverage alone, without addressing critical faults related to diversification, goal alignment, and concentration risks (e.g., voteId: 6a72caac-c62f-4fee-87b6-05ff4352c562). This led to repeated disagreements with other agents.\",\n      \"tags\": [\"risk assessment\", \"diversification\", \"goal alignment\"]\n    },\n    {\n      \"agent\": \"KIRAN\",\n      \"learning\": \"KIRAN should provide more detailed justifications for its votes, particularly when approving portfolios with known critical faults.\",\n      \"reason\": \"KIRAN's reasoning for approvals was limited to hedge coverage (e.g., 'Hedge coverage is at 85% (target is >= 80%)'), which did not address other critical issues raised by ARIA and VIKRAM (e.g., voteId: 750f7864-e166-47df-83f7-f7e26943a0e6).\",\n      \"tags\": [\"vote justification\", \"critical faults\", \"collaboration\"]\n    },\n    {\n      \"agent\": \"VIKRAM\",\n      \"learning\": \"VIKRAM should ensure that critiques and votes include specific, actionable recommendations for improving portfolio alignment with strategic asset allocation and diversification principles.\",\n      \"reason\": \"VIKRAM frequently rejected portfolios due to misalignment with strategic asset allocation and lack of diversification (e.g., voteId: 66b5b9d2-b0f6-41ba-90de-0694457fb898), but did not provide clear, actionable steps to address these issues.\",\n      \"tags\": [\"actionable feedback\", \"diversification\", \"strategic alignment\"]\n    },\n    {\n      \"agent\": \"VIKRAM\",\n      \"learning\": \"VIKRAM should avoid repeating generic critiques across multiple drafts and instead tailor feedback to the specific changes made in each iteration.\",\n      \"reason\": \"VIKRAM's critiques often repeated similar points across drafts (e.g., lack of diversification and misalignment with strategic asset allocation), without acknowledging or addressing incremental changes made in subsequent drafts (e.g., voteId: 59103fdd-2dd7-482c-8683-bced01430ec8).\",\n      \"tags\": [\"feedback specificity\", \"iteration awareness\", \"collaboration\"]\n    },\n    {\n      \"agent\": \"DHRUV\",\n      \"learning\": \"DHRUV should ensure that automated rejection decisions based on critical faults are accompanied by a summary of the specific critiques and their implications for the portfolio's viability.\",\n      \"reason\": \"DHRUV automatically rejected drafts based on ARIA's critical faults (e.g., messageId: 9b175589-3249-4782-9a77-3d94f3da0120) but did not provide a summary of the faults or their impact, which could improve transparency and collaboration.\",\n      \"tags\": [\"automation transparency\", \"critical faults\", \"collaboration\"]\n    },\n    {\n      \"agent\": \"DHRUV\",\n      \"learning\": \"DHRUV should facilitate more effective resolution of disagreements by highlighting areas of consensus"
+    err: {
+      "type": "SyntaxError",
+      "message": "Unterminated string in JSON at position 4386 (line 47 column 121)",
+      "stack":
+          SyntaxError: Unterminated string in JSON at position 4386 (line 47 column 121)
+              at JSON.parse (<anonymous>)
+              at Mentor.runPostPipelineAnalysis (/Users/anshtiwari/Documents/Financial copilot/pf-copilot/lib/agents/mentor.ts:106:21)
+              at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    }
+[2026-06-17 23:16:04.810 +0530] WARN (98124): DHRUV: MENTOR post-pipeline analysis failed — non-blocking
+    pipelineRunId: "65656350-12c3-438d-8d98-e9673c803b7c"
+    err: {
+      "type": "Error",
+      "message": "MENTOR analysis response is not valid JSON",
+      "stack":
+          Error: MENTOR analysis response is not valid JSON
+              at Mentor.runPostPipelineAnalysis (/Users/anshtiwari/Documents/Financial copilot/pf-copilot/lib/agents/mentor.ts:109:13)
+              at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    }

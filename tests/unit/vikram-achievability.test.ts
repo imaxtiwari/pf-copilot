@@ -29,7 +29,7 @@ vi.mock('../../lib/deliberation/deliberation-room', () => {
 
 describe('Vikram Achievability Unit Tests', () => {
   const mockRoom = { publish: vi.fn() } as any
-  const mockMemory = {} as any
+  const mockMemory = { write: vi.fn(), read: vi.fn() } as any
   const mockResearch = {} as any
   const mockDb = {} as any
 
@@ -70,7 +70,7 @@ describe('Vikram Achievability Unit Tests', () => {
       ]
     }
 
-    const result = await vikram.assessGoals(clientAnswers, clientRiskProfile, '00000000-0000-4000-8000-000000000009')
+    const result = await vikram.assessGoals(clientRiskProfile.client_id, 1, clientAnswers, '00000000-0000-4000-8000-000000000009')
     expect(result.achievability_verdict).toBe('REVISED')
     expect(result.revised_plan).toBeDefined()
     expect(result.goal_sequence_conflicts.some(c => c.includes('24.0% is UNREALISTIC'))).toBe(true)
@@ -99,7 +99,7 @@ describe('Vikram Achievability Unit Tests', () => {
       ]
     }
 
-    const result = await vikram.assessGoals(clientAnswers, clientRiskProfile, '00000000-0000-4000-8000-000000000009')
+    const result = await vikram.assessGoals(clientRiskProfile.client_id, 1, clientAnswers, '00000000-0000-4000-8000-000000000009')
     expect(result.achievability_verdict).toBe('ACHIEVABLE')
     expect(result.goal_sequence_conflicts.length).toBe(0)
   })
@@ -125,9 +125,9 @@ describe('Vikram Achievability Unit Tests', () => {
       ]
     }
 
-    const result = await vikram.assessGoals(clientAnswers, clientRiskProfile, '00000000-0000-4000-8000-000000000009')
+    const result = await vikram.assessGoals(clientRiskProfile.client_id, 1, clientAnswers, '00000000-0000-4000-8000-000000000009')
     expect(result.achievability_verdict).toBe('IMPOSSIBLE')
-    expect(result.goal_sequence_conflicts.some(c => c.includes('exceeds 100% of stated income'))).toBe(true)
+    expect(result.goal_sequence_conflicts.some(c => c.includes('exceeds free cash flow'))).toBe(true)
   })
 
   it('should flag as UNREALISTIC when Monthly SIP > 60% of income', async () => {
@@ -145,14 +145,14 @@ describe('Vikram Achievability Unit Tests', () => {
           description: 'Aggressive accumulation',
           target_corpus_lakh: 100,
           current_corpus_lakh: 40,
-          monthly_sip_required_lakh: 1.3,
+          monthly_sip_required_lakh: 0.9,
           target_date: targetDate.toISOString()
         }
       ]
     }
 
-    const result = await vikram.assessGoals(clientAnswers, clientRiskProfile, '00000000-0000-4000-8000-000000000009')
-    expect(result.goal_sequence_conflicts.some(c => c.includes('exceeds 60% of stated income'))).toBe(true)
+    const result = await vikram.assessGoals(clientRiskProfile.client_id, 1, clientAnswers, '00000000-0000-4000-8000-000000000009')
+    expect(result.goal_sequence_conflicts.some(c => c.includes('exceeds 80% of free cash flow'))).toBe(true)
   })
 
   it('should populate goal_sequence_conflicts when Retirement date is before child education date', async () => {
@@ -188,7 +188,7 @@ describe('Vikram Achievability Unit Tests', () => {
       ]
     }
 
-    const result = await vikram.assessGoals(clientAnswers, clientRiskProfile, '00000000-0000-4000-8000-000000000009')
+    const result = await vikram.assessGoals(clientRiskProfile.client_id, 1, clientAnswers, '00000000-0000-4000-8000-000000000009')
     expect(result.goal_sequence_conflicts.some(c => c.includes('Goal Sequence Conflict: Retirement target date is set earlier than Child Education'))).toBe(true)
   })
 })

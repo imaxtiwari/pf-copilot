@@ -36,6 +36,20 @@
       "when": 1781633842827,
       "tag": "0004_chilly_eternity",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1781797326688,
+      "tag": "0005_slimy_norrin_radd",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1781799767987,
+      "tag": "0006_simple_trish_tilby",
+      "breakpoints": true
     }
   ]
 }

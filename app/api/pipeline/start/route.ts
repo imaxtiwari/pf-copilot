@@ -58,8 +58,12 @@ export async function POST(req: NextRequest) {
 
     if (activeRuns.length > 0) {
       return NextResponse.json(
-        { error: 'An active pipeline run already exists for this user', code: 'ACTIVE_RUN_EXISTS' },
-        { status: 400 }
+        { 
+          error: 'An active pipeline run already exists for this user', 
+          code: 'ACTIVE_RUN_EXISTS',
+          pipeline_run_id: activeRuns[0].runId
+        },
+        { status: 409 }
       )
     }
 

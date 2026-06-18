@@ -16,7 +16,7 @@ import { ClientRiskProfile, ClientRiskProfileSchema } from './types/kiran-types'
 import { ClientGoalAssessment, StrategyFramework } from './types/vikram-types'
 import { FundUniverse } from './types/soma-types'
 import { DeliberationRoom } from '../deliberation/deliberation-room'
-import { AgentMemoryStore } from '../memory/memory-store'
+import { AgentMemoryStore, makePipelineKey, makeGlobalKey } from '../memory/memory-store'
 import { WebResearchTool } from '../research/web-research-tool'
 import { PipelineStateMachine } from '../pipeline/pipeline-state-machine'
 import { auditTrail, AuditActionType } from '../audit/audit-trail'
@@ -107,44 +107,10 @@ export class Dhruv {
     const soma = new Soma(this.deliberationRoom, this.memoryStore, new WebResearchTool('SOMA', this.memoryStore, this.deliberationRoom), this.db)
     const priya = new Priya(this.deliberationRoom, this.memoryStore, new WebResearchTool('PRIYA', this.memoryStore, this.deliberationRoom), this.db)
 
-    // Prime agents with relevant Knowledge Commons entries
-    try {
-      const kc = new KnowledgeCommons(this.memoryStore, this.deliberationRoom)
-      const [ariaKnowledge, kiranKnowledge] = await Promise.all([
-        kc.query('portfolio fault patterns concentration bias compliance', 3, 'ARIA'),
-        kc.query('macro risk market regime India VIX RBI rate', 3, 'KIRAN'),
-      ])
-      logger.info({
-        pipelineRunId,
-        ariaKnowledgeCount: ariaKnowledge.length,
-        kiranKnowledgeCount: kiranKnowledge.length,
-      }, 'DHRUV: Knowledge Commons primed for pipeline run')
-    } catch (err) {
-      logger.warn({ err, pipelineRunId }, 'DHRUV: Failed to query Knowledge Commons at pipeline start')
-    }
 
-    // 1. KIRAN Risk Profile
-    await this.stateMachine.transition('ONBOARDING', 'KIRAN_RISK_PROFILE', pipelineRunId)
-    const riskProfile = await kiran.buildClientRiskProfile(
-      clientId,
-      {
-        age: clientData.age,
-        yearsToGoal: clientData.yearsToGoal || 10,
-        cityTier: clientData.cityTier || 'metro',
-        dependents: clientData.dependents || 'spouse',
-        monthlyRent: clientData.monthlyRent || 0,
-        medicalConditions: clientData.medicalConditions || false,
-        taxBracketPct: clientData.taxBracketPct || 30,
-        version: 1
-      },
-      pipelineRunId
-    )
 
-    // 2. VIKRAM Interview Questions
-    await this.stateMachine.transition('KIRAN_RISK_PROFILE', 'VIKRAM_INTERVIEW', pipelineRunId)
-    const interviewQuestions = await vikram.conductClientInterview(riskProfile, pipelineRunId)
+    await this.stateMachine.transition('ONBOARDING', 'PROFILING_AND_GOAL_ASSESSMENT', pipelineRunId)
 
-    // Await/Generate answers
     const answers = providedAnswers || {
       monthly_income_lakh: clientData.monthly_income_lakh || 2.0,
       stated_goals: clientData.stated_goals || ['Retirement corpus'],
@@ -161,31 +127,49 @@ export class Dhruv {
         }
       ]
     }
+    answers.pipeline_run_id = pipelineRunId
 
-    // 3. VIKRAM Goal Assessment
-    await this.stateMachine.transition('VIKRAM_INTERVIEW', 'VIKRAM_GOAL_ASSESSMENT', pipelineRunId)
-    let goalAssessment = await vikram.assessGoals(answers, riskProfile, pipelineRunId)
-
-    // 4. ARIA Critique Goal Plan
-    let goalCritique = await aria.critiqueGoalPlan(goalAssessment, pipelineRunId)
-    let revisionCyclesGoal = 0
-    while (goalCritique.faults.some(f => f.severity === 'CRITICAL') && revisionCyclesGoal < 2) {
-      logger.info('DHRUV: Vikram goal plan has CRITICAL faults. Triggering Vikram goal revision.')
-      // Adjust goals slightly in mock loop to solve critical faults
-      answers.goals_data[0].target_corpus_lakh = answers.goals_data[0].target_corpus_lakh * 0.9
-      goalAssessment = await vikram.assessGoals(answers, riskProfile, pipelineRunId)
-      goalCritique = await aria.critiqueGoalPlan(goalAssessment, pipelineRunId)
-      revisionCyclesGoal++
-    }
+    const [riskProfile, goalAssessment] = await Promise.all([
+      kiran.buildClientRiskProfile(
+        clientId,
+        {
+          age: clientData.age,
+          yearsToGoal: clientData.yearsToGoal || 10,
+          cityTier: clientData.cityTier || 'metro',
+          dependents: clientData.dependents || 'spouse',
+          monthlyRent: clientData.monthlyRent || 0,
+          medicalConditions: clientData.medicalConditions || false,
+          taxBracketPct: clientData.taxBracketPct || 30,
+          version: 1,
+          pipeline_run_id: pipelineRunId
+        },
+        pipelineRunId
+      ),
+      (async () => {
+        const interviewQuestions = await vikram.conductClientInterview(clientData, pipelineRunId)
+        let assessment = await vikram.assessGoals(clientId, 1, answers, pipelineRunId)
+        let goalCritique = await aria.critiqueGoalPlan(assessment, pipelineRunId)
+        let revisionCyclesGoal = 0
+        while (goalCritique.faults.some(f => f.severity === 'CRITICAL') && revisionCyclesGoal < 2) {
+          logger.info('DHRUV: Vikram goal plan has CRITICAL faults. Triggering Vikram goal revision.')
+          answers.goals_data[0].target_corpus_lakh = answers.goals_data[0].target_corpus_lakh * 0.9
+          assessment = await vikram.assessGoals(clientId, 1, answers, pipelineRunId)
+          goalCritique = await aria.critiqueGoalPlan(assessment, pipelineRunId)
+          revisionCyclesGoal++
+        }
+        return assessment
+      })()
+    ])
 
     // 5. SOMA Fund Universe
-    await this.stateMachine.transition('VIKRAM_GOAL_ASSESSMENT', 'SOMA_FUND_UNIVERSE', pipelineRunId)
+    await this.stateMachine.transition('PROFILING_AND_GOAL_ASSESSMENT', 'SOMA_FUND_UNIVERSE', pipelineRunId)
     const fundUniverse = await soma.getEligibleFundUniverse({
       max_expense_ratio_active: 1.5,
       max_expense_ratio_index: 0.5,
       min_aum_equity_cr: 500,
       min_aum_debt_cr: 1000,
       min_track_record_years: 3,
+      client_id: clientId
     }, pipelineRunId)
 
     // 6. VIKRAM Strategy selection
@@ -240,6 +224,8 @@ export class Dhruv {
           .where(eq(schema.pipelineRuns.runId, pipelineRunId))
 
         return this.compileFinalPortfolioPacket(draft, pipelineRunId, goalAssessment)
+      } else if (voteRecord.outcome === 'DEADLOCKED') {
+        break // Skip revision cycles on NO_QUORUM deadlock
       } else {
         cycle++
         if (cycle >= maxCycles) {
@@ -289,26 +275,25 @@ export class Dhruv {
     const vikram = new Vikram(this.deliberationRoom, this.memoryStore, new WebResearchTool('VIKRAM', this.memoryStore, this.deliberationRoom), this.db)
 
     try {
-      // 1. KIRAN Risk Profile
-      await this.stateMachine.transition('ONBOARDING', 'KIRAN_RISK_PROFILE', pipelineRunId)
-      const riskProfile = await kiran.buildClientRiskProfile(
-        clientId,
-        {
-          age: clientData.age,
-          yearsToGoal: clientData.yearsToGoal || 10,
-          cityTier: clientData.cityTier || 'metro',
-          dependents: clientData.dependents || 'spouse',
-          monthlyRent: clientData.monthlyRent || 0,
-          medicalConditions: clientData.medicalConditions || false,
-          taxBracketPct: clientData.taxBracketPct || 30,
-          version: 1
-        },
-        pipelineRunId
-      )
-
-      // 2. VIKRAM Interview Questions
-      await this.stateMachine.transition('KIRAN_RISK_PROFILE', 'VIKRAM_INTERVIEW', pipelineRunId)
-      const interviewQuestions = await vikram.conductClientInterview(riskProfile, pipelineRunId)
+      await this.stateMachine.transition('ONBOARDING', 'PROFILING_AND_GOAL_ASSESSMENT', pipelineRunId)
+      
+      const [riskProfile, interviewQuestions] = await Promise.all([
+        kiran.buildClientRiskProfile(
+          clientId,
+          {
+            age: clientData.age,
+            yearsToGoal: clientData.yearsToGoal || 10,
+            cityTier: clientData.cityTier || 'metro',
+            dependents: clientData.dependents || 'spouse',
+            monthlyRent: clientData.monthlyRent || 0,
+            medicalConditions: clientData.medicalConditions || false,
+            taxBracketPct: clientData.taxBracketPct || 30,
+            version: 1
+          },
+          pipelineRunId
+        ),
+        vikram.conductClientInterview(clientData, pipelineRunId)
+      ])
 
       await this.db
         .update(schema.pipelineRuns)
@@ -365,21 +350,7 @@ export class Dhruv {
     const soma = new Soma(this.deliberationRoom, this.memoryStore, new WebResearchTool('SOMA', this.memoryStore, this.deliberationRoom), this.db)
     const priya = new Priya(this.deliberationRoom, this.memoryStore, new WebResearchTool('PRIYA', this.memoryStore, this.deliberationRoom), this.db)
 
-    // Prime agents with relevant Knowledge Commons entries
-    try {
-      const kc = new KnowledgeCommons(this.memoryStore, this.deliberationRoom)
-      const [ariaKnowledge, kiranKnowledge] = await Promise.all([
-        kc.query('portfolio fault patterns concentration bias compliance', 3, 'ARIA'),
-        kc.query('macro risk market regime India VIX RBI rate', 3, 'KIRAN'),
-      ])
-      logger.info({
-        pipelineRunId,
-        ariaKnowledgeCount: ariaKnowledge.length,
-        kiranKnowledgeCount: kiranKnowledge.length,
-      }, 'DHRUV: Knowledge Commons primed for pipeline run')
-    } catch (err) {
-      logger.warn({ err, pipelineRunId }, 'DHRUV: Failed to query Knowledge Commons at pipeline start')
-    }
+
 
     try {
       if (!riskProfile) {
@@ -394,15 +365,15 @@ export class Dhruv {
             monthlyRent: clientData.monthlyRent || 0,
             medicalConditions: clientData.medicalConditions || false,
             taxBracketPct: clientData.taxBracketPct || 30,
-            version: 1
+            version: 1,
+            pipeline_run_id: pipelineRunId
           },
           pipelineRunId
         )
       }
 
       // 3. VIKRAM Goal Assessment
-      await this.stateMachine.transition('VIKRAM_INTERVIEW', 'VIKRAM_GOAL_ASSESSMENT', pipelineRunId)
-      let goalAssessment = await vikram.assessGoals(providedAnswers, riskProfile, pipelineRunId)
+      let goalAssessment = await vikram.assessGoals(clientId, 1, providedAnswers, pipelineRunId)
 
       // 4. ARIA Critique Goal Plan
       let goalCritique = await aria.critiqueGoalPlan(goalAssessment, pipelineRunId)
@@ -410,20 +381,24 @@ export class Dhruv {
       while (goalCritique.faults.some(f => f.severity === 'CRITICAL') && revisionCyclesGoal < 2) {
         logger.info('DHRUV: Vikram goal plan has CRITICAL faults. Triggering Vikram goal revision.')
         providedAnswers.goals_data[0].target_corpus_lakh = providedAnswers.goals_data[0].target_corpus_lakh * 0.9
-        goalAssessment = await vikram.assessGoals(providedAnswers, riskProfile, pipelineRunId)
+        goalAssessment = await vikram.assessGoals(clientId, 1, providedAnswers, pipelineRunId)
         goalCritique = await aria.critiqueGoalPlan(goalAssessment, pipelineRunId)
         revisionCyclesGoal++
       }
 
       // 5. SOMA Fund Universe
-      await this.stateMachine.transition('VIKRAM_GOAL_ASSESSMENT', 'SOMA_FUND_UNIVERSE', pipelineRunId)
-      const fundUniverse = await soma.getEligibleFundUniverse({
-        max_expense_ratio_active: 1.5,
-        max_expense_ratio_index: 0.5,
-        min_aum_equity_cr: 500,
-        min_aum_debt_cr: 1000,
-        min_track_record_years: 3,
-      }, pipelineRunId)
+      await this.stateMachine.transition('PROFILING_AND_GOAL_ASSESSMENT', 'SOMA_FUND_UNIVERSE', pipelineRunId)
+      const fundUniverse = await soma.getEligibleFundUniverse(
+        {
+          max_expense_ratio_active: 1.5,
+          max_expense_ratio_index: 0.5,
+          min_aum_equity_cr: 500,
+          min_aum_debt_cr: 1000,
+          min_track_record_years: 3,
+          client_id: clientId
+        },
+        pipelineRunId
+      )
 
       // 6. VIKRAM Strategy selection
       await this.stateMachine.transition('SOMA_FUND_UNIVERSE', 'VIKRAM_STRATEGY', pipelineRunId)
@@ -475,6 +450,8 @@ export class Dhruv {
           await this.compileFinalPortfolioPacket(draft, pipelineRunId, goalAssessment)
           logger.info({ pipelineRunId }, 'DHRUV: runPhase2 completed successfully (approved)')
           return
+        } else if (voteRecord.outcome === 'DEADLOCKED') {
+          break // Skip revision cycles on NO_QUORUM deadlock
         } else {
           cycle++
           if (cycle >= maxCycles) {
@@ -516,6 +493,14 @@ export class Dhruv {
         .where(eq(schema.pipelineRuns.runId, pipelineRunId))
       throw err
     }
+  }
+
+  async castDecidingVote(draft: PortfolioDraft): Promise<{ outcome: 'APPROVED' | 'REJECTED' | 'DEADLOCKED'; outcomeReason: string }> {
+    logger.warn('DHRUV: Casting deciding vote due to LOW QUORUM')
+    if (draft.confidence_score.total >= 80) {
+      return { outcome: 'APPROVED', outcomeReason: 'DHRUV deciding vote: APPROVED due to high confidence score.' }
+    }
+    return { outcome: 'REJECTED', outcomeReason: 'DHRUV deciding vote: REJECTED due to insufficient confidence score.' }
   }
 
   async runCommitteeSession(
@@ -563,7 +548,8 @@ export class Dhruv {
     const vikramAlignment = await vikram.evaluatePortfolioAlignment(draft, draft.strategy_framework ?? strategyFramework, pipelineRunId)
     votes.push({ voter: 'VIKRAM', vote: vikramAlignment.vote, reasoning: vikramAlignment.reasoning })
 
-    const { outcome, outcomeReason } = determineCommitteeOutcome(votes, hasCritical, hedgeCoverage)
+    const resolution = await resolveVote(votes as CommitteeVote[], this, draft, hasCritical, hedgeCoverage)
+    const { outcome, outcomeReason } = resolution
 
     // Log each vote to PostgreSQL committee_votes table
     for (const v of votes) {
@@ -621,6 +607,15 @@ export class Dhruv {
       agent_id: 'DHRUV',
       action_type: AuditActionType.COMMITTEE_VOTE_RESULT,
       payload: { outcome: validated.outcome, reason: validated.outcome_reason }
+    })
+
+    await this.memoryStore.write('DHRUV', {
+      content: JSON.stringify(validated),
+      memory_type: 'DHRUV_COMMITTEE_VOTE',
+      source_url: 'Internal',
+      confidence_tier: 'VERIFIED',
+      tags: [makePipelineKey('DHRUV', 'committee_vote', draft.client_id, pipelineRunId)],
+      pipeline_run_id: pipelineRunId
     })
 
     return validated
@@ -943,12 +938,21 @@ ${JSON.stringify(goalAssessment.stated_goals, null, 2)}
       logger.info({ count: validated.open_observations.length, pipelineRunId }, 'DHRUV: Persisted ARIA post-approval observations to fault library')
     }
 
+    await this.memoryStore.write('DHRUV', {
+      content: JSON.stringify(validated),
+      memory_type: 'DHRUV_FINAL_PORTFOLIO',
+      source_url: 'Internal',
+      confidence_tier: 'VERIFIED',
+      tags: [makePipelineKey('DHRUV', 'final_portfolio', draft.client_id, pipelineRunId)],
+      pipeline_run_id: pipelineRunId
+    })
+
     return validated
   }
 
   async runWeeklyKnowledgeConsolidation(): Promise<void> {
     logger.info('DHRUV: runWeeklyKnowledgeConsolidation invoked')
-    const kc = new KnowledgeCommons(this.memoryStore, this.deliberationRoom)
+    const kc = new KnowledgeCommons(this.deliberationRoom)
     const consolidationRunId = randomUUID()
 
     try {
@@ -1011,30 +1015,50 @@ ${JSON.stringify(goalAssessment.stated_goals, null, 2)}
   }
 }
 
-export function determineCommitteeOutcome(
-  votes: { voter: string; vote: 'APPROVE' | 'REJECT' }[],
+export type VoteQuorum = '3_CAST' | '2_CAST' | '1_CAST' | '0_CAST';
+
+export type CommitteeVote = { voter: string; vote: 'APPROVE' | 'REJECT' | 'ABSTAIN' | 'ERROR'; reasoning: string };
+export type VoteResolution = { outcome: 'APPROVED' | 'REJECTED' | 'DEADLOCKED'; outcomeReason: string; skipRevisionCycles?: boolean };
+
+export async function resolveVote(
+  votes: CommitteeVote[],
+  dhruv: Dhruv,
+  draft: PortfolioDraft,
   hasCritical: boolean,
   hedgeCoverage: number
-): { outcome: 'APPROVED' | 'REJECTED'; outcomeReason: string } {
-  const approveCount = votes.filter(v => v.vote === 'APPROVE').length
-  const rejectCount = votes.filter(v => v.vote === 'REJECT').length
+): Promise<VoteResolution> {
+  const cast = votes.filter(v => v.vote !== 'ABSTAIN' && v.vote !== 'ERROR');
+  const quorum: VoteQuorum = `${Math.min(cast.length, 3)}_CAST` as VoteQuorum;
 
-  let outcome: 'APPROVED' | 'REJECTED' = 'REJECTED'
-  let outcomeReason = ''
+  const majorityOf = (castVotes: CommitteeVote[]): VoteResolution => {
+    if (hasCritical) {
+      return { outcome: 'REJECTED', outcomeReason: 'Rejected automatically due to CRITICAL critique faults from ARIA.' };
+    }
+    if (hedgeCoverage < 80) {
+      return { outcome: 'REJECTED', outcomeReason: `Rejected automatically because hedge coverage (${hedgeCoverage}%) is below 80%.` };
+    }
 
-  if (hasCritical) {
-    outcome = 'REJECTED'
-    outcomeReason = 'Rejected automatically due to CRITICAL critique faults from ARIA.'
-  } else if (hedgeCoverage < 80) {
-    outcome = 'REJECTED'
-    outcomeReason = `Rejected automatically because hedge coverage (${hedgeCoverage}%) is below 80%.`
-  } else if (approveCount >= 2) {
-    outcome = 'APPROVED'
-    outcomeReason = `Approved by 2/3 majority committee vote (${approveCount} approvals, ${rejectCount} rejections).`
-  } else {
-    outcome = 'REJECTED'
-    outcomeReason = `Rejected because committee did not reach 2/3 majority (${approveCount} approvals, ${rejectCount} rejections).`
+    const approves = castVotes.filter(v => v.vote === 'APPROVE').length;
+    const rejects = castVotes.filter(v => v.vote === 'REJECT').length;
+    
+    if (approves >= 2 || (castVotes.length === 2 && approves === 2)) {
+      return { outcome: 'APPROVED', outcomeReason: `Approved by majority (${approves} approvals, ${rejects} rejections).` };
+    }
+    return { outcome: 'REJECTED', outcomeReason: `Rejected by majority (${approves} approvals, ${rejects} rejections).` };
+  };
+
+  switch (quorum) {
+    case '3_CAST': return majorityOf(cast);
+    case '2_CAST': return majorityOf(cast);  // one voter abstained/errored
+    case '1_CAST':                            // LOW_QUORUM
+      auditTrail.log({
+        pipeline_run_id: draft.pipeline_run_id || 'UNKNOWN',
+        agent_id: 'SYSTEM',
+        action_type: AuditActionType.COMMITTEE_VOTE_RESULT,
+        payload: { type: 'LOW_QUORUM_WARNING', cast, abstained: votes.length - cast.length }
+      });
+      return dhruv.castDecidingVote(draft);
+    case '0_CAST':
+      return { outcome: 'DEADLOCKED', outcomeReason: 'NO_QUORUM', skipRevisionCycles: true };
   }
-
-  return { outcome, outcomeReason }
 }

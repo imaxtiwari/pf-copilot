@@ -6,9 +6,7 @@ import { CritiqueFaultSchema } from './aria-types'
 
 export const PipelineStageSchema = z.enum([
   'ONBOARDING',
-  'KIRAN_RISK_PROFILE',
-  'VIKRAM_INTERVIEW',
-  'VIKRAM_GOAL_ASSESSMENT',
+  'PROFILING_AND_GOAL_ASSESSMENT',
   'SOMA_FUND_UNIVERSE',
   'VIKRAM_STRATEGY',
   'KIRAN_HEDGE_MAP',
@@ -30,13 +28,13 @@ export const CommitteeVoteRecordSchema = z.object({
   votes: z.array(
     z.object({
       voter: z.enum(['ARIA', 'KIRAN', 'VIKRAM', 'DHRUV']),
-      vote: z.enum(['APPROVE', 'REJECT']),
+      vote: z.enum(['APPROVE', 'REJECT', 'ABSTAIN', 'ERROR']),
       reasoning: z.string(),
     })
   ),
   critical_faults_from_aria: z.number().nonnegative(),
   hedge_coverage_from_kiran: z.number().nonnegative(),
-  outcome: z.enum(['APPROVED', 'REJECTED']),
+  outcome: z.enum(['APPROVED', 'REJECTED', 'DEADLOCKED']),
   outcome_reason: z.string(),
   voted_at: z.string(),
 })

@@ -80,4 +80,17 @@ export const TOOL_DEFINITIONS: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'get_recommendation_packet',
+      description:
+        "Queries the pipeline_results table to fetch the final approved portfolio recommendation packet for the user. Call this when the user asks about their recommended portfolio, fund allocations, approved plan, or investment suggestions.",
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: [],
+      },
+    },
+  },
 ]

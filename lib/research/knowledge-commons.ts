@@ -1,4 +1,7 @@
-import { AgentMemoryStore, MemoryEntry, WriteMemoryInput } from '../memory/memory-store'
+import { getEmbedding } from '../azure-openai'
+import { knowledgeCommons } from '../../db/schema'
+import { db } from '../../lib/db'
+import { eq, desc, sql } from 'drizzle-orm'
 import { auditTrail, AuditActionType } from '../audit/audit-trail'
 import { DeliberationRoom } from '../deliberation/deliberation-room'
 import { AgentId } from '../deliberation/message-schema'
@@ -17,11 +20,9 @@ export interface WeeklyLearning {
 // ─── Knowledge Commons ────────────────────────────────────────────────────────
 
 export class KnowledgeCommons {
-  private memoryStore: AgentMemoryStore
   private deliberationRoom: DeliberationRoom
 
-  constructor(memoryStore: AgentMemoryStore, deliberationRoom: DeliberationRoom) {
-    this.memoryStore = memoryStore
+  constructor(deliberationRoom: DeliberationRoom) {
     this.deliberationRoom = deliberationRoom
   }
 
@@ -38,21 +39,18 @@ export class KnowledgeCommons {
       )
     }
 
-    const writeInput: WriteMemoryInput & { agent_id: AgentId } = {
-      content: learning.summary,
-      // Use a general-purpose memory type with long TTL for shared knowledge
-      memory_type: 'ARIA_CRITIQUE_REPORT', // 365 days — longest non-infinite TTL
-      source_url: validUrls[0],
-      confidence_tier: 'VERIFIED',
-      tags: [...learning.tags, agentId, 'knowledge_commons'],
-      pipeline_run_id: randomUUID(),
-      agent_id: agentId
-    }
+    const embedding = await getEmbedding(learning.summary)
 
-    await this.memoryStore.writeToKnowledgeCommons(writeInput)
+    await db.insert(knowledgeCommons).values({
+      agentId: agentId,
+      summary: learning.summary,
+      sourceUrls: validUrls,
+      tags: [...learning.tags, agentId, 'knowledge_commons'],
+      embedding,
+    })
 
     auditTrail.log({
-      pipeline_run_id: writeInput.pipeline_run_id!,
+      pipeline_run_id: randomUUID(),
       agent_id: agentId,
       action_type: AuditActionType.KNOWLEDGE_COMMONS_WRITE,
       payload: {
@@ -69,14 +67,24 @@ export class KnowledgeCommons {
   }
 
   /**
-   * Query the Knowledge Commons for relevant learnings.
-   * Returns ACTIVE entries only (TTL enforced by memory store).
+   * Query the Knowledge Commons using pgvector similarity search.
    */
-  async query(searchQuery: string, limit = 5, callerAgentId: AgentId = 'DHRUV'): Promise<MemoryEntry[]> {
-    return this.memoryStore.recallFromKnowledgeCommons(searchQuery, {
-      limit,
-      caller_agent_id: callerAgentId
-    })
+  async queryCommons(agentId: string, topic: string, limit = 5): Promise<WeeklyLearning[]> {
+    const topicEmbedding = await getEmbedding(topic)
+    
+    // vector_cosine_ops distance: embedding <=> $topicEmbedding
+    const results = await db.select()
+      .from(knowledgeCommons)
+      .where(eq(knowledgeCommons.agentId, agentId))
+      .orderBy(sql`${knowledgeCommons.embedding} <=> ${JSON.stringify(topicEmbedding)}`)
+      .limit(limit)
+
+    return results.map((row: any) => ({
+      summary: row.summary,
+      source_urls: row.sourceUrls as string[],
+      tags: row.tags as string[],
+      agent: row.agentId as AgentId,
+    }))
   }
 
   /**

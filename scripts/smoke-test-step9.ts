@@ -242,7 +242,7 @@ async function main() {
 
   let achievableAssessment: any
   try {
-    achievableAssessment = await vikram.assessGoals(clientAnswersAchievable as any, mockRiskProfile, pipelineRunId)
+    achievableAssessment = await vikram.assessGoals('mock-client', 1, clientAnswersAchievable as any, pipelineRunId)
     console.log('Verdict:', achievableAssessment.achievability_verdict)
     console.log('Decomposed Goals CAGR:', achievableAssessment.decomposed_goals[0].required_cagr_pct.toFixed(2) + '%')
     if (achievableAssessment.achievability_verdict !== 'ACHIEVABLE') {
@@ -275,7 +275,7 @@ async function main() {
   }
 
   try {
-    const revisedAssessment = await vikram.assessGoals(clientAnswersRevised as any, mockRiskProfile, pipelineRunId)
+    const revisedAssessment = await vikram.assessGoals('mock-client', 1, clientAnswersRevised as any, pipelineRunId)
     console.log('Verdict:', revisedAssessment.achievability_verdict)
     console.log('Revised Plan Preview:', revisedAssessment.revised_plan?.slice(0, 100) + '...')
     if (revisedAssessment.achievability_verdict !== 'REVISED') {
@@ -307,7 +307,7 @@ async function main() {
   }
 
   try {
-    const impossibleAssessment = await vikram.assessGoals(clientAnswersImpossible as any, mockRiskProfile, pipelineRunId)
+    const impossibleAssessment = await vikram.assessGoals('mock-client', 1, clientAnswersImpossible as any, pipelineRunId)
     console.log('Verdict:', impossibleAssessment.achievability_verdict)
     if (impossibleAssessment.achievability_verdict !== 'IMPOSSIBLE') {
       throw new Error(`Expected verdict to be IMPOSSIBLE, got ${impossibleAssessment.achievability_verdict}`)

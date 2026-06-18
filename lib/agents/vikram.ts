@@ -11,7 +11,7 @@ import {
 import { ClientRiskProfile } from './types/kiran-types'
 import { PortfolioDraft } from './types/priya-types'
 import { WebResearchTool } from '../research/web-research-tool'
-import { AgentMemoryStore } from '../memory/memory-store'
+import { AgentMemoryStore, makePipelineKey } from '../memory/memory-store'
 import { DeliberationRoom } from '../deliberation/deliberation-room'
 import { getGpt4oMini } from '../azure-openai'
 import { LifeEvent, MAJOR_LIFE_EVENTS } from './types/life-event-types'
@@ -52,20 +52,20 @@ export class Vikram {
   }
 
   async conductClientInterview(
-    clientRiskProfile: ClientRiskProfile,
+    clientData: any,
     pipelineRunId: string
   ): Promise<string[]> {
-    logger.info({ clientId: clientRiskProfile.client_id, pipelineRunId }, 'VIKRAM: conductClientInterview invoked')
+    logger.info({ pipelineRunId }, 'VIKRAM: conductClientInterview invoked')
 
     const gpt = getGpt4oMini()
     const prompt = `
 Generate a list of 15 to 25 client interview questions to assess their specific investment goals.
-These questions must be highly contextualized based on the client's risk profile details.
-You MUST NOT ask questions about information already present in the client's risk profile (such as age, dependents, liabilities, behavioural risk tolerance).
+These questions must be highly contextualized based on the client's provided details.
+You MUST NOT ask questions about information already present in the client's profile (such as age, dependents, liabilities).
 Return a valid JSON array of strings ONLY. Do not include markdown code block formatting or backticks.
 
-Client Risk Profile Details:
-${JSON.stringify(clientRiskProfile, null, 2)}
+Client Details:
+${JSON.stringify(clientData, null, 2)}
 `
     const response = await gpt.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -89,8 +89,9 @@ ${JSON.stringify(clientRiskProfile, null, 2)}
   }
 
   async assessGoals(
-    clientAnswers: { stated_goals: string[]; monthly_income_lakh: number; answers: Record<string, string>; goals_data: any[] },
-    clientRiskProfile: ClientRiskProfile,
+    clientId: string,
+    version: number,
+    clientAnswers: { stated_goals: string[]; monthly_income_lakh: number; monthly_expenses_lakh?: number; answers: Record<string, string>; goals_data: any[] },
     pipelineRunId: string
   ): Promise<ClientGoalAssessment> {
     logger.info({ pipelineRunId }, 'VIKRAM: assessGoals invoked')
@@ -165,17 +166,26 @@ ${JSON.stringify(clientRiskProfile, null, 2)}
       decomposedGoals.push(decomposed)
     }
 
-    // Check monthly SIP income ratio
+    // Check cash-flow sustainability (Free Cash Flow)
     const statedIncome = clientAnswers.monthly_income_lakh || 2.0
-    const sipRatio = statedIncome > 0 ? totalSipRequired / statedIncome : 0
-    if (sipRatio > 1.0) {
+    // Fallback to 50% of income if expenses are omitted
+    const statedExpenses = clientAnswers.monthly_expenses_lakh ?? (statedIncome * 0.5) 
+    const freeCashFlow = statedIncome - statedExpenses
+
+    if (freeCashFlow <= 0) {
       achievabilityVerdict = 'IMPOSSIBLE'
-      conflicts.push(`Total required SIP (${totalSipRequired.toFixed(2)}L) exceeds 100% of stated income (${statedIncome.toFixed(2)}L)`)
-    } else if (sipRatio > 0.6) {
-      if (achievabilityVerdict !== 'IMPOSSIBLE') {
-        achievabilityVerdict = 'REVISED'
+      conflicts.push(`Monthly expenses (${statedExpenses.toFixed(2)}L) equal or exceed stated income (${statedIncome.toFixed(2)}L). No free cash flow for investments.`)
+    } else {
+      const sipRatio = totalSipRequired / freeCashFlow
+      if (sipRatio > 1.0) {
+        achievabilityVerdict = 'IMPOSSIBLE'
+        conflicts.push(`Total required SIP (${totalSipRequired.toFixed(2)}L) exceeds free cash flow (${freeCashFlow.toFixed(2)}L)`)
+      } else if (sipRatio > 0.8) {
+        if (achievabilityVerdict !== 'IMPOSSIBLE') {
+          achievabilityVerdict = 'REVISED'
+        }
+        conflicts.push(`Total required SIP (${totalSipRequired.toFixed(2)}L) exceeds 80% of free cash flow (${freeCashFlow.toFixed(2)}L), indicating tight margins.`)
       }
-      conflicts.push(`Total required SIP (${totalSipRequired.toFixed(2)}L) exceeds 60% of stated income (${statedIncome.toFixed(2)}L)`)
     }
 
     // Check sequence conflicts (e.g. Retirement before Child Education is a conflict)
@@ -217,8 +227,8 @@ ${conflicts.join('\n')}
 
     const assessment: ClientGoalAssessment = {
       assessment_id: randomUUID(),
-      client_id: clientRiskProfile.client_id,
-      version: clientRiskProfile.version,
+      client_id: clientId,
+      version: version,
       assessed_at: assessedAt,
       expires_at: expiresAt,
       stated_goals: clientAnswers.stated_goals,
@@ -245,6 +255,18 @@ ${conflicts.join('\n')}
         expected_return_band: [10, 14],
       },
       references: []
+    })
+
+    await this.memoryStore.write('VIKRAM', {
+      content: JSON.stringify(validated),
+      memory_type: 'VIKRAM_CLIENT_GOAL_ASSESSMENT',
+      source_url: 'Internal',
+      confidence_tier: 'VERIFIED',
+      tags: [
+        makePipelineKey('VIKRAM', 'client_goal_assessment', validated.client_id, pipelineRunId),
+        makePipelineKey('VIKRAM', 'goal_decomposition', validated.client_id, pipelineRunId)
+      ],
+      pipeline_run_id: pipelineRunId
     })
 
     return validated
@@ -372,6 +394,15 @@ JSON Schema:
       references: []
     })
 
+    await this.memoryStore.write('VIKRAM', {
+      content: JSON.stringify(validated),
+      memory_type: 'VIKRAM_STRATEGY_FRAMEWORK',
+      source_url: validated.selected_frameworks[0]?.source_url || 'Internal',
+      confidence_tier: 'VERIFIED',
+      tags: [makePipelineKey('VIKRAM', 'strategy_framework', validated.client_id, pipelineRunId)],
+      pipeline_run_id: pipelineRunId
+    })
+
     return validated
   }
 
@@ -425,7 +456,15 @@ JSON Schema:
 
         for (const fa of draft.fund_allocations) {
           if (!schemeTypesMap.has(fa.scheme_code)) {
-            logger.warn({ schemeCode: fa.scheme_code, pipelineRunId }, 'VIKRAM: schemeCode not found in agent_funds database table. Defaulting to equity.')
+            let inferredType = 'equity'
+            const nameLower = fa.fund_name.toLowerCase()
+            if (nameLower.includes('debt') || nameLower.includes('liquid') || nameLower.includes('bond') || nameLower.includes('gilt') || nameLower.includes('duration') || nameLower.includes('treasury')) {
+              inferredType = 'debt'
+            } else if (nameLower.includes('gold')) {
+              inferredType = 'gold'
+            }
+            logger.warn({ schemeCode: fa.scheme_code, fundName: fa.fund_name, inferredType, pipelineRunId }, 'VIKRAM: schemeCode not found in agent_funds database table. Inferring type from fund_name.')
+            schemeTypesMap.set(fa.scheme_code, inferredType)
           }
         }
       }
@@ -641,7 +680,7 @@ ${prevGoalAssessmentSummary}
   async extractStructuredAnswers(
     rawAnswers: Record<string, string>,
     pipelineRunId: string
-  ): Promise<{ monthly_income_lakh: number; stated_goals: string[]; answers: Record<string, string>; goals_data: any[] }> {
+  ): Promise<{ monthly_income_lakh: number; monthly_expenses_lakh?: number; stated_goals: string[]; answers: Record<string, string>; goals_data: any[] }> {
     let extractionMode: 'LLM_EXTRACTION' | 'LEGACY_REGEX' = 'LEGACY_REGEX'
 
     try {
@@ -688,6 +727,7 @@ ${JSON.stringify(rawAnswers, null, 2)}
 
         return {
           monthly_income_lakh: parsed.monthly_income_lakh,
+          monthly_expenses_lakh: parsed.monthly_expenses_lakh,
           stated_goals: parsed.goals.map((g: any) => g.description || 'Goal'),
           answers: rawAnswers,
           goals_data: parsed.goals.map((g: any) => ({
@@ -710,8 +750,9 @@ ${JSON.stringify(rawAnswers, null, 2)}
     return this.legacyExtract(rawAnswers)
   }
 
-  private legacyExtract(answers: Record<string, string>): { monthly_income_lakh: number; stated_goals: string[]; answers: Record<string, string>; goals_data: any[] } {
+  private legacyExtract(answers: Record<string, string>): { monthly_income_lakh: number; monthly_expenses_lakh?: number; stated_goals: string[]; answers: Record<string, string>; goals_data: any[] } {
     let monthlyIncome = 2.0
+    let monthlyExpenses = 1.0
     let statedGoals = ['Retirement corpus']
     let goalsData = [
       {
@@ -731,6 +772,10 @@ ${JSON.stringify(rawAnswers, null, 2)}
         const match = a.match(/(\d+(?:\.\d+)?)/)
         if (match) monthlyIncome = parseFloat(match[1])
       }
+      if (qLower.includes('expense') || qLower.includes('spend')) {
+        const match = a.match(/(\d+(?:\.\d+)?)/)
+        if (match) monthlyExpenses = parseFloat(match[1])
+      }
       if (qLower.includes('goal') || qLower.includes('target')) {
         statedGoals = [a]
         goalsData[0].description = a
@@ -739,6 +784,7 @@ ${JSON.stringify(rawAnswers, null, 2)}
 
     return {
       monthly_income_lakh: monthlyIncome,
+      monthly_expenses_lakh: monthlyExpenses,
       stated_goals: statedGoals,
       answers,
       goals_data: goalsData

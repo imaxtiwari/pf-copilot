@@ -1,5 +1,5 @@
 import { DeliberationRoom } from '../deliberation/deliberation-room'
-import { AgentMemoryStore } from '../memory/memory-store'
+import { AgentMemoryStore, makePipelineKey } from '../memory/memory-store'
 import { KnowledgeCommons } from '../research/knowledge-commons'
 import { AgentId } from '../deliberation/message-schema'
 import { getGpt4o } from '../azure-openai'
@@ -90,12 +90,13 @@ CRITICAL: Do NOT include investment advice. Focus on agent reasoning patterns, n
     const gpt = getGpt4o()
     const response = await gpt.chat.completions.create({
       model: 'gpt-4o',
+      response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: MENTOR_SYSTEM_PROMPT },
         { role: 'user', content: prompt }
       ],
       temperature: 0.2,
-      max_tokens: 1000,
+      max_tokens: 4096,
     })
 
     const rawText = response.choices[0]?.message?.content?.trim() || ''
@@ -116,12 +117,12 @@ CRITICAL: Do NOT include investment advice. Focus on agent reasoning patterns, n
     }
 
     // C. Parse the response and write to Knowledge Commons
-    const knowledgeCommons = new KnowledgeCommons(this.memoryStore, this.deliberationRoom)
+    const knowledgeCommons = new KnowledgeCommons(this.deliberationRoom)
     for (const learning of learnings) {
       await knowledgeCommons.contribute(learning.agent as AgentId, {
         summary: learning.learning,
         source_urls: [`internal://pipeline-run/${pipelineRunId}`], // internal source ref
-        tags: [...(learning.tags || []), 'mentor_analysis', outcome.toLowerCase()],
+        tags: [...(learning.tags || []), 'mentor_analysis', outcome.toLowerCase(), makePipelineKey('MENTOR', 'pipeline_learnings', run ? run.clientId : 'UNKNOWN_CLIENT', pipelineRunId)],
         agent: learning.agent as AgentId
       })
     }

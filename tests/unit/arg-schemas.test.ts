@@ -19,8 +19,8 @@ describe('ToolArgSchemas — all five tools are present', () => {
     })
   }
 
-  it('no extra tools are present beyond the known five', () => {
-    expect(Object.keys(ToolArgSchemas)).toHaveLength(5)
+  it('no extra tools are present beyond the known six', () => {
+    expect(Object.keys(ToolArgSchemas)).toHaveLength(6)
   })
 })
 

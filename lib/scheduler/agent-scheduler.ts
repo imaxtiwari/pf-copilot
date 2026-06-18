@@ -8,6 +8,7 @@ import { Soma } from '../agents/soma'
 import { Aria } from '../agents/aria'
 import { Vikram } from '../agents/vikram'
 import { Priya } from '../agents/priya'
+import { acquireLock, releaseLock, logRun } from './mutex'
 
 export type AllAgents = {
   dhruv: Dhruv
@@ -102,6 +103,8 @@ jobsConfig.forEach(cfg => {
 })
 
 async function runJob(name: string, cronExpr: string, agentId: string, fn: () => Promise<void>) {
+  if (!(await acquireLock(name))) return;
+
   const state = jobStates.get(name)
   if (state) {
     state.last_status = 'RUNNING'
@@ -122,19 +125,25 @@ async function runJob(name: string, cronExpr: string, agentId: string, fn: () =>
     }
   })
 
+  const start = Date.now()
   try {
     await fn()
+    await logRun(name, 'success', Date.now() - start)
     if (state) {
       state.last_status = 'SUCCESS'
       state.next_run_at = getNextRunDate(cronExpr).toISOString()
     }
     logger.info({ name, jobRunId }, `AGENT-SCHEDULER: Job ${name} completed successfully`)
   } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err)
+    await logRun(name, 'failed', Date.now() - start, errorMsg)
     if (state) {
       state.last_status = 'FAILED'
       state.next_run_at = getNextRunDate(cronExpr).toISOString()
     }
     logger.error({ err, name, jobRunId }, `AGENT-SCHEDULER: Job ${name} failed`)
+  } finally {
+    await releaseLock(name)
   }
 }
 

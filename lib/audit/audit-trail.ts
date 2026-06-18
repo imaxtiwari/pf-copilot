@@ -23,10 +23,17 @@ db.exec(`
     timestamp TEXT NOT NULL,
     agent_id TEXT NOT NULL,
     action_type TEXT NOT NULL,
+    oracle_confidence REAL,
     payload_hash TEXT NOT NULL,
     payload_json TEXT NOT NULL
   )
 `)
+
+try {
+  db.exec(`ALTER TABLE audit_logs ADD COLUMN oracle_confidence REAL;`)
+} catch (e) {
+  // Column already exists
+}
 
 // 2. Create triggers for immutability
 // In SQLite, RAISING an ABORT inside a trigger rolls back the operation
@@ -67,7 +74,8 @@ export enum AuditActionType {
   CLIENT_FACT_CONFIRMED = 'CLIENT_FACT_CONFIRMED',
   AGENT_WEEKLY_RESEARCH_COMPLETE = 'AGENT_WEEKLY_RESEARCH_COMPLETE',
   KNOWLEDGE_COMMONS_WRITE = 'KNOWLEDGE_COMMONS_WRITE',
-  LIFE_EVENT_RECEIVED = 'LIFE_EVENT_RECEIVED'
+  LIFE_EVENT_RECEIVED = 'LIFE_EVENT_RECEIVED',
+  CAS_PARSE_ATTEMPT = 'CAS_PARSE_ATTEMPT'
 }
 
 export type AgentId = 'ARIA' | 'KIRAN' | 'SOMA' | 'VIKRAM' | 'PRIYA' | 'DHRUV' | 'ORACLE' | 'SYSTEM'
@@ -76,6 +84,7 @@ export interface AuditEntry {
   pipeline_run_id: string
   agent_id: AgentId
   action_type: AuditActionType
+  oracle_confidence?: number
   payload: Record<string, unknown>
 }
 
@@ -85,6 +94,7 @@ export interface AuditLog {
   timestamp: string
   agent_id: AgentId
   action_type: AuditActionType
+  oracle_confidence?: number
   payload_hash: string
   payload_json: string
 }
@@ -105,8 +115,8 @@ export interface AuditRunSummary {
 }
 
 const insertStmt = db.prepare(`
-  INSERT INTO audit_logs (log_id, pipeline_run_id, timestamp, agent_id, action_type, payload_hash, payload_json)
-  VALUES (@log_id, @pipeline_run_id, @timestamp, @agent_id, @action_type, @payload_hash, @payload_json)
+  INSERT INTO audit_logs (log_id, pipeline_run_id, timestamp, agent_id, action_type, oracle_confidence, payload_hash, payload_json)
+  VALUES (@log_id, @pipeline_run_id, @timestamp, @agent_id, @action_type, @oracle_confidence, @payload_hash, @payload_json)
 `)
 
 // 4. Singleton class
@@ -122,6 +132,7 @@ class AuditTrail {
         timestamp: new Date().toISOString(),
         agent_id: entry.agent_id,
         action_type: entry.action_type,
+        oracle_confidence: entry.oracle_confidence ?? null,
         payload_hash,
         payload_json
       })

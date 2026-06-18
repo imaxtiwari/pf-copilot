@@ -11,11 +11,12 @@ import {
   FundUniverseSchema,
 } from './types/soma-types'
 import { WebResearchTool } from '../research/web-research-tool'
-import { AgentMemoryStore } from '../memory/memory-store'
+import { AgentMemoryStore, makePipelineKey } from '../memory/memory-store'
 import { DeliberationRoom } from '../deliberation/deliberation-room'
 import { getGpt4oMini } from '../azure-openai'
 import { parseAmfiDate } from '../../scripts/sync-amfi-master'
 import { randomUUID } from 'crypto'
+import { KnowledgeCommons } from '../research/knowledge-commons'
 import logger from '../logger'
 
 const SOMA_SYSTEM_PROMPT = `You are SOMA (Systematic Observatory for Market Analysis), the Fund Analyst in a multi-agent portfolio intelligence system for Indian investors.
@@ -280,7 +281,7 @@ JSON schema:
     return validated
   }
 
-  async compareFunds(schemeCodes: string[], pipelineRunId: string): Promise<FundComparisonMatrix> {
+  async compareFunds(schemeCodes: string[], clientId: string, pipelineRunId: string): Promise<FundComparisonMatrix> {
     logger.info({ schemeCodes, pipelineRunId }, 'SOMA: compareFunds invoked')
 
     const profiles: FundProfile[] = []
@@ -327,11 +328,21 @@ JSON Schema:
       overlap_matrix: parsed.overlap_matrix,
       research_commentary: parsed.research_commentary,
     }
+    const validated = FundComparisonMatrixSchema.parse(matrix)
 
-    return FundComparisonMatrixSchema.parse(matrix)
+    await this.memoryStore.write('SOMA', {
+      content: JSON.stringify(validated),
+      memory_type: 'SOMA_FUND_RESEARCH',
+      source_url: 'Internal',
+      confidence_tier: 'VERIFIED',
+      tags: [makePipelineKey('SOMA', 'fund_comparison_matrix', clientId, pipelineRunId)],
+      pipeline_run_id: pipelineRunId
+    })
+
+    return validated
   }
 
-  async auditComposition(schemeCode: string, pipelineRunId: string): Promise<CompositionAudit> {
+  async auditComposition(schemeCode: string, clientId: string, pipelineRunId: string): Promise<CompositionAudit> {
     logger.info({ schemeCode, pipelineRunId }, 'SOMA: auditComposition invoked')
 
     const [fund] = await this.db
@@ -434,8 +445,18 @@ JSON Schema:
       source_url: sourceUrl,
       retrieved_at: comp ? comp.retrievedAt.toISOString() : new Date().toISOString(),
     }
+    const validated = CompositionAuditSchema.parse(audit)
 
-    return CompositionAuditSchema.parse(audit)
+    await this.memoryStore.write('SOMA', {
+      content: JSON.stringify(validated),
+      memory_type: 'SOMA_FUND_COMPOSITION',
+      source_url: sourceUrl,
+      confidence_tier: 'VERIFIED',
+      tags: [makePipelineKey('SOMA', 'composition_audit', clientId, pipelineRunId)],
+      pipeline_run_id: pipelineRunId
+    })
+
+    return validated
   }
 
   async runWeeklySweep(): Promise<void> {
@@ -462,10 +483,18 @@ JSON Schema:
       min_aum_equity_cr: number         // default 500
       min_aum_debt_cr: number           // default 1000
       min_track_record_years: number    // default 3
+      client_id?: string
     },
     pipelineRunId: string
   ): Promise<FundUniverse> {
     logger.info({ pipelineRunId, criteria }, 'SOMA: getEligibleFundUniverse invoked')
+    const clientId = (criteria as any).client_id || 'UNKNOWN'
+
+    const kc = new KnowledgeCommons(this.deliberationRoom)
+    const priorLearnings = await kc.queryCommons('SOMA', 'fund_universe_selection')
+    if (priorLearnings.length > 0) {
+      logger.info({ pipelineRunId, priorLearnings }, 'SOMA: Retrieved prior learnings for fund_universe_selection')
+    }
 
     const max_expense_ratio_active = criteria.max_expense_ratio_active ?? 1.5
     const max_expense_ratio_index = criteria.max_expense_ratio_index ?? 0.5
@@ -587,13 +616,23 @@ JSON Schema:
           total_eligible: validated.total_eligible,
           filters_applied: validated.filters_applied,
           source_url: 'https://amfiindia.com',
-          retrieved_at: new Date().toISOString()
+          retrieved_at: new Date().toISOString(),
+          prior_learnings: priorLearnings.map(l => l.summary)
         },
         references: []
       })
     } catch (publishErr) {
       logger.error({ publishErr, pipelineRunId }, 'SOMA: failed to publish FUND_REPORT to deliberationRoom')
     }
+
+    await this.memoryStore.write('SOMA', {
+      content: JSON.stringify(validated),
+      memory_type: 'SOMA_FUND_RESEARCH',
+      source_url: 'https://amfiindia.com',
+      confidence_tier: 'VERIFIED',
+      tags: [makePipelineKey('SOMA', 'fund_universe', clientId, pipelineRunId)],
+      pipeline_run_id: pipelineRunId
+    })
 
     return validated
   }

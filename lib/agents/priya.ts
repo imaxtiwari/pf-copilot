@@ -14,11 +14,12 @@ import { ClientRiskProfile, HedgeMap } from './types/kiran-types'
 import { CritiqueReport, CritiqueFault } from './types/aria-types'
 import { FundUniverse } from './types/soma-types'
 import { DeliberationRoom } from '../deliberation/deliberation-room'
-import { AgentMemoryStore } from '../memory/memory-store'
+import { AgentMemoryStore, makePipelineKey } from '../memory/memory-store'
 import { WebResearchTool } from '../research/web-research-tool'
 import { Soma } from './soma'
 import { runBacktest } from './priya-backtest'
 import { getGpt4o } from '../azure-openai'
+import { KnowledgeCommons } from '../research/knowledge-commons'
 import logger from '../logger'
 
 const PRIYA_SYSTEM_PROMPT = `You are PRIYA (Portfolio Recommendation & Intelligent Yield Allocator), the Portfolio Synthesizer in a multi-agent system.
@@ -99,6 +100,12 @@ export class Priya {
       throw new Error(msg)
     }
 
+    const kc = new KnowledgeCommons(this.deliberationRoom)
+    const priorLearnings = await kc.queryCommons('PRIYA', 'portfolio_construction')
+    const learningsContext = priorLearnings.length > 0 
+      ? `\n\nLearnings from prior runs:\n${priorLearnings.map((l: any) => `- ${l.summary}`).join('\n')}`
+      : ''
+
     // Check TTL (SOMA FundProfile data older than 7 days)
     const now = new Date()
     const SOMA_TTL_DAYS = 7
@@ -154,7 +161,7 @@ JSON Output Schema:
     const response = await gpt.chat.completions.create({
       model: 'gpt-4o',
       messages: [
-        { role: 'system', content: PRIYA_SYSTEM_PROMPT },
+        { role: 'system', content: PRIYA_SYSTEM_PROMPT + learningsContext },
         { role: 'user', content: prompt }
       ],
       temperature: 0.1,
@@ -221,7 +228,7 @@ JSON Output Schema:
     const audits: Record<string, any> = {}
     for (const alloc of fundAllocations) {
       try {
-        audits[alloc.scheme_code] = await soma.auditComposition(alloc.scheme_code, pipelineRunId)
+        audits[alloc.scheme_code] = await soma.auditComposition(alloc.scheme_code, inputs.goalAssessment.client_id, pipelineRunId)
         alloc.overlap_checked = true
       } catch (err) {
         logger.warn({ err, schemeCode: alloc.scheme_code }, 'PRIYA: failed to audit composition for overlap, using mock')
@@ -345,6 +352,19 @@ JSON Output Schema:
         cagr_pct: validated.backtest_summary.portfolio_cagr_pct
       },
       references: []
+    })
+
+    await this.memoryStore.write('PRIYA', {
+      content: JSON.stringify(validated),
+      memory_type: 'PRIYA_PORTFOLIO_DRAFT',
+      source_url: 'Internal',
+      confidence_tier: 'VERIFIED',
+      tags: [
+        makePipelineKey('PRIYA', 'portfolio_draft', validated.client_id, pipelineRunId),
+        makePipelineKey('PRIYA', 'confidence_score', validated.client_id, pipelineRunId),
+        makePipelineKey('PRIYA', 'backtest_summary', validated.client_id, pipelineRunId)
+      ],
+      pipeline_run_id: pipelineRunId
     })
 
     return validated
@@ -500,7 +520,7 @@ JSON Output Schema:
     const audits: Record<string, any> = {}
     for (const alloc of fundAllocations) {
       try {
-        audits[alloc.scheme_code] = await soma.auditComposition(alloc.scheme_code, pipelineRunId)
+        audits[alloc.scheme_code] = await soma.auditComposition(alloc.scheme_code, previousDraft.client_id, pipelineRunId)
       } catch (err) {
         audits[alloc.scheme_code] = { scheme_code: alloc.scheme_code, top_holdings: [] }
       }
@@ -600,6 +620,19 @@ JSON Output Schema:
         cagr_pct: validated.backtest_summary.portfolio_cagr_pct
       },
       references: [previousDraft.portfolio_id]
+    })
+
+    await this.memoryStore.write('PRIYA', {
+      content: JSON.stringify(validated),
+      memory_type: 'PRIYA_PORTFOLIO_DRAFT',
+      source_url: 'Internal',
+      confidence_tier: 'VERIFIED',
+      tags: [
+        makePipelineKey('PRIYA', 'portfolio_draft', validated.client_id, pipelineRunId),
+        makePipelineKey('PRIYA', 'confidence_score', validated.client_id, pipelineRunId),
+        makePipelineKey('PRIYA', 'backtest_summary', validated.client_id, pipelineRunId)
+      ],
+      pipeline_run_id: pipelineRunId
     })
 
     return validated

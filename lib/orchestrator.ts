@@ -10,6 +10,7 @@ import { computePersonalInflationTool } from '@/lib/tools/compute-inflation'
 import { computeRealReturns } from '@/lib/tools/compute-real-returns'
 import { lookupChatHistory } from '@/lib/tools/lookup-chat-history'
 import { explainFundTool } from '@/lib/tools/explain-fund'
+import { getRecommendationPacket } from '@/lib/tools/get-recommendation-packet'
 import { ToolArgSchemas } from '@/lib/tools/arg-schemas'
 import type { Citation } from '@/lib/contracts/refusal-types'
 import logger from '@/lib/logger'
@@ -60,10 +61,33 @@ async function dispatchTool(
       return lookupChatHistory(userId)
     case 'explain_fund':
       return explainFundTool(args.scheme_code, args.question)
+    case 'get_recommendation_packet':
+      return getRecommendationPacket(userId)
     default:
       logger.warn({ toolName }, 'orchestrator: unknown tool called')
       return { error: `Unknown tool: ${toolName}` }
   }
+}
+
+// ── context window ──────────────────────────────────────────────────────────────
+
+export function buildContextWindow(messages: { role: string; content: string }[]): { role: string; content: string }[] {
+  const TOKEN_BUDGET = 3000
+  const estimateTokens = (m: { role: string; content: string }): number => Math.ceil(m.content.length / 4)
+
+  const result: { role: string; content: string }[] = []
+  let tokens = 0
+
+  // DB returns descending (newest first). Iterate over newest first.
+  for (const msg of messages) {
+    const t = estimateTokens(msg)
+    if (tokens + t > TOKEN_BUDGET && result.length > 0) break
+    // unshift puts oldest at the start of the array
+    result.unshift(msg)
+    tokens += t
+  }
+
+  return result
 }
 
 // ── main export ───────────────────────────────────────────────────────────────
@@ -77,8 +101,8 @@ export async function runOrchestrator(
   // 1. Persist user message
   await db.insert(schema.chatMessages).values({ userId, role: 'user', content: message })
 
-  // 2. Fetch last 10 messages for context (chronological order)
-  const history = await db
+  // 2. Fetch last 30 messages for context pool (chronological order)
+  const rawHistory = await db
     .select({
       role: schema.chatMessages.role,
       content: schema.chatMessages.content,
@@ -86,18 +110,18 @@ export async function runOrchestrator(
     .from(schema.chatMessages)
     .where(eq(schema.chatMessages.userId, userId))
     .orderBy(desc(schema.chatMessages.ts))
-    .limit(10)
+    .limit(30)
 
   // 3. Build messages array (oldest first) — only user/assistant roles for context window
+  const filteredHistory = rawHistory.filter((h: any) => h.role === 'user' || h.role === 'assistant')
+  const contextWindow = buildContextWindow(filteredHistory)
+
   const messages: ChatCompletionMessageParam[] = [
     { role: 'system', content: ORCHESTRATOR_PROMPT.text },
-    ...history
-      .reverse()
-      .filter((h: any) => h.role === 'user' || h.role === 'assistant')
-      .map((h: any) => ({
-        role: h.role as 'user' | 'assistant',
-        content: h.content,
-      })),
+    ...contextWindow.map((h: any) => ({
+      role: h.role as 'user' | 'assistant',
+      content: h.content,
+    }))
   ]
 
   const traces: ToolTrace[] = []

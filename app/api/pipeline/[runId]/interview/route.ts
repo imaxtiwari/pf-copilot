@@ -74,10 +74,10 @@ export async function POST(
       )
     }
 
-    // Verify current stage is VIKRAM_INTERVIEW
-    if (run.status !== 'VIKRAM_INTERVIEW') {
+    // Verify current stage is PROFILING_AND_GOAL_ASSESSMENT
+    if (run.status !== 'PROFILING_AND_GOAL_ASSESSMENT') {
       return NextResponse.json(
-        { error: `Pipeline is currently in stage ${run.status}, expected VIKRAM_INTERVIEW`, code: 'INVALID_STAGE' },
+        { error: `Pipeline is currently in stage ${run.status}, expected PROFILING_AND_GOAL_ASSESSMENT`, code: 'INVALID_STAGE' },
         { status: 400 }
       )
     }
@@ -108,11 +108,12 @@ export async function POST(
       version: 1
     }
 
-    let providedAnswers: { monthly_income_lakh: number; stated_goals: string[]; answers: Record<string, string>; goals_data: any[] }
+    let providedAnswers: { monthly_income_lakh: number; monthly_expenses_lakh?: number; stated_goals: string[]; answers: Record<string, string>; goals_data: any[] }
     if (parsed.data.mode === 'structured') {
       const sa = parsed.data.answers  // StructuredInterviewAnswers
       providedAnswers = {
         monthly_income_lakh: sa.monthly_income_lakh,
+        monthly_expenses_lakh: sa.monthly_expenses_lakh,
         stated_goals: sa.goals.map(g => g.description),
         answers: {},  // not needed in structured mode
         goals_data: sa.goals.map(g => ({
@@ -141,8 +142,9 @@ export async function POST(
     })
 
     return NextResponse.json({
-      stage: 'VIKRAM_GOAL_ASSESSMENT',
-      message: 'Goals assessment in progress'
+      pipeline_run_id: runId,
+      status: 'INTERVIEW_ACCEPTED',
+      stage: 'SOMA_FUND_UNIVERSE'
     })
   } catch (err) {
     logger.error({ err }, 'API-INTERVIEW: Failed to submit interview answers')
