@@ -10,6 +10,9 @@ import { RealVsNominal } from '@/components/real-vs-nominal'
 import { PortfolioTable } from '@/components/portfolio-table'
 import { ConfidenceTrajectory } from '@/components/confidence-trajectory'
 import { parseNominalReturn1y } from '@/lib/inflation/parse-return'
+import { getRecommendationPacket } from '@/lib/tools/get-recommendation-packet'
+import { ComparisonReport } from '@/components/comparison-report'
+import { DriftReport } from '@/components/drift-report'
 import type { UserProfileInput } from '@/lib/inflation/compute'
 import type { InflationConfidence } from '@/lib/validation/schemas'
 
@@ -150,6 +153,14 @@ export default async function PortfolioPage() {
     orderBy: [desc(schema.pipelineRuns.createdAt)]
   })
 
+  const recommendationPacket = await getRecommendationPacket(userId)
+
+  // Fetch latest drift report
+  const latestDriftReport = await db.query.driftReports.findFirst({
+    where: eq(schema.driftReports.userId, userId),
+    orderBy: [desc(schema.driftReports.generatedAt)]
+  })
+
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
       {/* Header row */}
@@ -189,6 +200,20 @@ export default async function PortfolioPage() {
       {latestPipelineRun && (
         <div className="mb-6">
           <ConfidenceTrajectory pipelineRunId={latestPipelineRun.runId} />
+        </div>
+      )}
+
+      {/* Comparison Report (if approved) */}
+      {recommendationPacket.status === 'approved' && recommendationPacket.comparison_report && (
+        <div className="mb-6">
+          <ComparisonReport data={recommendationPacket.comparison_report} />
+        </div>
+      )}
+
+      {/* Drift Report */}
+      {latestDriftReport && (
+        <div className="mb-6">
+          <DriftReport data={latestDriftReport.report as any} />
         </div>
       )}
 

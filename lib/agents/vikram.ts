@@ -334,12 +334,13 @@ ${conflicts.join('\n')}
   async generateHypothesis(
     answers: EssentialAnswers,
     clientData: any,
-    pipelineRunId: string
+    pipelineRunId: string,
+    behavioralFingerprint?: any
   ): Promise<GoalHypothesis> {
     logger.info({ pipelineRunId }, 'VIKRAM: generateHypothesis invoked')
 
     const gpt = getGpt4o()
-    const prompt = `
+    let prompt = `
 Stated demographic info from client profile:
 ${JSON.stringify(clientData, null, 2)}
 
@@ -349,7 +350,24 @@ Answers to 5 essential questions:
 - Biggest Goal: "${answers.biggest_goal}"
 - Goal Timeline (Years): ${answers.goal_timeline_years}
 - Risk Reaction Option: ${answers.risk_reaction}
+`
 
+    if (behavioralFingerprint) {
+      const guidance = Array.isArray(behavioralFingerprint.constructionGuidance)
+        ? behavioralFingerprint.constructionGuidance.join(', ')
+        : '';
+      prompt += `
+RIYA's behavioral assessment: ${guidance}.
+Adjust your strategy framework recommendation accordingly.
+`
+      if (behavioralFingerprint.riskToleranceReality === 'LOWER_THAN_STATED') {
+        prompt += `
+IMPORTANT: RIYA has assessed that the client's actual risk tolerance is LOWER THAN STATED. You must adjust your strategy framework selection and recommended risk profile towards a more conservative allocation.
+`
+      }
+    }
+
+    prompt += `
 Generate a GoalHypothesis JSON object following the prompt instructions.
 `
 
@@ -599,7 +617,8 @@ Return ONLY the updated GoalHypothesis JSON object. Do not include markdown code
   async selectStrategyFramework(
     assessment: ClientGoalAssessment,
     riskProfile: ClientRiskProfile,
-    pipelineRunId: string
+    pipelineRunId: string,
+    behavioralFingerprint?: any
   ): Promise<StrategyFramework> {
     logger.info({ pipelineRunId }, 'VIKRAM: selectStrategyFramework invoked')
 
@@ -635,7 +654,7 @@ Return ONLY the updated GoalHypothesis JSON object. Do not include markdown code
 
     // 3. LLM selection
     const gpt = getGpt4oMini()
-    const prompt = `
+    let prompt = `
 Select the most appropriate investment strategy frameworks (core-satellite, bucket strategy, goal-based, liability-matching) for the client.
 You must return a valid JSON object ONLY. Do not include markdown.
 
@@ -647,7 +666,24 @@ ${JSON.stringify(assessment, null, 2)}
 
 Research Context:
 ${researchContext}
+`
 
+    if (behavioralFingerprint) {
+      const guidance = Array.isArray(behavioralFingerprint.constructionGuidance)
+        ? behavioralFingerprint.constructionGuidance.join(', ')
+        : '';
+      prompt += `
+RIYA's behavioral assessment: ${guidance}.
+Adjust your strategy framework recommendation accordingly.
+`
+      if (behavioralFingerprint.riskToleranceReality === 'LOWER_THAN_STATED') {
+        prompt += `
+IMPORTANT: RIYA has assessed that the client's actual risk tolerance is LOWER THAN STATED. You must adjust your strategy framework selection towards more conservative options.
+`
+      }
+    }
+
+    prompt += `
 JSON Schema:
 {
   "selected_frameworks": [

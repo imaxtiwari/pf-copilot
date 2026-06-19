@@ -11,6 +11,7 @@ import { agentMemoryStore } from '@/lib/memory/memory-store'
 import { WebResearchTool } from '@/lib/research/web-research-tool'
 import logger from '@/lib/logger'
 import { Vikram } from '@/lib/agents/vikram'
+import { Riya } from '@/lib/agents/riya'
 
 import { StructuredInterviewAnswersSchema, EssentialAnswersSchema } from '@/lib/agents/types/vikram-types'
 
@@ -124,7 +125,9 @@ export async function POST(
       const vikram = new Vikram(deliberationRoom, agentMemoryStore, new WebResearchTool('VIKRAM', agentMemoryStore, deliberationRoom), db)
       
       if (!finalize) {
-        const hypothesis = await vikram.generateHypothesis(parsed.data.essential_answers, clientData, runId)
+        const riya = new Riya(deliberationRoom, agentMemoryStore, new WebResearchTool('RIYA', agentMemoryStore, deliberationRoom), db)
+        const fingerprint = await riya.getOrGenerateFingerprint(userId, runId, [])
+        const hypothesis = await vikram.generateHypothesis(parsed.data.essential_answers, clientData, runId, fingerprint)
         return NextResponse.json({
           pipeline_run_id: runId,
           status: 'HYPOTHESIS_GENERATED',
@@ -138,7 +141,10 @@ export async function POST(
         essentialAnswers: parsed.data.essential_answers,
         userCorrections: parsed.data.corrections,
       }, runId)
-      providedAnswers = { goalAssessment: assessment }
+      providedAnswers = {
+        goalAssessment: assessment,
+        goalHypothesisCorrections: parsed.data.corrections || []
+      }
     } else if (parsed.data.mode === 'structured') {
       const sa = parsed.data.answers  // StructuredInterviewAnswers
       providedAnswers = {

@@ -291,3 +291,32 @@ export const knowledgeCommons = pgTable('knowledge_commons', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
+export const comparisonReports = pgTable('comparison_reports', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  pipelineRunId: uuid('pipeline_run_id').notNull().references(() => pipelineRuns.runId).unique(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  report: jsonb('report').notNull(),
+  generatedAt: timestamp('generated_at').defaultNow().notNull()
+})
+
+export const behavioralFingerprints = pgTable('behavioral_fingerprints', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  pipelineRunId: uuid('pipeline_run_id').notNull().references(() => pipelineRuns.runId, { onDelete: 'cascade' }).unique(),
+  fingerprint: jsonb('fingerprint').notNull(),
+  patternsDetected: integer('patterns_detected').notNull(),
+  abandonmentRisk: text('abandonment_risk').notNull(),
+  generatedAt: timestamp('generated_at').defaultNow().notNull(),
+})
+
+export const driftReports = pgTable('drift_reports', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  previousCasUploadId: uuid('previous_cas_upload_id').references(() => casUploads.id),
+  currentCasUploadId: uuid('current_cas_upload_id').notNull().references(() => casUploads.id),
+  report: jsonb('report').notNull(),
+  generatedAt: timestamp('generated_at').defaultNow().notNull(),
+})
+
+
+

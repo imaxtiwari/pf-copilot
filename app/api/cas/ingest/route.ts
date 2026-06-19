@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '../../../../lib/db'
-import { casUploads, portfolioHoldings } from '../../../../db/schema'
+import { casUploads, portfolioHoldings, driftReports, chatMessages } from '../../../../db/schema'
 import { ok, err } from '../../../../lib/contracts/error-envelope'
 import { parseCAS } from '../../../../lib/cas/parse'
 import { resolveOrCreateUserId, COOKIE_NAME, cookieOptions } from '../../../../lib/auth/dev-user'
+import { and, eq, desc } from 'drizzle-orm'
+import { detectDrift } from '../../../../lib/cas/drift-detector'
 import logger from '../../../../lib/logger'
 
 const MAX_BYTES = 10 * 1024 * 1024 // 10 MB
@@ -75,6 +77,27 @@ export async function POST(req: NextRequest) {
 
   const { extraction, source, schemeCheck, hash } = result
 
+  // Fetch previous validated upload and holdings before inserting the new one
+  const [previousUpload] = await db
+    .select()
+    .from(casUploads)
+    .where(
+      and(
+        eq(casUploads.userId, userId),
+        eq(casUploads.status, 'validated')
+      )
+    )
+    .orderBy(desc(casUploads.uploadedAt))
+    .limit(1)
+
+  let previousHoldings: any[] = []
+  if (previousUpload) {
+    previousHoldings = await db
+      .select()
+      .from(portfolioHoldings)
+      .where(eq(portfolioHoldings.casUploadId, previousUpload.id))
+  }
+
   // All-or-nothing: insert cas_upload + holdings in a transaction
   let uploadId: string
   try {
@@ -118,6 +141,44 @@ export async function POST(req: NextRequest) {
       err('db_error', 'Failed to persist holdings'),
       { status: 500 },
     )
+  }
+
+  // Calculate portfolio drift
+  try {
+    const newHoldings = extraction.holdings.map((h) => ({
+      userId,
+      schemeName: h.scheme_name,
+      schemeCode: h.scheme_code ?? null,
+      folioNumber: h.folio_number,
+      units: String(h.units),
+      nav: String(h.nav),
+      marketValue: String(h.market_value),
+      asOfDate: extraction.as_of_date,
+    }))
+
+    const driftReport = await detectDrift(previousHoldings, newHoldings)
+
+    // Save drift report
+    await db.insert(driftReports).values({
+      userId,
+      previousCasUploadId: previousUpload ? previousUpload.id : null,
+      currentCasUploadId: uploadId!,
+      report: driftReport,
+      generatedAt: new Date(),
+    })
+
+    // If rebalancing is needed, create a chat notification
+    if (driftReport.driftFromRecommendation?.rebalancingNeeded) {
+      await db.insert(chatMessages).values({
+        userId,
+        role: 'assistant',
+        content: `⚠️ Rebalancing Needed: Your portfolio allocation has drifted from your approved plan. Urgency: ${driftReport.driftFromRecommendation.rebalancingUrgency}. Please check the portfolio page for details.`,
+        ts: new Date(),
+      })
+      logger.info({ userId }, 'cas ingest: created rebalance chat notification')
+    }
+  } catch (err) {
+    logger.error({ userId, err }, 'cas ingest: drift detection or notification failed')
   }
 
   logger.info(

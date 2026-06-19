@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 // ─── Agent & Message Type Enums ───────────────────────────────────────────────
 
-export const AgentIdSchema = z.enum(['ARIA', 'KIRAN', 'SOMA', 'VIKRAM', 'PRIYA', 'DHRUV', 'ORACLE'])
+export const AgentIdSchema = z.enum(['ARIA', 'KIRAN', 'SOMA', 'VIKRAM', 'PRIYA', 'DHRUV', 'ORACLE', 'RIYA'])
 export const MessageTypeSchema = z.enum([
   'CRITIQUE',
   'RISK_ALERT',

@@ -1,6 +1,8 @@
 import { randomUUID } from 'crypto'
-import { eq, desc, asc } from 'drizzle-orm'
+import { eq, desc, asc, inArray } from 'drizzle-orm'
 import * as schema from '../../db/schema'
+import { Atlas } from './atlas'
+import { Riya } from './riya'
 import {
   PipelineStage,
   CommitteeVoteRecord,
@@ -106,10 +108,10 @@ export class Dhruv {
     const aria = new Aria(this.deliberationRoom, this.memoryStore, new WebResearchTool('ARIA', this.memoryStore, this.deliberationRoom), this.db)
     const soma = new Soma(this.deliberationRoom, this.memoryStore, new WebResearchTool('SOMA', this.memoryStore, this.deliberationRoom), this.db)
     const priya = new Priya(this.deliberationRoom, this.memoryStore, new WebResearchTool('PRIYA', this.memoryStore, this.deliberationRoom), this.db)
-
-
-
-    await this.stateMachine.transition('ONBOARDING', 'PROFILING_AND_GOAL_ASSESSMENT', pipelineRunId)
+    await this.stateMachine.transition('ONBOARDING', 'RIYA_BEHAVIORAL_PROFILING', pipelineRunId)
+    const riya = new Riya(this.deliberationRoom, this.memoryStore, this.webResearchTool, this.db)
+    const fingerprint = await riya.getOrGenerateFingerprint(clientId, pipelineRunId, providedAnswers?.goalHypothesisCorrections || [])
+    await this.stateMachine.transition('RIYA_BEHAVIORAL_PROFILING', 'PROFILING_AND_GOAL_ASSESSMENT', pipelineRunId)
 
     const answers = providedAnswers || {
       monthly_income_lakh: clientData.monthly_income_lakh || 2.0,
@@ -174,7 +176,7 @@ export class Dhruv {
 
     // 6. VIKRAM Strategy selection
     await this.stateMachine.transition('SOMA_FUND_UNIVERSE', 'VIKRAM_STRATEGY', pipelineRunId)
-    const strategyFramework = await vikram.selectStrategyFramework(goalAssessment, riskProfile, pipelineRunId)
+    const strategyFramework = await vikram.selectStrategyFramework(goalAssessment, riskProfile, pipelineRunId, fingerprint)
 
     // 7. KIRAN Hedge Map + Stress Test
     await this.stateMachine.transition('VIKRAM_STRATEGY', 'KIRAN_HEDGE_MAP', pipelineRunId)
@@ -202,7 +204,8 @@ export class Dhruv {
         hedgeMap: initialHedgeMap,
         critiques: [],
         fundUniverse,
-        preflightReport
+        preflightReport,
+        behavioralFingerprint: fingerprint
       },
       pipelineRunId
     )
@@ -226,7 +229,38 @@ export class Dhruv {
       const voteRecord = await this.runCommitteeSession(draft, pipelineRunId, strategyFramework)
 
       if (voteRecord.outcome === 'APPROVED') {
-        await this.stateMachine.transition('COMMITTEE_VOTE', 'APPROVED', pipelineRunId)
+        const existingHoldings = await this.db
+          .select()
+          .from(schema.portfolioHoldings)
+          .where(eq(schema.portfolioHoldings.userId, clientId))
+
+        if (existingHoldings.length > 0) {
+          await this.stateMachine.transition('COMMITTEE_VOTE', 'ATLAS_COMPARISON', pipelineRunId)
+
+          const schemeCodes = new Set<string>()
+          existingHoldings.forEach((h: any) => { if (h.schemeCode) schemeCodes.add(h.schemeCode) })
+          draft.fund_allocations.forEach((a: any) => { if (a.scheme_code) schemeCodes.add(a.scheme_code) })
+          
+          const fundSnapshots = schemeCodes.size > 0 
+            ? await this.db
+                .select()
+                .from(schema.fundSnapshots)
+                .where(inArray(schema.fundSnapshots.schemeCode, Array.from(schemeCodes)))
+            : []
+
+          const atlas = new Atlas(this.db)
+          await atlas.generateReport(
+            clientId,
+            pipelineRunId,
+            draft,
+            existingHoldings,
+            fundSnapshots
+          )
+          
+          await this.stateMachine.transition('ATLAS_COMPARISON', 'APPROVED', pipelineRunId)
+        } else {
+          await this.stateMachine.transition('COMMITTEE_VOTE', 'APPROVED', pipelineRunId)
+        }
         
         // Save final portfolio ID to pipeline_runs
         await this.db
@@ -296,7 +330,10 @@ export class Dhruv {
     const vikram = new Vikram(this.deliberationRoom, this.memoryStore, new WebResearchTool('VIKRAM', this.memoryStore, this.deliberationRoom), this.db)
 
     try {
-      await this.stateMachine.transition('ONBOARDING', 'PROFILING_AND_GOAL_ASSESSMENT', pipelineRunId)
+      await this.stateMachine.transition('ONBOARDING', 'RIYA_BEHAVIORAL_PROFILING', pipelineRunId)
+      const riya = new Riya(this.deliberationRoom, this.memoryStore, this.webResearchTool, this.db)
+      const fingerprint = await riya.getOrGenerateFingerprint(clientId, pipelineRunId, [])
+      await this.stateMachine.transition('RIYA_BEHAVIORAL_PROFILING', 'PROFILING_AND_GOAL_ASSESSMENT', pipelineRunId)
       
       const [riskProfile, interviewQuestions] = await Promise.all([
         kiran.buildClientRiskProfile(
@@ -324,7 +361,8 @@ export class Dhruv {
           payload: {
             kiran_risk_profile: riskProfile,
             vikram_interview_questions: interviewQuestions,
-            hypothesis_mode: hypothesisMode
+            hypothesis_mode: hypothesisMode,
+            behavioral_fingerprint: fingerprint
           }
         })
         .where(eq(schema.pipelineRuns.runId, pipelineRunId))
@@ -348,6 +386,13 @@ export class Dhruv {
     hypothesisMode: boolean = false
   ): Promise<void> {
     logger.info({ pipelineRunId }, 'DHRUV: runPhase2 started')
+
+    const riya = new Riya(this.deliberationRoom, this.memoryStore, this.webResearchTool, this.db)
+    const fingerprint = await riya.getOrGenerateFingerprint(
+      clientId,
+      pipelineRunId,
+      providedAnswers?.goalHypothesisCorrections || []
+    )
 
     let riskProfile: ClientRiskProfile | undefined = undefined
 
@@ -430,7 +475,7 @@ export class Dhruv {
 
       // 6. VIKRAM Strategy selection
       await this.stateMachine.transition('SOMA_FUND_UNIVERSE', 'VIKRAM_STRATEGY', pipelineRunId)
-      const strategyFramework = await vikram.selectStrategyFramework(goalAssessment, riskProfile, pipelineRunId)
+      const strategyFramework = await vikram.selectStrategyFramework(goalAssessment, riskProfile, pipelineRunId, fingerprint)
 
       // 7. KIRAN Hedge Map + Stress Test
       await this.stateMachine.transition('VIKRAM_STRATEGY', 'KIRAN_HEDGE_MAP', pipelineRunId)
@@ -456,7 +501,8 @@ export class Dhruv {
           hedgeMap: initialHedgeMap,
           critiques: [],
           fundUniverse,
-          preflightReport
+          preflightReport,
+          behavioralFingerprint: fingerprint
         },
         pipelineRunId
       )
@@ -479,7 +525,38 @@ export class Dhruv {
         const voteRecord = await this.runCommitteeSession(draft, pipelineRunId, strategyFramework)
 
         if (voteRecord.outcome === 'APPROVED') {
-          await this.stateMachine.transition('COMMITTEE_VOTE', 'APPROVED', pipelineRunId)
+          const existingHoldings = await this.db
+            .select()
+            .from(schema.portfolioHoldings)
+            .where(eq(schema.portfolioHoldings.userId, clientId))
+
+          if (existingHoldings.length > 0) {
+            await this.stateMachine.transition('COMMITTEE_VOTE', 'ATLAS_COMPARISON', pipelineRunId)
+
+            const schemeCodes = new Set<string>()
+            existingHoldings.forEach((h: any) => { if (h.schemeCode) schemeCodes.add(h.schemeCode) })
+            draft.fund_allocations.forEach((a: any) => { if (a.scheme_code) schemeCodes.add(a.scheme_code) })
+            
+            const fundSnapshots = schemeCodes.size > 0 
+              ? await this.db
+                  .select()
+                  .from(schema.fundSnapshots)
+                  .where(inArray(schema.fundSnapshots.schemeCode, Array.from(schemeCodes)))
+              : []
+
+            const atlas = new Atlas(this.db)
+            await atlas.generateReport(
+              clientId,
+              pipelineRunId,
+              draft,
+              existingHoldings,
+              fundSnapshots
+            )
+            
+            await this.stateMachine.transition('ATLAS_COMPARISON', 'APPROVED', pipelineRunId)
+          } else {
+            await this.stateMachine.transition('COMMITTEE_VOTE', 'APPROVED', pipelineRunId)
+          }
           
           await this.db
             .update(schema.pipelineRuns)

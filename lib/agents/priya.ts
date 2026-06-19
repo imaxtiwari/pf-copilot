@@ -70,6 +70,7 @@ export class Priya {
       critiques: CritiqueReport[]
       fundUniverse: FundUniverse
       preflightReport?: PreflightReport
+      behavioralFingerprint?: any
     },
     pipelineRunId: string
   ): Promise<PortfolioDraft> {
@@ -164,10 +165,23 @@ JSON Output Schema:
   ]
 }
 `
+    let behavioralContext = ''
+    if (inputs.behavioralFingerprint) {
+      const fp = inputs.behavioralFingerprint
+      const guidance = Array.isArray(fp.constructionGuidance)
+        ? fp.constructionGuidance.map((g: string) => `- ${g}`).join('\n')
+        : ''
+      behavioralContext = `\n\nBehavioral constraints from RIYA (treat these as requirements, not suggestions):\n` + guidance
+      
+      if (fp.portfolioAbandonmentRisk === 'HIGH') {
+        behavioralContext += `\nCRITICAL CONSTRAINT: The client has a HIGH risk of portfolio abandonment. You MUST cap the individual fund allocation at 20% (no single fund allocation can exceed 20%) and you MUST prefer index/passive funds over active funds.`
+      }
+    }
+
     const response = await gpt.chat.completions.create({
       model: 'gpt-4o',
       messages: [
-        { role: 'system', content: PRIYA_SYSTEM_PROMPT + learningsContext + preflightContext },
+        { role: 'system', content: PRIYA_SYSTEM_PROMPT + learningsContext + preflightContext + behavioralContext },
         { role: 'user', content: prompt }
       ],
       temperature: 0.1,

@@ -7,25 +7,36 @@ import { eq } from 'drizzle-orm'
 let mockRuns: any[] = []
 let mockResults: any[] = []
 
-vi.mock('@/lib/db', () => ({
-  db: {
-    select: vi.fn(() => ({
-      from: vi.fn((tableObj: any) => ({
-        where: vi.fn(() => ({
-          orderBy: vi.fn(() => ({
-            limit: vi.fn(() => {
-              if (tableObj === schema.pipelineRuns) return mockRuns
-              if (tableObj === schema.pipelineResults) return mockResults
-              return []
-            })
-          }))
-        }))
-      }))
-    })),
-    insert: vi.fn(),
-    delete: vi.fn()
+vi.mock('@/lib/db', () => {
+  const queryChain = (tableObj: any) => {
+    const mockLimit = vi.fn(() => {
+      if (tableObj === schema.pipelineRuns) return mockRuns
+      if (tableObj === schema.pipelineResults) return mockResults
+      return []
+    })
+    const mockOrderBy = vi.fn(() => ({
+      limit: mockLimit
+    }))
+    const mockWhere = vi.fn(() => ({
+      orderBy: mockOrderBy,
+      limit: mockLimit
+    }))
+    return {
+      where: mockWhere,
+      orderBy: mockOrderBy,
+      limit: mockLimit
+    }
   }
-}))
+  return {
+    db: {
+      select: vi.fn(() => ({
+        from: vi.fn((tableObj: any) => queryChain(tableObj))
+      })),
+      insert: vi.fn(),
+      delete: vi.fn()
+    }
+  }
+})
 
 describe('Recommendation Packet Tool Unit Tests', () => {
   beforeEach(async () => {

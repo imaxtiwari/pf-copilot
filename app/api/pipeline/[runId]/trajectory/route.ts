@@ -6,9 +6,9 @@ import logger from '@/lib/logger'
 
 export async function GET(
   request: Request,
-  { params }: { params: { runId: string } }
+  context: { params: Promise<{ runId: string }> }
 ) {
-  const { runId } = params
+  const { runId } = await context.params
 
   try {
     const run = await db.query.pipelineRuns.findFirst({

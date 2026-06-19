@@ -40,10 +40,20 @@ export async function getRecommendationPacket(userId: string) {
 
   const packetData = results[0].data as any
 
+  // Fetch comparison report if it exists
+  const comparisonReports = await db
+    .select()
+    .from(schema.comparisonReports)
+    .where(eq(schema.comparisonReports.pipelineRunId, latestRun.runId))
+    .limit(1)
+  
+  const comparisonReport = comparisonReports.length > 0 ? comparisonReports[0].report : null
+
   return {
     status: 'approved',
     approved_at: results[0].createdAt,
     portfolio_draft: packetData.portfolio_draft || packetData,
-    confidence_score: packetData.confidence_score_breakdown?.total || packetData.confidence_score
+    confidence_score: packetData.confidence_score_breakdown?.total || packetData.confidence_score,
+    comparison_report: comparisonReport
   }
 }

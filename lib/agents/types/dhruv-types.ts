@@ -6,6 +6,7 @@ import { CritiqueFaultSchema } from './aria-types'
 
 export const PipelineStageSchema = z.enum([
   'ONBOARDING',
+  'RIYA_BEHAVIORAL_PROFILING',
   'PROFILING_AND_GOAL_ASSESSMENT',
   'SOMA_FUND_UNIVERSE',
   'VIKRAM_STRATEGY',
@@ -15,6 +16,7 @@ export const PipelineStageSchema = z.enum([
   'DELIBERATION',
   'COMMITTEE_VOTE',
   'REVISION',
+  'ATLAS_COMPARISON',
   'APPROVED',
   'DEADLOCKED',
   'FAILED'

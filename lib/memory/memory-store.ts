@@ -125,7 +125,7 @@ export interface RecallOptions {
 }
 
 export async function initQdrant() {
-  const agents = ['aria', 'kiran', 'soma', 'vikram', 'priya', 'dhruv']
+  const agents = ['aria', 'kiran', 'soma', 'vikram', 'priya', 'dhruv', 'riya']
   const collections = agents.map(a => `agent_memory_${a}`).concat(['knowledge_commons'])
 
   try {
