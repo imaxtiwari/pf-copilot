@@ -903,8 +903,21 @@ CRITICAL RULE:
       }
     })
 
+    let triggeringMessageId: string | undefined = undefined
+    try {
+      const history = await this.deliberationRoom.getHistory(pipelineRunId)
+      const latestMsg = [...history]
+        .reverse()
+        .find(m => m.message_type === 'VOTE' || m.message_type === 'CRITIQUE' || m.message_type === 'PORTFOLIO_DRAFT')
+      if (latestMsg) {
+        triggeringMessageId = latestMsg.message_id
+      }
+    } catch (err) {
+      logger.warn({ err }, 'DHRUV: Failed to find triggering message in history')
+    }
+
     // Publish compromise directive
-    await this.deliberationRoom.publish({
+    await this.deliberationRoom.send({
       pipeline_run_id: pipelineRunId,
       sender: 'DHRUV',
       message_type: 'DIRECTIVE',
@@ -915,7 +928,7 @@ CRITICAL RULE:
         fallback_portfolio_id: bestDraft.portfolio_id
       },
       references: [bestDraft.portfolio_id]
-    })
+    }, triggeringMessageId)
 
     // Save to DB
     await this.db.insert(schema.pipelineResults).values({

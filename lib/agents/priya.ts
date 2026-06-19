@@ -626,7 +626,20 @@ JSON Output Schema:
     // Save and publish
     await this.saveToDatabase({ ...validated, status: 'SUBMITTED' })
 
-    await this.deliberationRoom.publish({
+    let ariaCritiqueMessageId: string | undefined = undefined
+    try {
+      const history = await this.deliberationRoom.getHistory(pipelineRunId)
+      const ariaCritique = [...history]
+        .reverse()
+        .find(m => m.sender === 'ARIA' && m.message_type === 'CRITIQUE')
+      if (ariaCritique) {
+        ariaCritiqueMessageId = ariaCritique.message_id
+      }
+    } catch (err) {
+      logger.warn({ err }, 'PRIYA: Failed to find ARIA critique message in history')
+    }
+
+    await this.deliberationRoom.send({
       pipeline_run_id: pipelineRunId,
       sender: 'PRIYA',
       message_type: 'PORTFOLIO_DRAFT',
@@ -640,7 +653,7 @@ JSON Output Schema:
         cagr_pct: validated.backtest_summary.portfolio_cagr_pct
       },
       references: [previousDraft.portfolio_id]
-    })
+    }, ariaCritiqueMessageId)
 
     await this.memoryStore.write('PRIYA', {
       content: JSON.stringify(validated),

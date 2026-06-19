@@ -45,7 +45,7 @@ vi.mock('../../lib/audit/audit-trail', () => {
 })
 
 describe('Mentor Post-Pipeline Analysis Unit Tests', () => {
-  const mockRoom = {} as any
+  const mockRoom = { receiveThread: vi.fn().mockResolvedValue([]) } as any
   const mockMemory = {} as any
 
   beforeEach(() => {
@@ -85,6 +85,10 @@ describe('Mentor Post-Pipeline Analysis Unit Tests', () => {
           return Promise.resolve([
             { messageId: 'm1', sender: 'ARIA', messageType: 'CRITIQUE', payload: { observation: 'concentration too high' } }
           ])
+        }
+        if (whereCallCount === 5) {
+          // returns root messages
+          return Promise.resolve([])
         }
         return this
       }),
@@ -134,10 +138,17 @@ describe('Mentor Post-Pipeline Analysis Unit Tests', () => {
   it('should throw an error and not contribute when LLM response is not valid JSON', async () => {
     mockGptResponse = 'invalid-non-json-response'
 
+    let whereCallCount = 0
     const mockDb = {
       select: vi.fn().mockReturnThis(),
       from: vi.fn().mockReturnThis(),
-      where: vi.fn().mockReturnThis(),
+      where: vi.fn().mockImplementation(function(this: any) {
+        whereCallCount++
+        if (whereCallCount === 2 || whereCallCount === 5) {
+          return Promise.resolve([])
+        }
+        return this
+      }),
       orderBy: vi.fn().mockResolvedValue([]),
       limit: vi.fn().mockResolvedValue([])
     } as any

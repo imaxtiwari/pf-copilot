@@ -7,7 +7,7 @@ vi.mock('../../lib/deliberation/deliberation-room')
 vi.mock('../../lib/memory/memory-store')
 
 describe('Aria Critique Unit Tests', () => {
-  const mockRoom = { publish: vi.fn().mockResolvedValue({}) } as any
+  const mockRoom = { publish: vi.fn().mockResolvedValue({}), send: vi.fn().mockResolvedValue('msg-id') } as any
   const mockMemory = { recall: vi.fn().mockResolvedValue([]), write: vi.fn().mockResolvedValue('id') } as any
   const mockResearch = {} as any
   const mockDb = {} as any

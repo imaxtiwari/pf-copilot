@@ -99,7 +99,10 @@ export const DeliberationMessageSchema = z.object({
     flags: z.array(z.string()),
     confidence_score: z.number().optional()
   }),
-  references: z.array(z.string()).default([])
+  references: z.array(z.string()).default([]),
+  reply_to_message_id: z.string().nullable().optional(),
+  thread_root_id: z.string().nullable().optional(),
+  depth: z.number().int().optional(),
 })
 
 // ─── Inferred TypeScript Types ────────────────────────────────────────────────

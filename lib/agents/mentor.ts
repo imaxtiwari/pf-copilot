@@ -3,7 +3,7 @@ import { AgentMemoryStore, makePipelineKey } from '../memory/memory-store'
 import { KnowledgeCommons } from '../research/knowledge-commons'
 import { AgentId } from '../deliberation/message-schema'
 import { getGpt4o } from '../azure-openai'
-import { eq, inArray, and } from 'drizzle-orm'
+import { eq, inArray, and, isNull, sql } from 'drizzle-orm'
 import * as schema from '../../db/schema'
 import { auditTrail, AuditActionType } from '../audit/audit-trail'
 import logger from '../logger'
@@ -60,8 +60,42 @@ export class Mentor {
 
     const revisionCycle = run ? run.revisionCycle : 0
 
+    // Retrieve threaded conversation trees
+    const roots = await this.db
+      .select()
+      .from(schema.deliberationMessages)
+      .where(
+        and(
+          eq(schema.deliberationMessages.pipelineRunId, pipelineRunId),
+          eq(schema.deliberationMessages.messageType, 'PORTFOLIO_DRAFT'),
+          isNull(schema.deliberationMessages.replyToMessageId)
+        )
+      )
+
+    const conversationTrees: any[] = []
+    for (const root of roots) {
+      try {
+        const thread = await this.deliberationRoom.receiveThread(root.messageId)
+        conversationTrees.push({
+          rootMessageId: root.messageId,
+          thread: thread.map((m: any) => ({
+            message_id: m.message_id,
+            reply_to_message_id: m.reply_to_message_id,
+            thread_root_id: m.thread_root_id,
+            depth: m.depth,
+            sender: m.sender,
+            message_type: m.message_type,
+            payload: m.payload,
+            timestamp: m.timestamp
+          }))
+        })
+      } catch (err) {
+        logger.warn({ err, rootId: root.messageId }, 'MENTOR: Failed to fetch thread for root message')
+      }
+    }
+
     // B. Build the LLM prompt for GPT-4o
-    const prompt = `Analyze this completed portfolio advisory pipeline and extract specific, actionable learnings for each agent.
+    const prompt = `Analyze this completed portfolio advisory pipeline and extract specific, actionable learnings for each agent, as well as an analysis of the deliberation conversation trees.
 Pipeline Outcome: ${outcome}
 Revision Cycles: ${revisionCycle}
 
@@ -71,10 +105,21 @@ ${JSON.stringify(votes, null, 2)}
 Critique Reports from Deliberation Room:
 ${JSON.stringify(critiqueMessages, null, 2)}
 
+Threaded Conversation Trees (showing replies and conversation flow):
+${JSON.stringify(conversationTrees, null, 2)}
+
 Instructions:
-For each agent that participated (ARIA, KIRAN, VIKRAM, PRIYA), extract 1-2 specific learnings.
-A learning must answer: "What should this agent do differently or prioritize in future pipelines based on what happened in this one?"
-Return valid JSON only:
+1. For each agent that participated (ARIA, KIRAN, VIKRAM, PRIYA), extract 1-2 specific learnings.
+   A learning must answer: "What should this agent do differently or prioritize in future pipelines based on what happened in this one?"
+2. Analyze the threaded conversation tree(s) above:
+   - For each ARIA critique message in the tree:
+     - Identify the faults ARIA raised and classify each fault into one of: 'METHODOLOGY' | 'CONCENTRATION' | 'SURVIVORSHIP_BIAS' | 'RECENCY_BIAS' | 'GOAL_MISMATCH' | 'COMPLIANCE' | 'OTHER'.
+     - Determine if PRIYA addressed this fault in her next revised portfolio draft (the draft replying to that critique).
+     - If she resolved/addressed it, pattern is 'ARIA_CRITIQUE_ADDRESSED'. If she ignored it (the same fault category remains in subsequent critiques/votes), pattern is 'ARIA_CRITIQUE_IGNORED'.
+     - Calculate the confidence delta: the difference in portfolio confidence score before vs. after this revision cycle (e.g. if the draft before critique had confidence score 60 and the revised draft had 80, delta is 20).
+     - revisionCycle is the revision_number/revisionCycle of the revised draft.
+
+Your JSON output must be a valid JSON object only, matching this schema:
 {
   "learnings": [
     {
@@ -82,6 +127,14 @@ Return valid JSON only:
       "learning": "Specific learning statement",
       "reason": "Why this learning is relevant, citing specific evidence from this run",
       "tags": ["tag1", "tag2"]
+    }
+  ],
+  "critique_analyses": [
+    {
+      "pattern": "ARIA_CRITIQUE_ADDRESSED" | "ARIA_CRITIQUE_IGNORED",
+      "critiqueCategory": "METHODOLOGY" | "CONCENTRATION" | "SURVIVORSHIP_BIAS" | "RECENCY_BIAS" | "GOAL_MISMATCH" | "COMPLIANCE" | "OTHER",
+      "revisionCycle": number,
+      "confidenceDelta": number
     }
   ]
 }
@@ -102,7 +155,10 @@ CRITICAL: Do NOT include investment advice. Focus on agent reasoning patterns, n
     const rawText = response.choices[0]?.message?.content?.trim() || ''
     const cleanJson = rawText.replace(/^```json/, '').replace(/```$/, '').trim()
     
-    let parsed: { learnings: Array<{ agent: string; learning: string; reason: string; tags: string[] }> }
+    let parsed: {
+      learnings: Array<{ agent: string; learning: string; reason: string; tags: string[] }>
+      critique_analyses?: Array<{ pattern: string; critiqueCategory: string; revisionCycle: number; confidenceDelta: number }>
+    }
     try {
       parsed = JSON.parse(cleanJson)
     } catch (err) {
@@ -111,6 +167,24 @@ CRITICAL: Do NOT include investment advice. Focus on agent reasoning patterns, n
     }
 
     const learnings = parsed.learnings || []
+    const critiqueAnalyses = parsed.critique_analyses || []
+
+    // Log critique analyses as structured learnings
+    for (const analysis of critiqueAnalyses) {
+      logger.info({ analysis }, 'MENTOR: logged critique analysis')
+      auditTrail.log({
+        pipeline_run_id: pipelineRunId,
+        agent_id: 'DHRUV',
+        action_type: 'CRITIQUE_THREAD_ANALYSIS' as any,
+        payload: {
+          pattern: analysis.pattern,
+          critiqueCategory: analysis.critiqueCategory,
+          revisionCycle: analysis.revisionCycle,
+          confidenceDelta: analysis.confidenceDelta
+        }
+      })
+    }
+
     if (learnings.length === 0) {
       logger.info({ pipelineRunId }, 'MENTOR: No learnings extracted from pipeline run')
       return

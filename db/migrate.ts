@@ -62,6 +62,13 @@ async function main() {
     $$;
   `)
 
+  console.log('Migrating existing deliberation messages to become roots...')
+  await db.execute(sql`
+    UPDATE deliberation_messages
+    SET thread_root_id = message_id, depth = 0
+    WHERE reply_to_message_id IS NULL
+  `)
+
   console.log('All migrations complete.')
   await pool.end()
 }

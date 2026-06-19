@@ -415,8 +415,21 @@ JSON Schema:
       pipeline_run_id: pipelineRunId
     })
 
+    let portfolioDraftMessageId: string | undefined = undefined
+    try {
+      const history = await this.deliberationRoom.getHistory(pipelineRunId)
+      const pdMsg = [...history]
+        .reverse()
+        .find(m => m.sender === 'PRIYA' && m.message_type === 'PORTFOLIO_DRAFT')
+      if (pdMsg) {
+        portfolioDraftMessageId = pdMsg.message_id
+      }
+    } catch (err) {
+      logger.warn({ err }, 'KIRAN: Failed to find PORTFOLIO_DRAFT message in history')
+    }
+
     // Publish RISK_ALERT to Deliberation Room
-    await this.deliberationRoom.publish({
+    await this.deliberationRoom.send({
       pipeline_run_id: pipelineRunId,
       sender: 'KIRAN',
       message_type: 'RISK_ALERT',
@@ -429,7 +442,7 @@ JSON Schema:
         data_source: validated.sources[0].url
       },
       references: []
-    })
+    }, portfolioDraftMessageId)
 
     return validated
   }

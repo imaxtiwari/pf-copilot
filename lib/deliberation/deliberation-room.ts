@@ -17,10 +17,24 @@ export type MiddlewareFn = (msg: DeliberationMessage) => Promise<DeliberationMes
 
 export interface BoundDeliberationRoom {
   publish(
-    rawMsg: Omit<DeliberationMessage, 'message_id' | 'timestamp' | 'oracle_validation' | 'pipeline_run_id'>
+    rawMsg: Omit<DeliberationMessage, 'message_id' | 'timestamp' | 'oracle_validation' | 'pipeline_run_id' | 'depth' | 'reply_to_message_id' | 'thread_root_id'> & {
+      reply_to_message_id?: string | null
+      thread_root_id?: string | null
+      depth?: number
+    },
+    replyTo?: string
   ): Promise<DeliberationMessage>
+  send(
+    message: Omit<DeliberationMessage, 'message_id' | 'timestamp' | 'oracle_validation' | 'pipeline_run_id' | 'depth' | 'reply_to_message_id' | 'thread_root_id'> & {
+      reply_to_message_id?: string | null
+      thread_root_id?: string | null
+      depth?: number
+    },
+    replyTo?: string
+  ): Promise<string>
   subscribe(agentId: AgentId | 'ALL', handler: (msg: DeliberationMessage) => void): () => void
   getHistory(): Promise<DeliberationMessage[]>
+  receiveThread(rootMessageId: string): Promise<DeliberationMessage[]>
 }
 
 // ─── Deliberation Room ────────────────────────────────────────────────────────
@@ -38,16 +52,82 @@ export class DeliberationRoom extends EventEmitter {
     this.middlewares.push(fn)
   }
 
+  // Helper to fetch message by ID (checks cache, then DB)
+  async getMessageById(messageId: string): Promise<DeliberationMessage | null> {
+    // 1. Search cache
+    for (const messages of this.cache.values()) {
+      const found = messages.find(m => m.message_id === messageId)
+      if (found) return found
+    }
+
+    // 2. Search database
+    if (this.dbClient) {
+      try {
+        const [row] = await this.dbClient
+          .select()
+          .from(deliberationMessages)
+          .where(eq(deliberationMessages.messageId, messageId))
+          .limit(1)
+        if (row) {
+          return {
+            message_id: row.messageId,
+            pipeline_run_id: row.pipelineRunId,
+            timestamp: row.timestamp instanceof Date ? row.timestamp.toISOString() : row.timestamp,
+            sender: row.sender,
+            message_type: row.messageType,
+            recipient: row.recipient,
+            payload: row.payload,
+            oracle_validation: row.oracleValidation,
+            references: row.references || [],
+            reply_to_message_id: row.replyToMessageId,
+            thread_root_id: row.threadRootId,
+            depth: row.depth ?? 0
+          } as DeliberationMessage
+        }
+      } catch (err) {
+        logger.warn({ err, messageId }, 'Failed to query message by ID from DB')
+      }
+    }
+    return null
+  }
+
   // Publish a message through the full middleware → audit → broadcast pipeline
   async publish(
-    rawMsg: Omit<DeliberationMessage, 'message_id' | 'timestamp' | 'oracle_validation'>
+    rawMsg: Omit<DeliberationMessage, 'message_id' | 'timestamp' | 'oracle_validation' | 'depth' | 'reply_to_message_id' | 'thread_root_id'> & {
+      reply_to_message_id?: string | null
+      thread_root_id?: string | null
+      depth?: number
+    },
+    replyTo?: string
   ): Promise<DeliberationMessage> {
+    const messageId = (rawMsg as any).message_id || randomUUID()
+    
+    let replyToMessageId: string | null = null
+    let threadRootId = messageId
+    let depth = 0
+
+    if (replyTo) {
+      const parent = await this.getMessageById(replyTo)
+      if (parent) {
+        replyToMessageId = parent.message_id
+        threadRootId = parent.thread_root_id || parent.message_id
+        depth = (parent.depth ?? 0) + 1
+      } else {
+        replyToMessageId = replyTo
+        threadRootId = replyTo
+        depth = 1
+      }
+    }
+
     // 1. Auto-generate system fields
     const assembled: DeliberationMessage = {
       ...rawMsg,
-      message_id: randomUUID(),
-      timestamp: new Date().toISOString(),
-      oracle_validation: { status: 'PENDING', flags: [] }
+      message_id: messageId,
+      timestamp: (rawMsg as any).timestamp || new Date().toISOString(),
+      oracle_validation: (rawMsg as any).oracle_validation || { status: 'PENDING', flags: [] },
+      reply_to_message_id: replyToMessageId,
+      thread_root_id: threadRootId,
+      depth
     }
 
     // 2. Validate against Zod schema — hard throw on invalid
@@ -92,6 +172,9 @@ export class DeliberationRoom extends EventEmitter {
             oracleValidation: message.oracle_validation,
             references: message.references,
             timestamp: new Date(message.timestamp),
+            replyToMessageId: message.reply_to_message_id,
+            threadRootId: message.thread_root_id,
+            depth: message.depth
           })
           .onConflictDoNothing()
       } catch (err) {
@@ -116,6 +199,19 @@ export class DeliberationRoom extends EventEmitter {
     )
 
     return message
+  }
+
+  // Send method signature matching user request
+  async send(
+    message: Omit<DeliberationMessage, 'message_id' | 'timestamp' | 'oracle_validation' | 'depth' | 'reply_to_message_id' | 'thread_root_id'> & {
+      reply_to_message_id?: string | null
+      thread_root_id?: string | null
+      depth?: number
+    },
+    replyTo?: string
+  ): Promise<string> {
+    const published = await this.publish(message, replyTo)
+    return published.message_id
   }
 
   // Subscribe an agent to messages addressed to them or broadcast to ALL
@@ -169,7 +265,10 @@ export class DeliberationRoom extends EventEmitter {
           recipient: row.recipient,
           payload: row.payload,
           oracle_validation: row.oracleValidation,
-          references: row.references || []
+          references: row.references || [],
+          reply_to_message_id: row.replyToMessageId,
+          thread_root_id: row.threadRootId,
+          depth: row.depth ?? 0
         })) as DeliberationMessage[]
       } catch (err) {
         logger.warn({ err, pipeline_run_id }, 'Failed to read deliberation history from DB, falling back to cache/auditTrail')
@@ -199,15 +298,79 @@ export class DeliberationRoom extends EventEmitter {
     }, [])
   }
 
+  // Return all messages in a thread, ordered by depth then timestamp
+  async receiveThread(rootMessageId: string): Promise<DeliberationMessage[]> {
+    if (this.dbClient) {
+      try {
+        const rows = await this.dbClient
+          .select()
+          .from(deliberationMessages)
+          .where(eq(deliberationMessages.threadRootId, rootMessageId))
+          .orderBy(asc(deliberationMessages.depth), asc(deliberationMessages.timestamp))
+
+        return rows.map((row: any) => ({
+          message_id: row.messageId,
+          pipeline_run_id: row.pipelineRunId,
+          timestamp: row.timestamp instanceof Date ? row.timestamp.toISOString() : row.timestamp,
+          sender: row.sender,
+          message_type: row.messageType,
+          recipient: row.recipient,
+          payload: row.payload,
+          oracle_validation: row.oracleValidation,
+          references: row.references || [],
+          reply_to_message_id: row.replyToMessageId,
+          thread_root_id: row.threadRootId,
+          depth: row.depth ?? 0
+        })) as DeliberationMessage[]
+      } catch (err) {
+        logger.warn({ err, rootMessageId }, 'Failed to read thread history from DB, falling back to cache')
+      }
+    }
+
+    // Fallback: Search local cache
+    const threadMessages: DeliberationMessage[] = []
+    for (const messages of this.cache.values()) {
+      for (const msg of messages) {
+        if (msg.thread_root_id === rootMessageId) {
+          threadMessages.push(msg)
+        }
+      }
+    }
+
+    // Sort by depth then timestamp
+    return threadMessages.sort((a, b) => {
+      if ((a.depth ?? 0) !== (b.depth ?? 0)) {
+        return (a.depth ?? 0) - (b.depth ?? 0)
+      }
+      return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    })
+  }
+
   // Return a version of the room pre-bound to a specific pipeline_run_id
   createForRun(pipeline_run_id: string): BoundDeliberationRoom {
     const room = this
 
     return {
       publish(
-        rawMsg: Omit<DeliberationMessage, 'message_id' | 'timestamp' | 'oracle_validation' | 'pipeline_run_id'>
+        rawMsg: Omit<DeliberationMessage, 'message_id' | 'timestamp' | 'oracle_validation' | 'pipeline_run_id' | 'depth' | 'reply_to_message_id' | 'thread_root_id'> & {
+          reply_to_message_id?: string | null
+          thread_root_id?: string | null
+          depth?: number
+        },
+        replyTo?: string
       ): Promise<DeliberationMessage> {
-        return room.publish({ ...rawMsg, pipeline_run_id })
+        return room.publish({ ...rawMsg, pipeline_run_id } as any, replyTo)
+      },
+
+      send(
+        message: Omit<DeliberationMessage, 'message_id' | 'timestamp' | 'oracle_validation' | 'pipeline_run_id' | 'depth' | 'reply_to_message_id' | 'thread_root_id'> & {
+          reply_to_message_id?: string | null
+          thread_root_id?: string | null
+          depth?: number
+        },
+        replyTo?: string
+      ): Promise<string> {
+        return room.send({ ...message, pipeline_run_id } as any, replyTo)
       },
 
       subscribe(agentId: AgentId | 'ALL', handler: (msg: DeliberationMessage) => void): () => void {
@@ -216,6 +379,10 @@ export class DeliberationRoom extends EventEmitter {
 
       getHistory(): Promise<DeliberationMessage[]> {
         return room.getHistory(pipeline_run_id)
+      },
+
+      receiveThread(rootMessageId: string): Promise<DeliberationMessage[]> {
+        return room.receiveThread(rootMessageId)
       }
     }
   }

@@ -271,7 +271,7 @@ JSON Schema:
     })
 
     // 4. Publish CRITIQUE to Deliberation Room
-    await this.deliberationRoom.publish({
+    await this.deliberationRoom.send({
       pipeline_run_id: pipelineRunId,
       sender: 'ARIA',
       message_type: 'CRITIQUE',
@@ -283,7 +283,7 @@ JSON Schema:
         recommended_action: validated.overall_assessment,
       },
       references: [context.message_id]
-    })
+    }, context.message_id)
 
     return validated
   }
