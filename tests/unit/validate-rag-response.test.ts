@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { validateRagResponse } from '../../lib/rag/validate-response'
 
-const CHUNK_IDS = ['chunk_1', 'chunk_2', 'chunk_3']
+const CHUNK_IDS = [
+  { id: 'chunk_1', factsheetDate: '2026-06-01' },
+  { id: 'chunk_2', factsheetDate: '2026-06-01' },
+  { id: 'chunk_3', factsheetDate: '2026-06-01' },
+]
 
 const BASE_VALID = {
   answer: 'The expense ratio is 1.42% [chunk_1].',
@@ -14,7 +18,7 @@ const BASE_VALID = {
 
 describe('validateRagResponse — shape', () => {
   it('accepts a valid response', () => {
-    expect(validateRagResponse(BASE_VALID, CHUNK_IDS)).toEqual({ ok: true })
+    expect(validateRagResponse(BASE_VALID, CHUNK_IDS)).toEqual({ ok: true, warnings: [] })
   })
 
   it('rejects null', () => {

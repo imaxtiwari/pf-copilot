@@ -1,4 +1,7 @@
 import { z } from 'zod'
+import { ClientGoalAssessmentSchema } from './vikram-types'
+import { FundUniverseSchema } from './soma-types'
+import { ClientRiskProfileSchema } from './kiran-types'
 
 export const FaultCategorySchema = z.enum([
   'METHODOLOGY',
@@ -58,3 +61,28 @@ export const CritiqueReportSchema = z.object({
 })
 
 export type CritiqueReport = z.infer<typeof CritiqueReportSchema>
+
+export const PreflightContextSchema = z.object({
+  userId: z.string().uuid(),
+  pipelineRunId: z.string().uuid(),
+  goalProfile: ClientGoalAssessmentSchema,
+  fundUniverse: FundUniverseSchema,
+  clientRiskProfile: ClientRiskProfileSchema,
+})
+
+export type PreflightContext = z.infer<typeof PreflightContextSchema>
+
+export const PreflightReportSchema = z.object({
+  predictedFailureModes: z.array(
+    z.object({
+      faultCategory: FaultCategorySchema,
+      severity: z.enum(['CRITICAL', 'MAJOR', 'MINOR']),
+      description: z.string(),
+      avoidanceGuidance: z.string(),
+    })
+  ),
+  generatedAt: z.date(),
+  pipelineRunId: z.string(),
+})
+
+export type PreflightReport = z.infer<typeof PreflightReportSchema>

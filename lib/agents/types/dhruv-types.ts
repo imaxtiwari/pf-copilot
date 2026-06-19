@@ -10,6 +10,7 @@ export const PipelineStageSchema = z.enum([
   'SOMA_FUND_UNIVERSE',
   'VIKRAM_STRATEGY',
   'KIRAN_HEDGE_MAP',
+  'ARIA_PREFLIGHT',
   'PRIYA_BUILD',
   'DELIBERATION',
   'COMMITTEE_VOTE',

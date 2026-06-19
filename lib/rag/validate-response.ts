@@ -1,13 +1,16 @@
 import { FORBIDDEN_IN_ASSISTANT_OUTPUT } from '@/lib/contracts/no-advice'
 import { z } from 'zod'
 
-type ValidationResult = { ok: true } | { ok: false; errors: string[] }
+type ValidationResult = { ok: true; warnings?: string[] } | { ok: false; errors: string[]; warnings?: string[] }
 
 export function validateRagResponse(
   response: unknown,
-  retrievedChunkIds: string[],
+  retrievedChunks: { id: string; factsheetDate: string }[],
 ): ValidationResult {
   const errors: string[] = []
+  const warnings: string[] = []
+  
+  const retrievedChunkIds = retrievedChunks.map(c => c.id)
 
   // CHECK 1: Shape
   const shape = z
@@ -68,5 +71,17 @@ export function validateRagResponse(
     }
   }
 
-  return errors.length === 0 ? { ok: true } : { ok: false, errors }
+  // CHECK 5: Staleness Check
+  if (retrievedChunks.length > 0) {
+    const dates = retrievedChunks.map(c => new Date(c.factsheetDate).getTime()).filter(t => !isNaN(t))
+    if (dates.length > 0) {
+      const oldestTime = Math.min(...dates)
+      const ageInDays = Math.floor((Date.now() - oldestTime) / 86400000)
+      if (ageInDays > 180) {
+        warnings.push(`Stale data warning: oldest chunk is ${ageInDays} days old (> 180 days).`)
+      }
+    }
+  }
+
+  return errors.length === 0 ? { ok: true, warnings } : { ok: false, errors, warnings }
 }

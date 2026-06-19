@@ -11,7 +11,7 @@ import {
 } from './types/priya-types'
 import { ClientGoalAssessment, StrategyFramework } from './types/vikram-types'
 import { ClientRiskProfile, HedgeMap } from './types/kiran-types'
-import { CritiqueReport, CritiqueFault } from './types/aria-types'
+import { CritiqueReport, CritiqueFault, PreflightReport } from './types/aria-types'
 import { FundUniverse } from './types/soma-types'
 import { DeliberationRoom } from '../deliberation/deliberation-room'
 import { AgentMemoryStore, makePipelineKey } from '../memory/memory-store'
@@ -69,6 +69,7 @@ export class Priya {
       hedgeMap: HedgeMap
       critiques: CritiqueReport[]
       fundUniverse: FundUniverse
+      preflightReport?: PreflightReport
     },
     pipelineRunId: string
   ): Promise<PortfolioDraft> {
@@ -104,6 +105,11 @@ export class Priya {
     const priorLearnings = await kc.queryCommons('PRIYA', 'portfolio_construction')
     const learningsContext = priorLearnings.length > 0 
       ? `\n\nLearnings from prior runs:\n${priorLearnings.map((l: any) => `- ${l.summary}`).join('\n')}`
+      : ''
+
+    const preflightContext = inputs.preflightReport && inputs.preflightReport.predictedFailureModes.length > 0
+      ? `\n\nBefore drafting, review these predicted failure modes from ARIA's pre-flight analysis. Your draft must explicitly address each one:\n` +
+        inputs.preflightReport.predictedFailureModes.map(f => `- [${f.severity}] ${f.faultCategory}: ${f.avoidanceGuidance}`).join('\n')
       : ''
 
     // Check TTL (SOMA FundProfile data older than 7 days)
@@ -161,7 +167,7 @@ JSON Output Schema:
     const response = await gpt.chat.completions.create({
       model: 'gpt-4o',
       messages: [
-        { role: 'system', content: PRIYA_SYSTEM_PROMPT + learningsContext },
+        { role: 'system', content: PRIYA_SYSTEM_PROMPT + learningsContext + preflightContext },
         { role: 'user', content: prompt }
       ],
       temperature: 0.1,

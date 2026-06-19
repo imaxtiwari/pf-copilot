@@ -223,6 +223,7 @@ export const portfolioDrafts = pgTable('portfolio_drafts', {
   confidenceScore: numeric('confidence_score').notNull(),
   backtestSummary: jsonb('backtest_summary'),
   openCritiqueItems: jsonb('open_critique_items'),
+  ariaFaultCount: jsonb('aria_fault_count'),
   status: text('status'),
   createdAt: timestamp('created_at').defaultNow(),
 })

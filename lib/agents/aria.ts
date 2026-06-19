@@ -7,9 +7,13 @@ import {
   CritiqueReport,
   CritiqueReportSchema,
   Severity,
+  PreflightContext,
+  PreflightReport,
+  PreflightReportSchema,
 } from './types/aria-types'
 import { WebResearchTool } from '../research/web-research-tool'
 import { AgentMemoryStore, makePipelineKey } from '../memory/memory-store'
+import { auditTrail, AuditActionType } from '../audit/audit-trail'
 import { DeliberationRoom } from '../deliberation/deliberation-room'
 import { getGpt4o } from '../azure-openai'
 import { KnowledgeCommons } from '../research/knowledge-commons'
@@ -72,6 +76,67 @@ export class Aria {
     if (faults.some(f => f.severity === 'MAJOR')) return 'MAJOR'
     if (faults.some(f => f.severity === 'MINOR')) return 'MINOR'
     return 'OBSERVATION'
+  }
+
+  async runPreflight(context: PreflightContext): Promise<PreflightReport> {
+    logger.info({ pipelineRunId: context.pipelineRunId }, 'ARIA: runPreflight invoked')
+
+    const { ARIA_PREFLIGHT_PROMPT } = await import('../prompts/aria-preflight')
+
+    const gpt = getGpt4o()
+    const prompt = `
+Client Goal Profile:
+${JSON.stringify(context.goalProfile, null, 2)}
+
+Client Risk Profile:
+${JSON.stringify(context.clientRiskProfile, null, 2)}
+
+Fund Universe (Available Funds):
+${JSON.stringify(context.fundUniverse, null, 2)}
+`
+
+    const response = await gpt.chat.completions.create({
+      model: process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O || 'gpt-4o',
+      messages: [
+        { role: 'system', content: ARIA_PREFLIGHT_PROMPT.text },
+        { role: 'user', content: prompt }
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.1,
+    })
+
+    const rawContent = response.choices[0].message?.content || '{}'
+    const parsed = JSON.parse(rawContent)
+    
+    const preflightReport: PreflightReport = {
+      predictedFailureModes: parsed.predictedFailureModes || [],
+      generatedAt: new Date(),
+      pipelineRunId: context.pipelineRunId,
+    }
+
+    // Persist to memory using makePipelineKey
+    const memoryKey = makePipelineKey('ARIA', 'preflight_report', context.userId, context.pipelineRunId)
+    await this.memoryStore.write('ARIA', {
+      content: JSON.stringify(preflightReport),
+      memory_type: 'ARIA_PREFLIGHT_REPORT',
+      source_url: `internal://aria/preflight/${context.pipelineRunId}`,
+      confidence_tier: 'INFERRED',
+      tags: [memoryKey],
+      pipeline_run_id: context.pipelineRunId
+    })
+
+    // Log to audit trail
+    auditTrail.log({
+      pipeline_run_id: context.pipelineRunId,
+      agent_id: 'ARIA',
+      action_type: AuditActionType.ARIA_PREFLIGHT_COMPLETE,
+      payload: {
+        failureModeCount: preflightReport.predictedFailureModes.length,
+        categories: preflightReport.predictedFailureModes.map(f => f.faultCategory)
+      }
+    })
+
+    return preflightReport
   }
 
   async critiquePortfolioDraft(

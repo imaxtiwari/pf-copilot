@@ -182,8 +182,18 @@ export class Dhruv {
     // We create a preliminary empty allocations list.
     const initialHedgeMap = await kiran.buildHedgeMap({ allocations: [] }, pipelineRunId)
 
+    // 7.5 ARIA Preflight
+    await this.stateMachine.transition('KIRAN_HEDGE_MAP', 'ARIA_PREFLIGHT', pipelineRunId)
+    const preflightReport = await aria.runPreflight({
+      userId: clientId,
+      pipelineRunId,
+      goalProfile: goalAssessment,
+      fundUniverse,
+      clientRiskProfile: riskProfile
+    })
+
     // 8. PRIYA Portfolio Build
-    await this.stateMachine.transition('KIRAN_HEDGE_MAP', 'PRIYA_BUILD', pipelineRunId)
+    await this.stateMachine.transition('ARIA_PREFLIGHT', 'PRIYA_BUILD', pipelineRunId)
     let draft = await priya.buildPortfolio(
       {
         goalAssessment,
@@ -191,7 +201,8 @@ export class Dhruv {
         strategyFramework,
         hedgeMap: initialHedgeMap,
         critiques: [],
-        fundUniverse
+        fundUniverse,
+        preflightReport
       },
       pipelineRunId
     )
@@ -256,6 +267,15 @@ export class Dhruv {
         draft.hedge_instruments = realHedgeMap
         draft.backtest_summary.scenario_overlay = stressTest
         allDrafts.push(draft)
+        
+        const isThrashing = await this.stateMachine.checkConvergence(pipelineRunId)
+        if (isThrashing) {
+          const drafts = await this.db.select().from(schema.portfolioDrafts).where(eq(schema.portfolioDrafts.pipelineRunId, pipelineRunId))
+          const trajectoryData = drafts.map((d: any) => ({ version: d.version, confidenceScore: d.confidenceScore }))
+          await this.evaluateEarlyDeadlock(trajectoryData, pipelineRunId)
+          await this.stateMachine.transition('COMMITTEE_VOTE', 'DEADLOCKED', pipelineRunId)
+          return this.executeDeadlockProtocol(pipelineRunId, allDrafts)
+        }
       }
     }
 
@@ -408,8 +428,18 @@ export class Dhruv {
       await this.stateMachine.transition('VIKRAM_STRATEGY', 'KIRAN_HEDGE_MAP', pipelineRunId)
       const initialHedgeMap = await kiran.buildHedgeMap({ allocations: [] }, pipelineRunId)
 
+      // 7.5 ARIA Preflight
+      await this.stateMachine.transition('KIRAN_HEDGE_MAP', 'ARIA_PREFLIGHT', pipelineRunId)
+      const preflightReport = await aria.runPreflight({
+        userId: clientId,
+        pipelineRunId,
+        goalProfile: goalAssessment,
+        fundUniverse,
+        clientRiskProfile: riskProfile
+      })
+
       // 8. PRIYA Portfolio Build
-      await this.stateMachine.transition('KIRAN_HEDGE_MAP', 'PRIYA_BUILD', pipelineRunId)
+      await this.stateMachine.transition('ARIA_PREFLIGHT', 'PRIYA_BUILD', pipelineRunId)
       let draft = await priya.buildPortfolio(
         {
           goalAssessment,
@@ -417,7 +447,8 @@ export class Dhruv {
           strategyFramework,
           hedgeMap: initialHedgeMap,
           critiques: [],
-          fundUniverse
+          fundUniverse,
+          preflightReport
         },
         pipelineRunId
       )
@@ -1012,6 +1043,17 @@ ${JSON.stringify(goalAssessment.stated_goals, null, 2)}
     } catch (err) {
       logger.error({ err }, 'DHRUV: Weekly sweep research failed')
     }
+  }
+
+  async evaluateEarlyDeadlock(trajectoryData: any[], pipelineRunId: string): Promise<void> {
+    logger.warn({ pipelineRunId, trajectoryData }, 'DHRUV: Early deadlock evaluation triggered due to diverging confidence trajectory')
+    
+    auditTrail.log({
+      pipeline_run_id: pipelineRunId,
+      agent_id: 'DHRUV',
+      action_type: AuditActionType.PIPELINE_DEADLOCK,
+      payload: { reason: 'Early deadlock due to confidence trajectory divergence (thrashing)', trajectory: trajectoryData }
+    })
   }
 }
 

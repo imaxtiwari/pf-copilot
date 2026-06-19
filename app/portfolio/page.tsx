@@ -8,6 +8,7 @@ import { computeRealReturns } from '@/lib/inflation/real-returns'
 import { computePersonalInflation } from '@/lib/inflation/compute'
 import { RealVsNominal } from '@/components/real-vs-nominal'
 import { PortfolioTable } from '@/components/portfolio-table'
+import { ConfidenceTrajectory } from '@/components/confidence-trajectory'
 import { parseNominalReturn1y } from '@/lib/inflation/parse-return'
 import type { UserProfileInput } from '@/lib/inflation/compute'
 import type { InflationConfidence } from '@/lib/validation/schemas'
@@ -143,6 +144,12 @@ export default async function PortfolioPage() {
   const result = computeRealReturns(holdingsForComputation, inflationRate)
   const missingCount = result.per_holding.filter((h: any) => h.nominal_return_1y === null).length
 
+  // Fetch latest pipeline run for the user
+  const latestPipelineRun = await db.query.pipelineRuns.findFirst({
+    where: eq(schema.pipelineRuns.clientId, userId),
+    orderBy: [desc(schema.pipelineRuns.createdAt)]
+  })
+
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
       {/* Header row */}
@@ -177,6 +184,13 @@ export default async function PortfolioPage() {
       <div className="mb-6">
         <RealVsNominal portfolio={result.portfolio} inflationConfidence={inflationConfidence} />
       </div>
+
+      {/* Confidence Trajectory (if pipeline run exists) */}
+      {latestPipelineRun && (
+        <div className="mb-6">
+          <ConfidenceTrajectory pipelineRunId={latestPipelineRun.runId} />
+        </div>
+      )}
 
       {/* Holdings table */}
       <div className="mb-4">

@@ -29,7 +29,8 @@ describe('Pipeline State Machine Integration Tests', () => {
     await sm.transition('PROFILING_AND_GOAL_ASSESSMENT', 'SOMA_FUND_UNIVERSE', runId)
     await sm.transition('SOMA_FUND_UNIVERSE', 'VIKRAM_STRATEGY', runId)
     await sm.transition('VIKRAM_STRATEGY', 'KIRAN_HEDGE_MAP', runId)
-    await sm.transition('KIRAN_HEDGE_MAP', 'PRIYA_BUILD', runId)
+    await sm.transition('KIRAN_HEDGE_MAP', 'ARIA_PREFLIGHT', runId)
+    await sm.transition('ARIA_PREFLIGHT', 'PRIYA_BUILD', runId)
     
     // Now test legal transition
     await expect(sm.transition('PRIYA_BUILD', 'DELIBERATION', runId)).resolves.not.toThrow()
@@ -59,7 +60,8 @@ describe('Pipeline State Machine Integration Tests', () => {
     await sm.transition('PROFILING_AND_GOAL_ASSESSMENT', 'SOMA_FUND_UNIVERSE', runId)
     await sm.transition('SOMA_FUND_UNIVERSE', 'VIKRAM_STRATEGY', runId)
     await sm.transition('VIKRAM_STRATEGY', 'KIRAN_HEDGE_MAP', runId)
-    await sm.transition('KIRAN_HEDGE_MAP', 'PRIYA_BUILD', runId)
+    await sm.transition('KIRAN_HEDGE_MAP', 'ARIA_PREFLIGHT', runId)
+    await sm.transition('ARIA_PREFLIGHT', 'PRIYA_BUILD', runId)
     await sm.transition('PRIYA_BUILD', 'DELIBERATION', runId)
     await sm.transition('DELIBERATION', 'COMMITTEE_VOTE', runId)
     await sm.transition('COMMITTEE_VOTE', 'DEADLOCKED', runId)

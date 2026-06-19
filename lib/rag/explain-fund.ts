@@ -27,6 +27,8 @@ function formatResponse(
   chunks: RetrievedChunk[],
   schemeName: string,
   schemeCode: string,
+  freshness?: import('../contracts/refusal-types').FreshnessMetadata,
+  validation_warnings?: string[],
 ): RagResponseFormatted {
   return {
     answer: parsed.answer,
@@ -36,6 +38,8 @@ function formatResponse(
     scheme_code: schemeCode,
     scheme_name: schemeName,
     chunks_retrieved: chunks.length,
+    freshness,
+    validation_warnings,
   }
 }
 
@@ -118,13 +122,13 @@ export async function explainFund(
   }
 
   let parsed = await callLlm()
-  let validation = validateRagResponse(parsed, chunkIds)
+  let validation = validateRagResponse(parsed, chunks)
 
   if (!validation.ok) {
     logger.warn({ errors: validation.errors, schemeCode: scheme_code }, 'rag: response failed validation, retrying once')
     const nudge = `Your previous response violated the contract: ${validation.errors.join('; ')}. Try again strictly.`
     parsed = await callLlm(nudge)
-    validation = validateRagResponse(parsed, chunkIds)
+    validation = validateRagResponse(parsed, chunks)
 
     if (!validation.ok) {
       logger.error({ errors: validation.errors, schemeCode: scheme_code }, 'rag: retry also failed validation')
@@ -135,10 +139,38 @@ export async function explainFund(
     }
   }
 
+  // 4. Compute freshness and append footer
+  const dates = chunks.map(c => new Date(c.factsheetDate).getTime()).filter(t => !isNaN(t))
+  let freshness: import('../contracts/refusal-types').FreshnessMetadata | undefined = undefined
+  
+  if (dates.length > 0 && !(parsed as any).refused) {
+    const oldestTime = Math.min(...dates)
+    const oldestChunkDate = new Date(oldestTime)
+    const ageInDays = Math.floor((Date.now() - oldestTime) / 86400000)
+    let staleness: 'fresh' | 'aging' | 'stale' | 'critical' = 'fresh'
+    if (ageInDays > 180) staleness = 'critical'
+    else if (ageInDays > 90) staleness = 'stale'
+    else if (ageInDays > 30) staleness = 'aging'
+    else staleness = 'fresh'
+
+    freshness = { oldestChunkDate, ageInDays, staleness }
+    const dateStr = oldestChunkDate.toISOString().split('T')[0]
+    
+    if (ageInDays <= 30) {
+      (parsed as any).answer += `\n\n_Data sourced from factsheet dated ${dateStr}. Up to date._`
+    } else if (ageInDays <= 90) {
+      (parsed as any).answer += `\n\n_Data sourced from factsheet dated ${dateStr} (${ageInDays} days ago). Verify current figures at the AMC website._`
+    } else {
+      (parsed as any).answer += `\n\n⚠️ _Data sourced from factsheet dated ${dateStr} (${ageInDays} days ago). This may be significantly outdated. Check the AMC website for current data._`
+    }
+  }
+
   return formatResponse(
     parsed as { answer: string; citations: Citation[]; refused: boolean; refusal_reason: string | null },
     chunks,
     scheme.schemeName,
     scheme_code,
+    freshness,
+    validation.warnings
   )
 }

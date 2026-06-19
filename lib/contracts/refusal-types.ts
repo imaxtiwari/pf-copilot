@@ -10,6 +10,12 @@ export type Citation = {
   section: string
 }
 
+export type FreshnessMetadata = {
+  oldestChunkDate: Date
+  ageInDays: number
+  staleness: 'fresh' | 'aging' | 'stale' | 'critical'
+}
+
 export type RagResponseFormatted = {
   answer: string
   citations: Citation[]
@@ -18,4 +24,6 @@ export type RagResponseFormatted = {
   scheme_code?: string
   scheme_name?: string
   chunks_retrieved?: number
+  freshness?: FreshnessMetadata
+  validation_warnings?: string[]
 }

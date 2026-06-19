@@ -9,7 +9,8 @@ const LEGAL_TRANSITIONS: Record<PipelineStage, PipelineStage[]> = {
   PROFILING_AND_GOAL_ASSESSMENT: ['SOMA_FUND_UNIVERSE', 'REVISION', 'FAILED'],
   SOMA_FUND_UNIVERSE: ['VIKRAM_STRATEGY', 'FAILED'],
   VIKRAM_STRATEGY: ['KIRAN_HEDGE_MAP', 'FAILED'],
-  KIRAN_HEDGE_MAP: ['PRIYA_BUILD', 'FAILED'],
+  KIRAN_HEDGE_MAP: ['ARIA_PREFLIGHT', 'FAILED'],
+  ARIA_PREFLIGHT: ['PRIYA_BUILD', 'FAILED'],
   PRIYA_BUILD: ['DELIBERATION', 'FAILED'],
   DELIBERATION: ['COMMITTEE_VOTE', 'FAILED'],
   COMMITTEE_VOTE: ['APPROVED', 'REVISION', 'DEADLOCKED', 'FAILED'],
@@ -89,5 +90,41 @@ export class PipelineStateMachine {
         message: `Pipeline run transitioned from ${from} to ${to}`
       }
     })
+  }
+
+  async checkConvergence(pipelineRunId: string): Promise<boolean> {
+    try {
+      const drafts = await this.db.select()
+        .from(schema.portfolioDrafts)
+        .where(eq(schema.portfolioDrafts.pipelineRunId, pipelineRunId))
+      
+      drafts.sort((a: any, b: any) => a.version - b.version)
+      
+      if (drafts.length < 2) return false
+
+      const previous = drafts[drafts.length - 2]
+      const current = drafts[drafts.length - 1]
+
+      const prevConf = parseFloat(previous.confidenceScore)
+      const currConf = parseFloat(current.confidenceScore)
+
+      if (currConf < prevConf) {
+        auditTrail.log({
+          pipeline_run_id: pipelineRunId,
+          agent_id: 'SYSTEM',
+          action_type: AuditActionType.CONFIDENCE_DIVERGING,
+          payload: { type: 'CONFIDENCE_DIVERGING', cycle: current.version, delta: currConf - prevConf }
+        })
+
+        if (current.version >= 3) {
+          logger.warn({ pipelineRunId }, 'Pipeline is thrashing — escalating to DHRUV for early deadlock consideration')
+          return true
+        }
+      }
+      return false
+    } catch (err) {
+      logger.error({ err, pipelineRunId }, 'Failed to check convergence')
+      return false
+    }
   }
 }
