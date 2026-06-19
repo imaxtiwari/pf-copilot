@@ -12,13 +12,20 @@ import { WebResearchTool } from '@/lib/research/web-research-tool'
 import logger from '@/lib/logger'
 import { Vikram } from '@/lib/agents/vikram'
 
-import { StructuredInterviewAnswersSchema } from '@/lib/agents/types/vikram-types'
+import { StructuredInterviewAnswersSchema, EssentialAnswersSchema } from '@/lib/agents/types/vikram-types'
 
 const InterviewSchema = z.union([
   // Structured mode: client sends pre-validated structured object
   z.object({ mode: z.literal('structured'), answers: StructuredInterviewAnswersSchema }),
   // Legacy mode: freeform key-value (backward compatible, triggers LLM extraction)
   z.object({ mode: z.literal('freeform').optional(), answers: z.record(z.string(), z.string()) }),
+  // Hypothesis mode
+  z.object({
+    mode: z.literal('hypothesis'),
+    essential_answers: EssentialAnswersSchema,
+    corrections: z.array(z.string()).optional(),
+    finalize: z.boolean().optional()
+  }),
 ])
 
 export async function POST(
@@ -108,8 +115,31 @@ export async function POST(
       version: 1
     }
 
-    let providedAnswers: { monthly_income_lakh: number; monthly_expenses_lakh?: number; stated_goals: string[]; answers: Record<string, string>; goals_data: any[] }
-    if (parsed.data.mode === 'structured') {
+    let providedAnswers: any
+    let isHypothesisMode = false
+
+    if (parsed.data.mode === 'hypothesis') {
+      isHypothesisMode = true
+      const finalize = parsed.data.finalize ?? false
+      const vikram = new Vikram(deliberationRoom, agentMemoryStore, new WebResearchTool('VIKRAM', agentMemoryStore, deliberationRoom), db)
+      
+      if (!finalize) {
+        const hypothesis = await vikram.generateHypothesis(parsed.data.essential_answers, clientData, runId)
+        return NextResponse.json({
+          pipeline_run_id: runId,
+          status: 'HYPOTHESIS_GENERATED',
+          hypothesis
+        })
+      }
+
+      const assessment = await vikram.runHypothesisInterview({
+        userId,
+        clientData,
+        essentialAnswers: parsed.data.essential_answers,
+        userCorrections: parsed.data.corrections,
+      }, runId)
+      providedAnswers = { goalAssessment: assessment }
+    } else if (parsed.data.mode === 'structured') {
       const sa = parsed.data.answers  // StructuredInterviewAnswers
       providedAnswers = {
         monthly_income_lakh: sa.monthly_income_lakh,
@@ -137,7 +167,7 @@ export async function POST(
     const dhruv = new Dhruv(deliberationRoom, agentMemoryStore, dhruvResearchTool, db)
 
     // Trigger Phase 2 in the background (Goal Assessment -> Portfolio Build -> Voting -> End)
-    dhruv.runPhase2(runId, userId, clientData, providedAnswers).catch((err) => {
+    dhruv.runPhase2(runId, userId, clientData, providedAnswers, isHypothesisMode).catch((err) => {
       logger.error({ err, runId }, 'API-INTERVIEW: Background runPhase2 failed')
     })
 
@@ -154,3 +184,68 @@ export async function POST(
     )
   }
 }
+
+export async function GET(
+  req: NextRequest,
+  context: { params: any }
+) {
+  try {
+    const { userId } = await resolveOrCreateUserId()
+    const params = await context.params
+    const runId = params.runId
+
+    if (!runId) {
+      return NextResponse.json(
+        { error: 'Missing run ID', code: 'VALIDATION_ERROR' },
+        { status: 400 }
+      )
+    }
+
+    const [run] = await db
+      .select()
+      .from(schema.pipelineRuns)
+      .where(eq(schema.pipelineRuns.runId, runId))
+      .limit(1)
+
+    if (!run) {
+      return NextResponse.json(
+        { error: 'Pipeline run not found', code: 'NOT_FOUND' },
+        { status: 404 }
+      )
+    }
+
+    if (run.clientId !== userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized access to this pipeline run', code: 'FORBIDDEN' },
+        { status: 403 }
+      )
+    }
+
+    const memoryKey = `VIKRAM:goal_hypothesis:${userId}:${runId}`
+    let hypothesis = null
+
+    try {
+      const recalled = await agentMemoryStore.recall('VIKRAM', memoryKey, {
+        limit: 1,
+        pipeline_run_id: runId
+      })
+      if (recalled.length > 0) {
+        hypothesis = JSON.parse(recalled[0].content)
+      }
+    } catch (err) {
+      logger.warn({ err, runId }, 'API-INTERVIEW: Failed to recall hypothesis from memory')
+    }
+
+    return NextResponse.json({
+      hypothesis,
+      stage: run.status
+    })
+  } catch (err) {
+    logger.error({ err }, 'API-INTERVIEW: Failed to fetch interview hypothesis')
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Internal server error', code: 'INTERNAL_ERROR' },
+      { status: 500 }
+    )
+  }
+}
+

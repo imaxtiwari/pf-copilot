@@ -7,26 +7,40 @@ import {
   ClientGoalAssessmentSchema,
   StrategyFramework,
   StrategyFrameworkSchema,
+  EssentialAnswers,
+  GoalHypothesis,
+  GoalHypothesisSchema,
+  UserCorrection,
+  EssentialQuestion,
+  HypothesisInterviewContext,
 } from './types/vikram-types'
 import { ClientRiskProfile } from './types/kiran-types'
 import { PortfolioDraft } from './types/priya-types'
 import { WebResearchTool } from '../research/web-research-tool'
 import { AgentMemoryStore, makePipelineKey } from '../memory/memory-store'
 import { DeliberationRoom } from '../deliberation/deliberation-room'
-import { getGpt4oMini } from '../azure-openai'
+import { getGpt4o, getGpt4oMini } from '../azure-openai'
 import { LifeEvent, MAJOR_LIFE_EVENTS } from './types/life-event-types'
+import { VIKRAM_HYPOTHESIS_PROMPT } from '../prompts/vikram-hypothesis'
 import logger from '../logger'
 
 const VIKRAM_SYSTEM_PROMPT = `You are VIKRAM (Visionary Intelligence for Kinetic Return & Asset Management), the Market Strategist in a multi-agent portfolio intelligence system for Indian investors.
 
 YOUR ROLE: Deeply understand how markets work at every level. Interview the client to understand their goals. Then reason thoroughly about whether those goals are actually achievable. If not, produce a revised, achievable plan. Go online to continuously learn every strategy and framework ever written on how to approach fund selection and long-term financial planning.
 
-YOUR GOAL ASSESSMENT PROTOCOL (mandatory, sequential):
-Step 1 — Client Interview: Ask the client a structured set of questions (minimum 15, maximum 25 questions). These must be contextualised based on the client's age, income tier, and life stage from KIRAN's ClientRiskProfile. Never ask duplicate questions or questions whose answers are already in the risk profile.
-Step 2 — Goal Decomposition: Break every stated goal into: goal type, target corpus, target date, current corpus, required monthly SIP equivalent, required CAGR assumption, inflation-adjusted target.
-Step 3 — Achievability Assessment: Run a structured test checking if required CAGR is realistic, if monthly SIP is realistic given income, if goal sequence has conflicts, and if there are structural contradictions.
-Step 4 — Revised Plan: If goals are not achievable, produce a revised goal set with explicit reasoning.
-Step 5 — Strategy Framework Selection: Select the most appropriate frameworks (core-satellite, bucket strategy, liability-matching, barbell, etc.) for this client. Cite sources and explain why they apply.
+YOUR GOAL ASSESSMENT PROTOCOLS:
+1. Hypothesis-First Interview (Default):
+   - Phase 1: Ask 5 essential questions (Age, monthly take-home, biggest goal, timeline, risk reaction).
+   - Phase 2: Generate a complete GoalHypothesis making explicit, demographic-anchored spending and financial assumptions (rent, dependents, required CAGR, required SIP).
+   - Phase 3: Present the hypothesis to the user to edit or provide free-text corrections. Merge corrections into a final assessment.
+2. Detailed Sequential Interview (Fallback):
+   - Ask 15–25 contextual questions step-by-step.
+   - Decompose and assess goals after the detailed questionnaire.
+
+Goal Decomposition & Achievability Assessment:
+- Break every goal into: type, target corpus, target date, current corpus, monthly SIP, required CAGR, and inflation-adjusted target.
+- Assess CAGR feasibility (Achievable <=12%, Aggressive 12-18%, Unrealistic >18%) and monthly cash flow.
+- Choose strategy framework (core-satellite, bucket strategy, liability-matching, barbell, etc.) based on risk profile and horizon.
 
 WHAT YOU MUST NEVER DO:
 - Do not select specific fund names without consulting SOMA's FundProfile data.
@@ -52,6 +66,13 @@ export class Vikram {
   }
 
   async conductClientInterview(
+    clientData: any,
+    pipelineRunId: string
+  ): Promise<string[]> {
+    return this.runDetailedInterview(clientData, pipelineRunId)
+  }
+
+  async runDetailedInterview(
     clientData: any,
     pipelineRunId: string
   ): Promise<string[]> {
@@ -237,6 +258,9 @@ ${conflicts.join('\n')}
       revised_plan: revisedPlan,
       goal_sequence_conflicts: conflicts,
       sources: [{ url: 'https://sebi.gov.in', retrieved_at: assessedAt }],
+      hypothesis_mode: false,
+      user_corrections: [],
+      correction_rounds: 0
     }
 
     const validated = ClientGoalAssessmentSchema.parse(assessment)
@@ -271,6 +295,306 @@ ${conflicts.join('\n')}
 
     return validated
   }
+
+  async askEssentialQuestions(): Promise<EssentialQuestion[]> {
+    return [
+      {
+        id: 'age',
+        text: 'What is your age?',
+        type: 'number'
+      },
+      {
+        id: 'monthly_take_home_lakh',
+        text: 'What is your monthly take-home income (in lakhs)?',
+        type: 'number'
+      },
+      {
+        id: 'biggest_goal',
+        text: 'What is your biggest financial goal? (Describe in one sentence)',
+        type: 'text'
+      },
+      {
+        id: 'goal_timeline_years',
+        text: 'What is your target timeline for that goal (in years)?',
+        type: 'number'
+      },
+      {
+        id: 'risk_reaction',
+        text: 'How would you feel if your portfolio dropped 20% in a year?',
+        type: 'choice',
+        options: [
+          'A - Panic and sell',
+          'B - Worried but hold',
+          'C - Buy more'
+        ]
+      }
+    ]
+  }
+
+  async generateHypothesis(
+    answers: EssentialAnswers,
+    clientData: any,
+    pipelineRunId: string
+  ): Promise<GoalHypothesis> {
+    logger.info({ pipelineRunId }, 'VIKRAM: generateHypothesis invoked')
+
+    const gpt = getGpt4o()
+    const prompt = `
+Stated demographic info from client profile:
+${JSON.stringify(clientData, null, 2)}
+
+Answers to 5 essential questions:
+- Age: ${answers.age}
+- Monthly take-home (Lakhs): ${answers.monthly_take_home_lakh}
+- Biggest Goal: "${answers.biggest_goal}"
+- Goal Timeline (Years): ${answers.goal_timeline_years}
+- Risk Reaction Option: ${answers.risk_reaction}
+
+Generate a GoalHypothesis JSON object following the prompt instructions.
+`
+
+    const response = await gpt.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: VIKRAM_HYPOTHESIS_PROMPT },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.2,
+    })
+
+    const rawText = response.choices[0]?.message?.content?.trim() || ''
+    const cleanJson = rawText.replace(/^```json/, '').replace(/```$/, '').trim()
+    
+    let hypothesisData: any
+    try {
+      hypothesisData = JSON.parse(cleanJson)
+    } catch (e) {
+      logger.error({ rawText, err: e }, 'VIKRAM: Failed to parse hypothesis JSON')
+      throw new Error('VIKRAM: Goal hypothesis is not valid JSON')
+    }
+
+    if (!hypothesisData.hypothesis_id) {
+      hypothesisData.hypothesis_id = randomUUID()
+    }
+    if (!hypothesisData.generated_at) {
+      hypothesisData.generated_at = new Date().toISOString()
+    }
+
+    const validated = GoalHypothesisSchema.parse(hypothesisData)
+
+    await this.deliberationRoom.publish({
+      pipeline_run_id: pipelineRunId,
+      sender: 'VIKRAM',
+      message_type: 'STRATEGY_PROPOSAL',
+      recipient: 'ALL',
+      payload: {
+        strategy_name: 'GOAL_HYPOTHESIS',
+        rationale: `VIKRAM: Generated initial goal hypothesis. Risk: ${validated.risk_profile}, Strategy: ${validated.strategy_framework}. Target corpus: ${validated.corpus_target_lakh}L.`,
+        target_allocation: validated.risk_profile === 'AGGRESSIVE' ? { equity: 80, debt: 15, gold: 5 } : (validated.risk_profile === 'CONSERVATIVE' ? { equity: 30, debt: 60, gold: 10 } : { equity: 60, debt: 30, gold: 10 }),
+        risk_level: validated.risk_profile,
+        expected_return_band: [10, 15],
+      },
+      references: []
+    })
+
+    const userId = clientData.userId || clientData.client_id || 'anonymous'
+    const memoryKey = `VIKRAM:goal_hypothesis:${userId}:${pipelineRunId}`
+    await this.memoryStore.write('VIKRAM', {
+      content: JSON.stringify(validated),
+      memory_type: 'VIKRAM_GOAL_HYPOTHESIS',
+      source_url: 'Internal',
+      confidence_tier: 'ASSUMED',
+      tags: [memoryKey],
+      pipeline_run_id: pipelineRunId
+    })
+
+    return validated
+  }
+
+  async applyCorrections(
+    hypothesis: GoalHypothesis,
+    corrections: string[] | UserCorrection[],
+    pipelineRunId: string
+  ): Promise<GoalHypothesis> {
+    logger.info({ pipelineRunId, count: corrections.length }, 'VIKRAM: applyCorrections invoked')
+
+    const gpt = getGpt4oMini()
+    const prompt = `
+You are VIKRAM, the Market Strategist.
+We have an existing financial GoalHypothesis and some user corrections.
+Your task is to merge the corrections into the hypothesis and return the updated hypothesis JSON object.
+
+Existing Hypothesis:
+${JSON.stringify(hypothesis, null, 2)}
+
+User Corrections:
+${JSON.stringify(corrections, null, 2)}
+
+Instructions:
+1. Update any corresponding fields in the hypothesis (e.g. corpus_target_lakh, risk_profile, etc.) based on the user corrections.
+2. In the "assumptions" array, update the values and reasoning if the user corrected an assumption.
+3. Keep the "hypothesis_id" unchanged.
+4. Recalculate any dependent fields:
+   - Monthly SIP required: if they changed the target corpus, timeline, or monthly savings, adjust the required monthly SIP or CAGR.
+   - If they updated rent or other assumed expenses, recalculate current_monthly_savings_lakh.
+   - CAGR feasibility should reflect the required CAGR:
+     - <=12% -> ACHIEVABLE
+     - 12-18% -> AGGRESSIVE
+     - >18% -> UNREALISTIC
+5. Update confidence score based on corrections if needed (e.g., if many things were corrected, adjust it).
+
+Return ONLY the updated GoalHypothesis JSON object. Do not include markdown code block formatting or backticks.
+`
+
+    const response = await gpt.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You merge user corrections into a financial GoalHypothesis. Output only valid JSON matching the GoalHypothesis schema.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.1,
+    })
+
+    const rawText = response.choices[0]?.message?.content?.trim() || ''
+    const cleanJson = rawText.replace(/^```json/, '').replace(/```$/, '').trim()
+    
+    let updatedData: any
+    try {
+      updatedData = JSON.parse(cleanJson)
+    } catch (e) {
+      logger.error({ rawText, err: e }, 'VIKRAM: Failed to parse updated hypothesis JSON')
+      throw new Error('VIKRAM: Updated goal hypothesis is not valid JSON')
+    }
+
+    updatedData.hypothesis_id = hypothesis.hypothesis_id
+    updatedData.generated_at = new Date().toISOString()
+
+    const validated = GoalHypothesisSchema.parse(updatedData)
+    return validated
+  }
+
+  private hypothesisToAssessment(
+    hypothesis: GoalHypothesis,
+    clientId: string,
+    version: number
+  ): ClientGoalAssessment {
+    const now = new Date()
+    const assessedAt = now.toISOString()
+    const expiresAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString()
+
+    let achievabilityVerdict: 'ACHIEVABLE' | 'REVISED' | 'IMPOSSIBLE' = 'ACHIEVABLE'
+    if (hypothesis.cagr_feasibility === 'UNREALISTIC') {
+      achievabilityVerdict = 'IMPOSSIBLE'
+    } else if (hypothesis.cagr_feasibility === 'AGGRESSIVE') {
+      achievabilityVerdict = 'REVISED'
+    }
+
+    const decomposedGoal = {
+      goal_id: randomUUID(),
+      goal_type: 'WEALTH_CREATION' as const,
+      description: hypothesis.goal_description,
+      target_corpus_lakh: hypothesis.corpus_target_lakh,
+      target_date: new Date(hypothesis.corpus_target_year, 11, 31).toISOString(),
+      current_corpus_lakh: 0,
+      monthly_sip_required_lakh: hypothesis.monthly_sip_required_lakh,
+      required_cagr_pct: hypothesis.required_cagr_pct,
+      inflation_adjusted_target_lakh: hypothesis.corpus_target_lakh,
+      inflation_rate_used_pct: 6.0
+    }
+
+    const conflicts: string[] = []
+    if (hypothesis.cagr_feasibility === 'UNREALISTIC') {
+      conflicts.push(`Required CAGR of ${hypothesis.required_cagr_pct}% is unrealistic for mutual funds.`)
+    }
+
+    return {
+      assessment_id: randomUUID(),
+      client_id: clientId,
+      version: version,
+      assessed_at: assessedAt,
+      expires_at: expiresAt,
+      stated_goals: [hypothesis.goal_description],
+      decomposed_goals: [decomposedGoal],
+      achievability_verdict: achievabilityVerdict,
+      revised_plan: achievabilityVerdict !== 'ACHIEVABLE' ? 'Revised targets recommended.' : undefined,
+      goal_sequence_conflicts: conflicts,
+      sources: [{ url: 'https://sebi.gov.in', retrieved_at: assessedAt }],
+      hypothesis_mode: true,
+      user_corrections: [],
+      correction_rounds: 0
+    }
+  }
+
+  async runHypothesisInterview(
+    context: HypothesisInterviewContext,
+    pipelineRunId: string
+  ): Promise<ClientGoalAssessment> {
+    logger.info({ pipelineRunId }, 'VIKRAM: runHypothesisInterview invoked')
+
+    const clientId = context.userId
+    const userId = context.userId
+
+    const memoryKey = `VIKRAM:goal_hypothesis:${userId}:${pipelineRunId}`
+    let hypothesis: GoalHypothesis
+
+    try {
+      const recalled = await this.memoryStore.recall('VIKRAM', memoryKey, {
+        limit: 1,
+        pipeline_run_id: pipelineRunId
+      })
+      if (recalled.length > 0) {
+        hypothesis = JSON.parse(recalled[0].content)
+        logger.info('VIKRAM: recalled existing goal hypothesis')
+      } else {
+        hypothesis = await this.generateHypothesis(context.essentialAnswers, context.clientData, pipelineRunId)
+      }
+    } catch (err) {
+      logger.warn({ err }, 'VIKRAM: error recalling hypothesis, generating new one')
+      hypothesis = await this.generateHypothesis(context.essentialAnswers, context.clientData, pipelineRunId)
+    }
+
+    let userCorrectionsLog: string[] = []
+    let correctionRounds = 0
+
+    if (context.userCorrections && context.userCorrections.length > 0) {
+      logger.info({ corrections: context.userCorrections }, 'VIKRAM: applying corrections to hypothesis')
+      hypothesis = await this.applyCorrections(hypothesis, context.userCorrections, pipelineRunId)
+      
+      await this.memoryStore.write('VIKRAM', {
+        content: JSON.stringify(hypothesis),
+        memory_type: 'VIKRAM_GOAL_HYPOTHESIS',
+        source_url: 'Internal',
+        confidence_tier: 'ASSUMED',
+        tags: [memoryKey],
+        pipeline_run_id: pipelineRunId
+      })
+
+      userCorrectionsLog = context.userCorrections
+      correctionRounds = 1
+    }
+
+    const assessment = this.hypothesisToAssessment(hypothesis, clientId, 1)
+    assessment.hypothesis_mode = true
+    assessment.user_corrections = userCorrectionsLog
+    assessment.correction_rounds = correctionRounds
+
+    const validated = ClientGoalAssessmentSchema.parse(assessment)
+
+    await this.memoryStore.write('VIKRAM', {
+      content: JSON.stringify(validated),
+      memory_type: 'VIKRAM_CLIENT_GOAL_ASSESSMENT',
+      source_url: 'Internal',
+      confidence_tier: 'VERIFIED',
+      tags: [
+        makePipelineKey('VIKRAM', 'client_goal_assessment', validated.client_id, pipelineRunId),
+        makePipelineKey('VIKRAM', 'goal_decomposition', validated.client_id, pipelineRunId)
+      ],
+      pipeline_run_id: pipelineRunId
+    })
+
+    return validated
+  }
+
 
   async selectStrategyFramework(
     assessment: ClientGoalAssessment,

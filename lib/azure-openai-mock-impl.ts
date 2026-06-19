@@ -221,9 +221,73 @@ export function mockChatCompletion(model: string, messages: any[]): string {
     return "Mock final portfolio recommendation executive summary."
   }
 
-  // 11. Simple OK response
-  if (lastUserMessage.includes('respond with OK')) {
-    return "OK"
+  // 12. Vikram Hypothesis-First flow
+  if (lastUserMessage.includes('GoalHypothesis') || lastUserMessage.includes('VIKRAM_HYPOTHESIS_PROMPT')) {
+    return JSON.stringify({
+      hypothesis_id: "00000000-0000-4000-8000-000000000003",
+      generated_at: new Date().toISOString(),
+      corpus_target_lakh: 100,
+      corpus_target_year: 2036,
+      goal_description: "Accumulate wealth for standard requirements.",
+      monthly_sip_required_lakh: 0.5,
+      current_monthly_savings_lakh: 0.3,
+      required_cagr_pct: 12.0,
+      cagr_feasibility: "ACHIEVABLE",
+      assumed_expenses: {
+        rent_lakh: 0.25,
+        city_tier: "Tier-1",
+        dependents: "none assumed — typical for this age/income profile"
+      },
+      risk_profile: "MODERATE",
+      strategy_framework: "core-satellite",
+      assumptions: [
+        {
+          field: "Monthly Rent",
+          value: "₹25,000/month",
+          reasoning: "Typical rent for a Tier-1 city."
+        },
+        {
+          field: "Dependents",
+          value: "None",
+          reasoning: "Assumed single without dependents."
+        }
+      ],
+      confidence: 80
+    })
+  }
+
+  if (lastUserMessage.includes('merge corrections into the hypothesis') || lastUserMessage.includes('UserCorrectionSchema')) {
+    return JSON.stringify({
+      hypothesis_id: "00000000-0000-4000-8000-000000000003",
+      generated_at: new Date().toISOString(),
+      corpus_target_lakh: 100,
+      corpus_target_year: 2036,
+      goal_description: "Accumulate wealth for standard requirements.",
+      monthly_sip_required_lakh: 0.5,
+      current_monthly_savings_lakh: 0.3,
+      required_cagr_pct: 12.0,
+      cagr_feasibility: "ACHIEVABLE",
+      assumed_expenses: {
+        rent_lakh: 0.15,
+        city_tier: "Tier-1",
+        dependents: "none assumed — typical for this age/income profile"
+      },
+      risk_profile: "MODERATE",
+      strategy_framework: "core-satellite",
+      assumptions: [
+        {
+          field: "Monthly Rent",
+          value: "₹15,000/month",
+          reasoning: "Updated rent by user correction."
+        },
+        {
+          field: "Dependents",
+          value: "None",
+          reasoning: "Assumed single without dependents."
+        }
+      ],
+      confidence: 80
+    })
   }
 
   return '{}'

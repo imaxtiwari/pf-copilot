@@ -288,7 +288,8 @@ export class Dhruv {
   async runPhase1(
     pipelineRunId: string,
     clientId: string,
-    clientData: any
+    clientData: any,
+    hypothesisMode: boolean = true
   ): Promise<void> {
     logger.info({ pipelineRunId }, 'DHRUV: runPhase1 started')
     const kiran = new Kiran(this.deliberationRoom, this.memoryStore, new WebResearchTool('KIRAN', this.memoryStore, this.deliberationRoom), this.db)
@@ -312,7 +313,9 @@ export class Dhruv {
           },
           pipelineRunId
         ),
-        vikram.conductClientInterview(clientData, pipelineRunId)
+        hypothesisMode
+          ? vikram.askEssentialQuestions()
+          : vikram.conductClientInterview(clientData, pipelineRunId)
       ])
 
       await this.db
@@ -320,7 +323,8 @@ export class Dhruv {
         .set({
           payload: {
             kiran_risk_profile: riskProfile,
-            vikram_interview_questions: interviewQuestions
+            vikram_interview_questions: interviewQuestions,
+            hypothesis_mode: hypothesisMode
           }
         })
         .where(eq(schema.pipelineRuns.runId, pipelineRunId))
@@ -340,7 +344,8 @@ export class Dhruv {
     pipelineRunId: string,
     clientId: string,
     clientData: any,
-    providedAnswers: any
+    providedAnswers: any,
+    hypothesisMode: boolean = false
   ): Promise<void> {
     logger.info({ pipelineRunId }, 'DHRUV: runPhase2 started')
 
@@ -370,8 +375,6 @@ export class Dhruv {
     const soma = new Soma(this.deliberationRoom, this.memoryStore, new WebResearchTool('SOMA', this.memoryStore, this.deliberationRoom), this.db)
     const priya = new Priya(this.deliberationRoom, this.memoryStore, new WebResearchTool('PRIYA', this.memoryStore, this.deliberationRoom), this.db)
 
-
-
     try {
       if (!riskProfile) {
         logger.warn({ pipelineRunId }, 'DHRUV: Phase 1 risk profile not found in payload — rebuilding')
@@ -393,17 +396,22 @@ export class Dhruv {
       }
 
       // 3. VIKRAM Goal Assessment
-      let goalAssessment = await vikram.assessGoals(clientId, 1, providedAnswers, pipelineRunId)
-
-      // 4. ARIA Critique Goal Plan
-      let goalCritique = await aria.critiqueGoalPlan(goalAssessment, pipelineRunId)
-      let revisionCyclesGoal = 0
-      while (goalCritique.faults.some(f => f.severity === 'CRITICAL') && revisionCyclesGoal < 2) {
-        logger.info('DHRUV: Vikram goal plan has CRITICAL faults. Triggering Vikram goal revision.')
-        providedAnswers.goals_data[0].target_corpus_lakh = providedAnswers.goals_data[0].target_corpus_lakh * 0.9
+      let goalAssessment: ClientGoalAssessment
+      if (hypothesisMode && providedAnswers.goalAssessment) {
+        goalAssessment = providedAnswers.goalAssessment
+      } else {
         goalAssessment = await vikram.assessGoals(clientId, 1, providedAnswers, pipelineRunId)
-        goalCritique = await aria.critiqueGoalPlan(goalAssessment, pipelineRunId)
-        revisionCyclesGoal++
+
+        // 4. ARIA Critique Goal Plan
+        let goalCritique = await aria.critiqueGoalPlan(goalAssessment, pipelineRunId)
+        let revisionCyclesGoal = 0
+        while (goalCritique.faults.some(f => f.severity === 'CRITICAL') && revisionCyclesGoal < 2) {
+          logger.info('DHRUV: Vikram goal plan has CRITICAL faults. Triggering Vikram goal revision.')
+          providedAnswers.goals_data[0].target_corpus_lakh = providedAnswers.goals_data[0].target_corpus_lakh * 0.9
+          goalAssessment = await vikram.assessGoals(clientId, 1, providedAnswers, pipelineRunId)
+          goalCritique = await aria.critiqueGoalPlan(goalAssessment, pipelineRunId)
+          revisionCyclesGoal++
+        }
       }
 
       // 5. SOMA Fund Universe

@@ -127,6 +127,38 @@ CRITICAL: Do NOT include investment advice. Focus on agent reasoning patterns, n
       })
     }
 
+    // C2. Hypothesis Accuracy meta-learning
+    try {
+      if (result && result.data) {
+        const data = result.data as any
+        const goalAssessment = data.client_goal_summary
+        if (goalAssessment && goalAssessment.hypothesis_mode) {
+          const userId = run ? run.clientId : 'UNKNOWN_CLIENT'
+          const memoryKey = `VIKRAM:goal_hypothesis:${userId}:${pipelineRunId}`
+          const recalled = await this.memoryStore.recall('VIKRAM', memoryKey, {
+            limit: 1,
+            pipeline_run_id: pipelineRunId
+          })
+          if (recalled.length > 0) {
+            const hypothesis = JSON.parse(recalled[0].content)
+            const totalAssumptions = hypothesis.assumptions ? hypothesis.assumptions.length : 1
+            const correctionsCount = goalAssessment.user_corrections ? goalAssessment.user_corrections.length : 0
+            const accuracyPct = Math.max(0, Math.round(((totalAssumptions - correctionsCount) / totalAssumptions) * 100))
+
+            await knowledgeCommons.contribute('VIKRAM', {
+              summary: `Hypothesis accuracy: ${accuracyPct}% of assumptions were accepted without correction`,
+              source_urls: [`internal://pipeline-run/${pipelineRunId}`],
+              tags: ['hypothesis_accuracy', 'mentor_analysis', 'vikram_hypothesis'],
+              agent: 'VIKRAM'
+            })
+            logger.info({ pipelineRunId, accuracyPct }, 'MENTOR: logged hypothesis accuracy learning')
+          }
+        }
+      }
+    } catch (mentorErr) {
+      logger.warn({ mentorErr, pipelineRunId }, 'MENTOR: Failed to log hypothesis accuracy learning')
+    }
+
     // D. Log to audit trail
     auditTrail.log({
       pipeline_run_id: pipelineRunId,

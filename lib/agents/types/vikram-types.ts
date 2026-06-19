@@ -1,5 +1,52 @@
 import { z } from 'zod'
 
+// ── Hypothesis-first interview types ──────────────────────────────────────────
+
+export const EssentialAnswersSchema = z.object({
+  age: z.number().int().positive(),
+  monthly_take_home_lakh: z.number().positive(),
+  biggest_goal: z.string().min(5).max(300),
+  goal_timeline_years: z.number().int().positive(),
+  risk_reaction: z.enum(['A', 'B', 'C']), // A=Panic sell, B=Hold, C=Buy more
+})
+export type EssentialAnswers = z.infer<typeof EssentialAnswersSchema>
+
+export const GoalHypothesisAssumptionSchema = z.object({
+  field: z.string(),
+  value: z.string(),
+  reasoning: z.string(),
+})
+
+export const GoalHypothesisSchema = z.object({
+  hypothesis_id: z.string().uuid(),
+  generated_at: z.string(),
+  corpus_target_lakh: z.number().positive(),
+  corpus_target_year: z.number().int().positive(),
+  goal_description: z.string(),
+  monthly_sip_required_lakh: z.number().nonnegative(),
+  current_monthly_savings_lakh: z.number().nonnegative(),
+  required_cagr_pct: z.number(),
+  cagr_feasibility: z.enum(['ACHIEVABLE', 'AGGRESSIVE', 'UNREALISTIC']),
+  assumed_expenses: z.object({
+    rent_lakh: z.number().nonnegative(),
+    city_tier: z.string(),
+    dependents: z.string(),
+  }),
+  risk_profile: z.enum(['CONSERVATIVE', 'MODERATE', 'AGGRESSIVE']),
+  strategy_framework: z.string(),
+  assumptions: z.array(GoalHypothesisAssumptionSchema),
+  confidence: z.number().min(0).max(100),
+})
+export type GoalHypothesis = z.infer<typeof GoalHypothesisSchema>
+
+export const UserCorrectionSchema = z.object({
+  field: z.string(),
+  old_value: z.string(),
+  new_value: z.string(),
+})
+export type UserCorrection = z.infer<typeof UserCorrectionSchema>
+
+// ── Core goal types ────────────────────────────────────────────────────────────
 export const DecomposedGoalSchema = z.object({
   goal_id: z.string().uuid(),
   goal_type: z.enum([
@@ -40,6 +87,10 @@ export const ClientGoalAssessmentSchema = z.object({
       retrieved_at: z.string(),
     })
   ),
+  // Hypothesis-first interview metadata
+  hypothesis_mode: z.boolean().optional().default(false),
+  user_corrections: z.array(z.string()).optional().default([]),
+  correction_rounds: z.number().int().nonnegative().optional().default(0),
 })
 
 export type ClientGoalAssessment = z.infer<typeof ClientGoalAssessmentSchema>
@@ -103,3 +154,19 @@ export const StructuredInterviewAnswersSchema = z.object({
 })
 
 export type StructuredInterviewAnswers = z.infer<typeof StructuredInterviewAnswersSchema>
+
+export interface EssentialQuestion {
+  id: string
+  text: string
+  type: 'text' | 'number' | 'choice'
+  options?: string[]
+}
+
+export interface HypothesisInterviewContext {
+  userId: string
+  clientData: any
+  essentialAnswers: EssentialAnswers
+  userCorrections?: string[]
+}
+
+
