@@ -231,6 +231,9 @@ describe('Step 13 Integration Smoke Tests', () => {
       await dbInstance.delete(schema.pipelineResults).where(inArray(schema.pipelineResults.pipelineRunId, runIds))
       await dbInstance.delete(schema.committeeVotes).where(inArray(schema.committeeVotes.pipelineRunId, runIds))
       await dbInstance.delete(schema.portfolioDrafts).where(inArray(schema.portfolioDrafts.pipelineRunId, runIds))
+      await dbInstance.delete(schema.complianceReports).where(inArray(schema.complianceReports.pipelineRunId, runIds))
+      await dbInstance.delete(schema.comparisonReports).where(inArray(schema.comparisonReports.pipelineRunId, runIds))
+      await dbInstance.delete(schema.behavioralFingerprints).where(inArray(schema.behavioralFingerprints.pipelineRunId, runIds))
     }
 
     await dbInstance.delete(schema.pipelineRuns).where(eq(schema.pipelineRuns.clientId, clientId))

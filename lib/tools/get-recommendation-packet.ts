@@ -49,11 +49,29 @@ export async function getRecommendationPacket(userId: string) {
   
   const comparisonReport = comparisonReports.length > 0 ? comparisonReports[0].report : null
 
+  // Fetch compliance report if it exists
+  const complianceReports = await db
+    .select()
+    .from(schema.complianceReports)
+    .where(eq(schema.complianceReports.pipelineRunId, latestRun.runId))
+    .limit(1)
+
+  const complianceReport = complianceReports.length > 0 ? complianceReports[0].report : null
+  const taxSummary = complianceReport
+    ? {
+        ltcg_liability: complianceReport.ltcgLiability,
+        stcg_liability: complianceReport.stcgLiability,
+        elss_gap: complianceReport.elssGap,
+        tax_efficiency_score: complianceReport.taxEfficiencyScore
+      }
+    : null
+
   return {
     status: 'approved',
     approved_at: results[0].createdAt,
     portfolio_draft: packetData.portfolio_draft || packetData,
     confidence_score: packetData.confidence_score_breakdown?.total || packetData.confidence_score,
-    comparison_report: comparisonReport
+    comparison_report: comparisonReport,
+    tax_summary: taxSummary
   }
 }

@@ -93,4 +93,17 @@ export const TOOL_DEFINITIONS: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'get_sip_status',
+      description:
+        "Queries the sip_adherence_reports table to fetch the latest SIP adherence report for the user. Call this when the user asks about their SIPs, monthly investments, whether they're on track, or how much they're investing.",
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: [],
+      },
+    },
+  },
 ]

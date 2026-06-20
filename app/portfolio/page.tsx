@@ -13,6 +13,7 @@ import { parseNominalReturn1y } from '@/lib/inflation/parse-return'
 import { getRecommendationPacket } from '@/lib/tools/get-recommendation-packet'
 import { ComparisonReport } from '@/components/comparison-report'
 import { DriftReport } from '@/components/drift-report'
+import { SipTracker } from '@/components/sip-tracker'
 import type { UserProfileInput } from '@/lib/inflation/compute'
 import type { InflationConfidence } from '@/lib/validation/schemas'
 
@@ -161,10 +162,19 @@ export default async function PortfolioPage() {
     orderBy: [desc(schema.driftReports.generatedAt)]
   })
 
+  // Fetch latest SIP adherence report
+  const latestSipReport = await db.query.sipAdherenceReports.findFirst({
+    where: eq(schema.sipAdherenceReports.userId, userId),
+    orderBy: [desc(schema.sipAdherenceReports.generatedAt)]
+  })
+
+  const isPdfReady = latestPipelineRun?.status === 'APPROVED'
+  const isPdfGenerating = latestPipelineRun?.status === 'PDF_GENERATION'
+
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
       {/* Header row */}
-      <div className="mb-6 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">Portfolio</h1>
           <p className="text-sm text-gray-500">
@@ -175,19 +185,35 @@ export default async function PortfolioPage() {
             </span>
           </p>
         </div>
-        <div className="flex items-center gap-3 text-sm text-gray-500">
-          <span>
-            Personal inflation:{' '}
-            <span className="font-semibold text-orange-600">
-              {(inflationRate * 100).toFixed(2)}%
+        <div className="flex flex-wrap items-center gap-4">
+          {latestPipelineRun && isPdfReady && (
+            <a
+              href={`/api/pipeline/${latestPipelineRun.runId}/pdf`}
+              download
+              className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 transition-all"
+            >
+              <span>📥</span> Download Portfolio Rationale
+            </a>
+          )}
+          {latestPipelineRun && isPdfGenerating && (
+            <div className="inline-flex items-center gap-2 rounded-lg bg-gray-100 border border-gray-200 px-4 py-2 text-sm text-gray-500 animate-pulse">
+              <span>⏳</span> Generating Rationale PDF...
+            </div>
+          )}
+          <div className="flex items-center gap-3 text-sm text-gray-500">
+            <span>
+              Personal inflation:{' '}
+              <span className="font-semibold text-orange-600">
+                {(inflationRate * 100).toFixed(2)}%
+              </span>
+              {inflationConfidence === 'low' && (
+                <span className="ml-1 text-xs text-gray-400">(est.)</span>
+              )}
             </span>
-            {inflationConfidence === 'low' && (
-              <span className="ml-1 text-xs text-gray-400">(est.)</span>
-            )}
-          </span>
-          <Link href="/portfolio/upload" className="text-indigo-600 underline-offset-2 hover:underline">
-            Update CAS
-          </Link>
+            <Link href="/portfolio/upload" className="text-indigo-600 underline-offset-2 hover:underline">
+              Update CAS
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -207,6 +233,13 @@ export default async function PortfolioPage() {
       {recommendationPacket.status === 'approved' && recommendationPacket.comparison_report && (
         <div className="mb-6">
           <ComparisonReport data={recommendationPacket.comparison_report} />
+        </div>
+      )}
+
+      {/* SIP Tracker */}
+      {latestSipReport && (
+        <div className="mb-6">
+          <SipTracker data={latestSipReport.report as any} />
         </div>
       )}
 

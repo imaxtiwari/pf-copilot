@@ -4,6 +4,7 @@ import { getGpt4oMini } from '../azure-openai'
 import { HALLUCINATION_TRIPWIRES } from './tripwire-registry'
 import { scoreConfidence } from './confidence-scorer'
 import { MEMORY_TTL_DAYS } from '../memory/ttl-config'
+import { validateCrossRunConsistency } from './cross-run-validator'
 import logger from '../logger'
 
 // ─── TTL Lookup Table: sender + message_type → TTL days ──────────────────────
@@ -154,6 +155,55 @@ export async function oracleMiddleware(msg: DeliberationMessage): Promise<Delibe
           flags.push(
             `HALLUCINATION_RISK — ${tripwire.field_name} cited without approved source. ` +
             `Required: ${tripwire.required_sources.join(' or ')}.`
+          )
+        }
+      }
+    }
+
+    // ── CHECK 5: Cross-Run Consistency Check ────────────────────────────────
+    if (msg.sender === 'SOMA' && (msg.message_type === 'FUND_REPORT' || msg.message_type === 'FUND_COMPOSITION')) {
+      const crossRunResult = await validateCrossRunConsistency('SOMA', msg)
+
+      if (crossRunResult.recommendation === 'REJECT') {
+        for (const anomaly of crossRunResult.anomalies) {
+          auditTrail.log({
+            pipeline_run_id: msg.pipeline_run_id,
+            agent_id: 'ORACLE',
+            action_type: AuditActionType.ORACLE_CROSS_RUN_ANOMALY,
+            payload: {
+              agentId: msg.sender,
+              field: anomaly.field,
+              delta: anomaly.delta,
+              severity: anomaly.severity,
+              actionTaken: 'rejected',
+              schemeName: msg.payload?.scheme_name || msg.payload?.scheme_code || 'Unknown Fund',
+              currentValue: anomaly.currentValue,
+              previousValue: anomaly.previousValue
+            }
+          })
+        }
+
+        throw new Error(`ORACLE_REJECTED — message rejected due to critical cross-run consistency anomalies: ${JSON.stringify(crossRunResult.anomalies)}`)
+      } else if (crossRunResult.recommendation === 'FLAG_FOR_REVIEW') {
+        for (const anomaly of crossRunResult.anomalies) {
+          auditTrail.log({
+            pipeline_run_id: msg.pipeline_run_id,
+            agent_id: 'ORACLE',
+            action_type: AuditActionType.ORACLE_CROSS_RUN_ANOMALY,
+            payload: {
+              agentId: msg.sender,
+              field: anomaly.field,
+              delta: anomaly.delta,
+              severity: anomaly.severity,
+              actionTaken: 'flagged',
+              schemeName: msg.payload?.scheme_name || msg.payload?.scheme_code || 'Unknown Fund',
+              currentValue: anomaly.currentValue,
+              previousValue: anomaly.previousValue
+            }
+          })
+
+          flags.push(
+            `CROSS_RUN_ANOMALY — ${anomaly.field} value of ${anomaly.currentValue} drifted from ${anomaly.previousValue} (previous run ${anomaly.previousRunId}).`
           )
         }
       }

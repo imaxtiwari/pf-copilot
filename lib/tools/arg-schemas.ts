@@ -10,4 +10,5 @@ export const ToolArgSchemas = {
   lookup_chat_history: z.object({}),
   explain_fund: z.object({ scheme_code: schemeCode, question: z.string().min(1) }),
   get_recommendation_packet: z.object({}),
+  get_sip_status: z.object({}),
 } as const satisfies Record<string, z.ZodObject<z.ZodRawShape>>

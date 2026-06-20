@@ -33,8 +33,9 @@ YOUR FAULT CATEGORIES:
 - SURVIVORSHIP_BIAS: The fund selection pool excludes poorly-performing or closed funds, making the pool look artificially good
 - RECENCY_BIAS: Recent performance is being given disproportionate weight over long-term track record
 - GOAL_MISMATCH: The portfolio's risk/return profile is not aligned with the client's stated goals and timeline
-- COMPLIANCE: The recommendation may violate SEBI guidelines or best practice standards
 - OTHER: Anything that does not fit the above
+
+The compliance check has already been run by SEBI. Do not re-assess compliance. Focus on: METHODOLOGY, CONCENTRATION, SURVIVORSHIP_BIAS, RECENCY_BIAS, GOAL_MISMATCH, OTHER.
 
 YOUR SEVERITY LEVELS:
 - CRITICAL: This fault, if unaddressed, could cause the client significant financial harm or the recommendation is fundamentally wrong for this client. Blocks approval.
@@ -142,7 +143,8 @@ ${JSON.stringify(context.fundUniverse, null, 2)}
   async critiquePortfolioDraft(
     draft: any,
     context: { message_id: string; client_id: string },
-    pipelineRunId: string
+    pipelineRunId: string,
+    complianceReport?: any
   ): Promise<CritiqueReport> {
     logger.info({ pipelineRunId }, 'ARIA: critiquePortfolioDraft invoked')
 
@@ -164,12 +166,15 @@ ${JSON.stringify(context.fundUniverse, null, 2)}
     const gpt = getGpt4o()
     const prompt = `
 Analyze the following portfolio draft. Compare it against past fault patterns if relevant.
-Identify any faults in sectors/stocks concentration, methodology, bias, goal mismatch, or compliance.
+Identify any faults in sectors/stocks concentration, methodology, bias, or goal mismatch.
 For each fault, provide description (max 200 words) and remedy (max 100 words).
 You must return a valid JSON object ONLY. Do not include markdown code blocks.
 
 Portfolio Draft:
 ${JSON.stringify(draft, null, 2)}
+
+SEBI Compliance Report:
+${complianceReport ? JSON.stringify(complianceReport, null, 2) : 'None.'}
 
 Recalled Fault Library Context:
 ${faultLibraryText || 'None.'}
@@ -178,7 +183,7 @@ JSON Schema:
 {
   "faults": [
     {
-      "fault_category": "METHODOLOGY" | "CONCENTRATION" | "SURVIVORSHIP_BIAS" | "RECENCY_BIAS" | "GOAL_MISMATCH" | "COMPLIANCE" | "OTHER",
+      "fault_category": "METHODOLOGY" | "CONCENTRATION" | "SURVIVORSHIP_BIAS" | "RECENCY_BIAS" | "GOAL_MISMATCH" | "OTHER",
       "fault_description": string, // max 200 words
       "evidence_sources": [
         { "url": string, "excerpt_summary": string }
@@ -212,7 +217,7 @@ JSON Schema:
         retrieved_at: now.toISOString()
       }))
 
-      const allowedCategories = ['METHODOLOGY', 'CONCENTRATION', 'SURVIVORSHIP_BIAS', 'RECENCY_BIAS', 'GOAL_MISMATCH', 'COMPLIANCE', 'OTHER']
+      const allowedCategories = ['METHODOLOGY', 'CONCENTRATION', 'SURVIVORSHIP_BIAS', 'RECENCY_BIAS', 'GOAL_MISMATCH', 'OTHER']
       let category = (f.fault_category || '').toUpperCase().trim().replace(/\s+/g, '_')
       if (!allowedCategories.includes(category)) {
         category = 'OTHER'
@@ -327,7 +332,7 @@ JSON Schema:
 {
   "faults": [
     {
-      "fault_category": "METHODOLOGY" | "CONCENTRATION" | "SURVIVORSHIP_BIAS" | "RECENCY_BIAS" | "GOAL_MISMATCH" | "COMPLIANCE" | "OTHER",
+      "fault_category": "METHODOLOGY" | "CONCENTRATION" | "SURVIVORSHIP_BIAS" | "RECENCY_BIAS" | "GOAL_MISMATCH" | "OTHER",
       "fault_description": string, // max 200 words
       "evidence_sources": [
         { "url": string, "excerpt_summary": string }
@@ -361,7 +366,7 @@ JSON Schema:
         retrieved_at: now.toISOString()
       }))
 
-      const allowedCategories = ['METHODOLOGY', 'CONCENTRATION', 'SURVIVORSHIP_BIAS', 'RECENCY_BIAS', 'GOAL_MISMATCH', 'COMPLIANCE', 'OTHER']
+      const allowedCategories = ['METHODOLOGY', 'CONCENTRATION', 'SURVIVORSHIP_BIAS', 'RECENCY_BIAS', 'GOAL_MISMATCH', 'OTHER']
       let category = (f.fault_category || '').toUpperCase().trim().replace(/\s+/g, '_')
       if (!allowedCategories.includes(category)) {
         category = 'OTHER'
@@ -462,7 +467,7 @@ ${counterArgument}
 
 JSON Schema:
 {
-  "fault_category": "METHODOLOGY" | "CONCENTRATION" | "SURVIVORSHIP_BIAS" | "RECENCY_BIAS" | "GOAL_MISMATCH" | "COMPLIANCE" | "OTHER",
+  "fault_category": "METHODOLOGY" | "CONCENTRATION" | "SURVIVORSHIP_BIAS" | "RECENCY_BIAS" | "GOAL_MISMATCH" | "OTHER",
   "fault_description": string, // max 200 words (updated or defended)
   "evidence_sources": [
     { "url": string, "excerpt_summary": string } // new evidence if severity maintained

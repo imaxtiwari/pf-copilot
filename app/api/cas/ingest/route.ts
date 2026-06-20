@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '../../../../lib/db'
-import { casUploads, portfolioHoldings, driftReports, chatMessages } from '../../../../db/schema'
+import { casUploads, portfolioHoldings, driftReports, chatMessages, sipAdherenceReports, portfolioDrafts, userProfile } from '../../../../db/schema'
 import { ok, err } from '../../../../lib/contracts/error-envelope'
 import { parseCAS } from '../../../../lib/cas/parse'
 import { resolveOrCreateUserId, COOKIE_NAME, cookieOptions } from '../../../../lib/auth/dev-user'
+import { trackSIPAdherence } from '../../../../lib/sip/sip-tracker'
 import { and, eq, desc } from 'drizzle-orm'
 import { detectDrift } from '../../../../lib/cas/drift-detector'
 import logger from '../../../../lib/logger'
@@ -176,6 +177,56 @@ export async function POST(req: NextRequest) {
         ts: new Date(),
       })
       logger.info({ userId }, 'cas ingest: created rebalance chat notification')
+    }
+
+    // Run SIP adherence tracker
+    try {
+      const [latestApproved] = await db
+        .select()
+        .from(portfolioDrafts)
+        .where(
+          and(
+            eq(portfolioDrafts.clientId, userId),
+            eq(portfolioDrafts.status, 'APPROVED')
+          )
+        )
+        .orderBy(desc(portfolioDrafts.createdAt))
+        .limit(1)
+
+      const [profile] = await db
+        .select()
+        .from(userProfile)
+        .where(eq(userProfile.userId, userId))
+        .limit(1)
+
+      if (latestApproved && profile) {
+        const report = await trackSIPAdherence(latestApproved, driftReport, profile, db)
+        
+        await db.insert(sipAdherenceReports).values({
+          userId,
+          casUploadId: uploadId!,
+          pipelineRunId: latestApproved.pipelineRunId!,
+          report,
+          overallAdherenceScore: report.overallAdherenceScore,
+          generatedAt: new Date()
+        })
+        logger.info({ userId, score: report.overallAdherenceScore }, 'cas ingest: generated and saved SIP adherence report')
+
+        // Proactive Chat Notification
+        if (report.overallAdherenceScore < 70) {
+          const topAlert = report.alerts.find(a => a.urgency === 'HIGH') || report.alerts[0]
+          const topMessage = topAlert ? ` ${topAlert.message}` : ''
+          await db.insert(chatMessages).values({
+            userId,
+            role: 'assistant',
+            content: `I noticed your latest portfolio upload — your SIP adherence is at ${report.overallAdherenceScore}%.${topMessage} Want me to walk you through what's off track?`,
+            ts: new Date()
+          })
+          logger.info({ userId }, 'cas ingest: created proactive low SIP adherence chat message')
+        }
+      }
+    } catch (sipErr) {
+      logger.error({ userId, err: sipErr }, 'cas ingest: SIP tracker run failed')
     }
   } catch (err) {
     logger.error({ userId, err }, 'cas ingest: drift detection or notification failed')

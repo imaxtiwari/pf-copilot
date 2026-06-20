@@ -79,43 +79,50 @@ export class Soma {
       throw new Error(`Fund not found in registry: ${schemeCode}`)
     }
 
-    // 2. Fetch latest snapshot
-    const [snapshot] = await this.db
-      .select()
-      .from(schema.fundSnapshots)
-      .where(eq(schema.fundSnapshots.schemeCode, schemeCode))
-      .orderBy(desc(schema.fundSnapshots.snapshotDate))
-      .limit(1)
+    let forceFetch = false
+    let attempts = 0
+    const maxAttempts = 2
 
-    const now = new Date()
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+    while (attempts < maxAttempts) {
+      attempts++
 
-    let latestSnapshot = snapshot
-    let isStale = !snapshot || new Date(snapshot.snapshotDate) < sevenDaysAgo
-    const daysOld = snapshot
-      ? Math.floor((now.getTime() - new Date(snapshot.snapshotDate).getTime()) / (1000 * 60 * 60 * 24))
-      : 9999
+      // 2. Fetch latest snapshot
+      const [snapshot] = await this.db
+        .select()
+        .from(schema.fundSnapshots)
+        .where(eq(schema.fundSnapshots.schemeCode, schemeCode))
+        .orderBy(desc(schema.fundSnapshots.snapshotDate))
+        .limit(1)
 
-    let sourceUrls: string[] = snapshot ? [snapshot.sourceUrl] : [fund.sourceUrl]
+      const now = new Date()
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
 
-    // 3. Refresh via WebResearchTool if stale or missing
-    if (isStale) {
-      logger.info({ schemeCode, daysOld }, 'SOMA: snapshot is stale or missing — initiating refresh')
-      try {
-        const results = await this.webResearchTool.research({
-          query_text: `"${fund.schemeName}" latest NAV, AUM, expense ratio, 1Y 3Y 5Y annual returns`,
-          intent: 'refresh_fund_profile',
-          freshness_required_days: 7,
-          max_sources: 3,
-          memory_type: 'SOMA_FUND_RESEARCH'
-        }, pipelineRunId)
+      let latestSnapshot = snapshot
+      let isStale = !snapshot || new Date(snapshot.snapshotDate) < sevenDaysAgo || forceFetch
+      const daysOld = snapshot
+        ? Math.floor((now.getTime() - new Date(snapshot.snapshotDate).getTime()) / (1000 * 60 * 60 * 24))
+        : 9999
 
-        if (results.length > 0) {
-          sourceUrls = results.map(r => r.url)
-          const contentText = results.map(r => `Source: ${r.url}\nContent: ${r.content_snippet}`).join('\n\n')
+      let sourceUrls: string[] = snapshot ? [snapshot.sourceUrl] : [fund.sourceUrl]
 
-          const gpt = getGpt4oMini()
-          const prompt = `
+      // 3. Refresh via WebResearchTool if stale or missing
+      if (isStale) {
+        logger.info({ schemeCode, daysOld, forceFetch }, 'SOMA: snapshot is stale, missing, or rejected — initiating refresh')
+        try {
+          const results = await this.webResearchTool.research({
+            query_text: `"${fund.schemeName}" latest NAV, AUM, expense ratio, 1Y 3Y 5Y annual returns`,
+            intent: 'refresh_fund_profile',
+            freshness_required_days: forceFetch ? 0 : 7,
+            max_sources: 3,
+            memory_type: 'SOMA_FUND_RESEARCH'
+          }, pipelineRunId)
+
+          if (results.length > 0) {
+            sourceUrls = results.map(r => r.url)
+            const contentText = results.map(r => `Source: ${r.url}\nContent: ${r.content_snippet}`).join('\n\n')
+
+            const gpt = getGpt4oMini()
+            const prompt = `
 Extract mutual fund profile metrics for "${fund.schemeName}" (Code: ${schemeCode}) from the search results.
 Return a valid JSON object ONLY. Do not include markdown formatting or backticks.
 
@@ -141,144 +148,164 @@ JSON schema:
   "global_influence_factors": string[]  // e.g. ["US rate cuts increase FII flows to this large-cap fund"]
 }
 `
-          const response = await gpt.chat.completions.create({
-            model: 'gpt-4o-mini',
-            messages: [
-              { role: 'system', content: SOMA_SYSTEM_PROMPT },
-              { role: 'user', content: prompt + `\n\nSearch results:\n${contentText}` }
-            ],
-            temperature: 0,
-          })
+            const response = await gpt.chat.completions.create({
+              model: 'gpt-4o-mini',
+              messages: [
+                { role: 'system', content: SOMA_SYSTEM_PROMPT },
+                { role: 'user', content: prompt + `\n\nSearch results:\n${contentText}` }
+              ],
+              temperature: 0,
+            })
 
-          const rawText = response.choices[0]?.message?.content?.trim() || ''
-          const cleanJson = rawText.replace(/^```json/, '').replace(/```$/, '').trim()
-          const extracted = JSON.parse(cleanJson)
+            const rawText = response.choices[0]?.message?.content?.trim() || ''
+            const cleanJson = rawText.replace(/^```json/, '').replace(/```$/, '').trim()
+            const extracted = JSON.parse(cleanJson)
 
-          const todayStr = now.toISOString().split('T')[0]
-          const formattedDate = extracted.nav_date ? parseAmfiDate(extracted.nav_date) : todayStr
+            const todayStr = now.toISOString().split('T')[0]
+            const formattedDate = extracted.nav_date ? parseAmfiDate(extracted.nav_date) : todayStr
 
-          const newSnapshot = {
-            schemeCode,
-            snapshotDate: formattedDate || todayStr,
-            nav: extracted.nav ? extracted.nav.toString() : (snapshot?.nav || '0'),
-            nav52wHigh: extracted.nav_52w_high?.toString() || null,
-            nav52wLow: extracted.nav_52w_low?.toString() || null,
-            aumCr: extracted.aum_cr?.toString() || null,
-            expenseRatio: extracted.expense_ratio?.toString() || null,
-            return1y: extracted.return_1y?.toString() || null,
-            return3y: extracted.return_3y?.toString() || null,
-            return5y: extracted.return_5y?.toString() || null,
-            return10y: extracted.return_10y?.toString() || null,
-            alpha3y: extracted.alpha_3y?.toString() || null,
-            sharpe3y: extracted.sharpe_3y?.toString() || null,
-            sortino3y: extracted.sortino_3y?.toString() || null,
-            maxDrawdown: extracted.max_drawdown?.toString() || null,
-            sourceUrl: sourceUrls[0],
-            retrievedAt: now,
-          }
+            const newSnapshot = {
+              schemeCode,
+              snapshotDate: formattedDate || todayStr,
+              nav: extracted.nav ? extracted.nav.toString() : (snapshot?.nav || '0'),
+              nav52wHigh: extracted.nav_52w_high?.toString() || null,
+              nav52wLow: extracted.nav_52w_low?.toString() || null,
+              aumCr: extracted.aum_cr?.toString() || null,
+              expenseRatio: extracted.expense_ratio?.toString() || null,
+              return1y: extracted.return_1y?.toString() || null,
+              return3y: extracted.return_3y?.toString() || null,
+              return5y: extracted.return_5y?.toString() || null,
+              return10y: extracted.return_10y?.toString() || null,
+              alpha3y: extracted.alpha_3y?.toString() || null,
+              sharpe3y: extracted.sharpe_3y?.toString() || null,
+              sortino3y: extracted.sortino_3y?.toString() || null,
+              maxDrawdown: extracted.max_drawdown?.toString() || null,
+              sourceUrl: sourceUrls[0],
+              retrievedAt: now,
+            }
 
-          await this.db.insert(schema.fundSnapshots).values(newSnapshot).onConflictDoNothing()
-
-          // If fund manager or benchmark updated, update agent_funds table
-          if (extracted.fund_manager || extracted.benchmark) {
+            // Save snapshot, updating on conflict
             await this.db
-              .update(schema.agentFunds)
-              .set({
-                benchmarkIndex: extracted.benchmark || fund.benchmarkIndex,
-                sebiCategory: extracted.fund_manager || fund.sebiCategory, // using sebiCategory for Raw category, or we keep it
-                sourceUrl: sourceUrls[0],
-                retrievedAt: now,
+              .insert(schema.fundSnapshots)
+              .values(newSnapshot)
+              .onConflictDoUpdate({
+                target: [schema.fundSnapshots.schemeCode, schema.fundSnapshots.snapshotDate],
+                set: newSnapshot
               })
-              .where(eq(schema.agentFunds.schemeCode, schemeCode))
+
+            // If fund manager or benchmark updated, update agent_funds table
+            if (extracted.fund_manager || extracted.benchmark) {
+              await this.db
+                .update(schema.agentFunds)
+                .set({
+                  benchmarkIndex: extracted.benchmark || fund.benchmarkIndex,
+                  sebiCategory: extracted.fund_manager || fund.sebiCategory, // using sebiCategory for Raw category, or we keep it
+                  sourceUrl: sourceUrls[0],
+                  retrievedAt: now,
+                })
+                .where(eq(schema.agentFunds.schemeCode, schemeCode))
+            }
+
+            // Fetch the inserted/existing snapshot to return
+            const [refreshedSnapshot] = await this.db
+              .select()
+              .from(schema.fundSnapshots)
+              .where(eq(schema.fundSnapshots.schemeCode, schemeCode))
+              .orderBy(desc(schema.fundSnapshots.snapshotDate))
+              .limit(1)
+
+            latestSnapshot = refreshedSnapshot || newSnapshot
+            isStale = false
           }
-
-          // Fetch the inserted/existing snapshot to return
-          const [refreshedSnapshot] = await this.db
-            .select()
-            .from(schema.fundSnapshots)
-            .where(eq(schema.fundSnapshots.schemeCode, schemeCode))
-            .orderBy(desc(schema.fundSnapshots.snapshotDate))
-            .limit(1)
-
-          latestSnapshot = refreshedSnapshot || newSnapshot
-          isStale = false
+        } catch (err) {
+          logger.error({ schemeCode, err }, 'SOMA: failed to refresh stale snapshot')
         }
-      } catch (err) {
-        logger.error({ schemeCode, err }, 'SOMA: failed to refresh stale snapshot')
+      }
+
+      const snap = latestSnapshot
+      const profile: FundProfile = {
+        scheme_code: schemeCode,
+        isin: fund.isin,
+        scheme_name: fund.schemeName,
+        amc: fund.amcName,
+        scheme_type: fund.schemeType as any,
+        benchmark: fund.benchmarkIndex,
+        fund_manager: null, // extracted or stored
+        fund_manager_tenure_years: null,
+        nav: snap ? parseFloat(snap.nav) : 0,
+        nav_date: snap ? snap.snapshotDate : now.toISOString().split('T')[0],
+        aum_cr: snap?.aumCr ? parseFloat(snap.aumCr) : null,
+        expense_ratio: snap?.expenseRatio ? parseFloat(snap.expenseRatio) : null,
+        returns: {
+          '1y': snap?.return1y ? parseFloat(snap.return1y) : null,
+          '3y': snap?.return3y ? parseFloat(snap.return3y) : null,
+          '5y': snap?.return5y ? parseFloat(snap.return5y) : null,
+          '10y': snap?.return10y ? parseFloat(snap.return10y) : null,
+        },
+        alpha_3y: snap?.alpha3y ? parseFloat(snap.alpha3y) : null,
+        sharpe_3y: snap?.sharpe3y ? parseFloat(snap.sharpe3y) : null,
+        sortino_3y: snap?.sortino3y ? parseFloat(snap.sortino3y) : null,
+        max_drawdown: snap?.maxDrawdown ? parseFloat(snap.maxDrawdown) : null,
+        global_influence_factors: [],
+        data_freshness: {
+          retrieved_at: snap ? snap.retrievedAt.toISOString() : now.toISOString(),
+          is_stale: isStale,
+          days_old: daysOld,
+        },
+        source_urls: sourceUrls,
+      }
+
+      // 4. Fill in LLM derived global influence factors if missing
+      if (profile.global_influence_factors.length === 0) {
+        profile.global_influence_factors = [
+          `US monetary cycles indirectly influence this ${profile.scheme_type} fund through global market flows.`
+        ]
+      }
+
+      // 5. Zod validation
+      const validated = FundProfileSchema.parse(profile)
+
+      // 6. Publish to Deliberation Room
+      try {
+        await this.deliberationRoom.publish({
+          pipeline_run_id: pipelineRunId,
+          sender: 'SOMA',
+          message_type: 'FUND_REPORT',
+          recipient: 'ALL',
+          payload: {
+            scheme_code: validated.scheme_code,
+            scheme_name: validated.scheme_name,
+            nav: validated.nav,
+            snapshot_date: validated.nav_date,
+            key_metrics: {
+              isin: validated.isin,
+              amc: validated.amc,
+              scheme_type: validated.scheme_type,
+              aum_cr: validated.aum_cr,
+              expense_ratio: validated.expense_ratio,
+              returns: validated.returns,
+              sharpe_3y: validated.sharpe_3y,
+              max_drawdown: validated.max_drawdown,
+              days_old: validated.data_freshness.days_old,
+            },
+            research_summary: `SOMA: Fund report for ${validated.scheme_name}. Latest NAV: ${validated.nav} (${validated.nav_date}). AUM: ${validated.aum_cr || 'N/A'} Cr, Sharpe: ${validated.sharpe_3y || 'N/A'}. Data status: ${validated.data_freshness.is_stale ? 'STALE' : 'FRESH'}.`
+          },
+          references: []
+        })
+
+        // Successfully published
+        return validated
+      } catch (err: any) {
+        if (err.message && err.message.includes('ORACLE_REJECTED') && attempts < maxAttempts) {
+          logger.warn({ schemeCode, pipelineRunId, attempts }, 'SOMA: Deliberation message rejected by Oracle due to cross-run consistency anomalies. Bypassing cache for retry.')
+          forceFetch = true
+          continue
+        }
+        throw err
       }
     }
 
-    const snap = latestSnapshot
-    const profile: FundProfile = {
-      scheme_code: schemeCode,
-      isin: fund.isin,
-      scheme_name: fund.schemeName,
-      amc: fund.amcName,
-      scheme_type: fund.schemeType as any,
-      benchmark: fund.benchmarkIndex,
-      fund_manager: null, // extracted or stored
-      fund_manager_tenure_years: null,
-      nav: snap ? parseFloat(snap.nav) : 0,
-      nav_date: snap ? snap.snapshotDate : now.toISOString().split('T')[0],
-      aum_cr: snap?.aumCr ? parseFloat(snap.aumCr) : null,
-      expense_ratio: snap?.expenseRatio ? parseFloat(snap.expenseRatio) : null,
-      returns: {
-        '1y': snap?.return1y ? parseFloat(snap.return1y) : null,
-        '3y': snap?.return3y ? parseFloat(snap.return3y) : null,
-        '5y': snap?.return5y ? parseFloat(snap.return5y) : null,
-        '10y': snap?.return10y ? parseFloat(snap.return10y) : null,
-      },
-      alpha_3y: snap?.alpha3y ? parseFloat(snap.alpha3y) : null,
-      sharpe_3y: snap?.sharpe3y ? parseFloat(snap.sharpe3y) : null,
-      sortino_3y: snap?.sortino3y ? parseFloat(snap.sortino3y) : null,
-      max_drawdown: snap?.maxDrawdown ? parseFloat(snap.maxDrawdown) : null,
-      global_influence_factors: [],
-      data_freshness: {
-        retrieved_at: snap ? snap.retrievedAt.toISOString() : now.toISOString(),
-        is_stale: isStale,
-        days_old: daysOld,
-      },
-      source_urls: sourceUrls,
-    }
-
-    // 4. Fill in LLM derived global influence factors if missing
-    if (profile.global_influence_factors.length === 0) {
-      profile.global_influence_factors = [
-        `US monetary cycles indirectly influence this ${profile.scheme_type} fund through global market flows.`
-      ]
-    }
-
-    // 5. Zod validation
-    const validated = FundProfileSchema.parse(profile)
-
-    // 6. Publish to Deliberation Room
-    await this.deliberationRoom.publish({
-      pipeline_run_id: pipelineRunId,
-      sender: 'SOMA',
-      message_type: 'FUND_REPORT',
-      recipient: 'ALL',
-      payload: {
-        scheme_code: validated.scheme_code,
-        scheme_name: validated.scheme_name,
-        nav: validated.nav,
-        snapshot_date: validated.nav_date,
-        key_metrics: {
-          isin: validated.isin,
-          amc: validated.amc,
-          scheme_type: validated.scheme_type,
-          aum_cr: validated.aum_cr,
-          expense_ratio: validated.expense_ratio,
-          returns: validated.returns,
-          sharpe_3y: validated.sharpe_3y,
-          max_drawdown: validated.max_drawdown,
-          days_old: validated.data_freshness.days_old,
-        },
-        research_summary: `SOMA: Fund report for ${validated.scheme_name}. Latest NAV: ${validated.nav} (${validated.nav_date}). AUM: ${validated.aum_cr || 'N/A'} Cr, Sharpe: ${validated.sharpe_3y || 'N/A'}. Data status: ${validated.data_freshness.is_stale ? 'STALE' : 'FRESH'}.`
-      },
-      references: []
-    })
-
-    return validated
+    throw new Error(`SOMA: Failed to publish fund profile after ${maxAttempts} attempts due to Oracle rejections.`)
   }
 
   async compareFunds(schemeCodes: string[], clientId: string, pipelineRunId: string): Promise<FundComparisonMatrix> {

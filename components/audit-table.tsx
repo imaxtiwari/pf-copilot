@@ -52,16 +52,22 @@ export function AuditTable({ pipelineRunId }: { pipelineRunId?: string }) {
               else confidenceColor = 'text-red-600 font-semibold'
             }
 
+            const isAnomaly = log.action_type === 'ORACLE_CROSS_RUN_ANOMALY'
+            const trClass = isAnomaly ? 'bg-yellow-50 hover:bg-yellow-100 text-yellow-800' : 'hover:bg-gray-50'
+            const displayActionText = isAnomaly && (log as any).visualMessage
+              ? (log as any).visualMessage
+              : log.action_type
+
             return (
-              <tr key={log.log_id} className="hover:bg-gray-50">
+              <tr key={log.log_id} className={trClass}>
                 <td className="px-4 py-3 whitespace-nowrap text-gray-500">
                   {new Date(log.timestamp).toLocaleString()}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-900">
                   {log.agent_id}
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap text-gray-500">
-                  {log.action_type}
+                <td className="px-4 py-3 text-gray-500">
+                  {displayActionText}
                 </td>
                 <td className={`px-4 py-3 whitespace-nowrap ${confidenceColor}`}>
                   {confidenceText}

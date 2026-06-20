@@ -125,23 +125,23 @@ export interface RecallOptions {
 }
 
 export async function initQdrant() {
-  const agents = ['aria', 'kiran', 'soma', 'vikram', 'priya', 'dhruv', 'riya']
+  const agents = ['aria', 'kiran', 'soma', 'vikram', 'priya', 'dhruv', 'riya', 'mentor', 'atlas']
   const collections = agents.map(a => `agent_memory_${a}`).concat(['knowledge_commons'])
 
   try {
-    const existing = await qdrant.getCollections()
-    const existingNames = existing.collections.map((c: any) => c.name)
-
     for (const coll of collections) {
-      if (!existingNames.includes(coll)) {
+      try {
         await qdrant.createCollection(coll, {
           vectors: { size: 1536, distance: 'Cosine' }
         })
-        logger.info({ collection: coll }, 'Created Qdrant collection')
+      } catch (e: any) {
+        if (e.status !== 409) throw e
       }
+      logger.info(`Qdrant collection ${coll}: ready`)
     }
   } catch (err) {
     logger.error({ err }, 'Failed to initialize Qdrant collections')
+    throw err
   }
 }
 

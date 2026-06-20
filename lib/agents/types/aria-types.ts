@@ -9,7 +9,6 @@ export const FaultCategorySchema = z.enum([
   'SURVIVORSHIP_BIAS',
   'RECENCY_BIAS',
   'GOAL_MISMATCH',
-  'COMPLIANCE',
   'OTHER',
 ])
 

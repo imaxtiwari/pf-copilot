@@ -3,13 +3,15 @@ import { ToolArgSchemas } from '../../lib/tools/arg-schemas'
 
 // ── schema presence ───────────────────────────────────────────────────────────
 
-describe('ToolArgSchemas — all five tools are present', () => {
+describe('ToolArgSchemas — all seven tools are present', () => {
   const EXPECTED_TOOLS = [
     'get_portfolio',
     'compute_personal_inflation',
     'compute_real_returns',
     'lookup_chat_history',
     'explain_fund',
+    'get_recommendation_packet',
+    'get_sip_status',
   ] as const
 
   for (const tool of EXPECTED_TOOLS) {
@@ -19,8 +21,8 @@ describe('ToolArgSchemas — all five tools are present', () => {
     })
   }
 
-  it('no extra tools are present beyond the known six', () => {
-    expect(Object.keys(ToolArgSchemas)).toHaveLength(6)
+  it('no extra tools are present beyond the known seven', () => {
+    expect(Object.keys(ToolArgSchemas)).toHaveLength(7)
   })
 })
 
@@ -37,6 +39,14 @@ describe('ToolArgSchemas — zero-arg tools accept {}', () => {
 
   it('lookup_chat_history: {} passes', () => {
     expect(ToolArgSchemas.lookup_chat_history.safeParse({}).success).toBe(true)
+  })
+
+  it('get_recommendation_packet: {} passes', () => {
+    expect(ToolArgSchemas.get_recommendation_packet.safeParse({}).success).toBe(true)
+  })
+
+  it('get_sip_status: {} passes', () => {
+    expect(ToolArgSchemas.get_sip_status.safeParse({}).success).toBe(true)
   })
 
   it('zero-arg tools strip unknown extra keys without failing (Zod default strip mode)', () => {

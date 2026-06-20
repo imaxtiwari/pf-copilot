@@ -75,7 +75,21 @@ export async function GET(req: NextRequest) {
       to_timestamp: to
     }
 
-    const logs = auditTrail.query(filters)
+    const rawLogs = auditTrail.query(filters)
+    const logs = rawLogs.map((log: any) => {
+      if (log.action_type === 'ORACLE_CROSS_RUN_ANOMALY') {
+        try {
+          const payload = JSON.parse(log.payload_json)
+          return {
+            ...log,
+            visualMessage: formatCrossRunAnomalyMessage(payload)
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+      return log
+    })
 
     return NextResponse.json({
       logs,
@@ -88,4 +102,46 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+function formatCrossRunAnomalyMessage(payload: any): string {
+  const agentId = payload.agentId || 'SOMA'
+  const field = payload.field || ''
+  const schemeName = payload.schemeName || 'Axis Bluechip'
+  const currentVal = payload.currentValue
+  const prevVal = payload.previousValue
+  const delta = payload.delta
+  const actionTaken = payload.actionTaken || 'rejected'
+
+  let fieldDisplayName = field
+  let currentValStr = String(currentVal)
+  let prevValStr = String(prevVal)
+  let deltaStr = String(delta)
+
+  if (field.includes('return')) {
+    fieldDisplayName = field.replace('fund_', '').replace('_return', ' return')
+    currentValStr = `${currentVal}%`
+    prevValStr = `${prevVal}%`
+    deltaStr = `${delta > 0 ? '+' : ''}${delta.toFixed(1)}pp`
+  } else if (field === 'expense_ratio') {
+    fieldDisplayName = 'expense ratio'
+    currentValStr = `${currentVal}%`
+    prevValStr = `${prevVal}%`
+    deltaStr = `${delta > 0 ? '+' : ''}${delta.toFixed(2)}pp`
+  } else if (field === 'aum') {
+    fieldDisplayName = 'AUM'
+    currentValStr = `${currentVal} Cr`
+    prevValStr = `${prevVal} Cr`
+    const pct = delta * 100
+    deltaStr = `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`
+  } else if (field.includes('ratio')) {
+    fieldDisplayName = field.replace('_ratio', ' ratio')
+    currentValStr = String(currentVal)
+    prevValStr = String(prevVal)
+    deltaStr = `${delta > 0 ? '+' : ''}${delta.toFixed(2)}`
+  }
+
+  const actionText = actionTaken === 'rejected' ? 'Source re-fetch forced.' : 'Flagged for review.'
+
+  return `⚠️ Cross-run anomaly: ${agentId} reported ${fieldDisplayName} of ${currentValStr} for ${schemeName}. Previous run reported ${prevValStr}. Delta: ${deltaStr}. ${actionText}`
 }

@@ -264,6 +264,8 @@ export const pipelineResults = pgTable('pipeline_results', {
   pipelineRunId: uuid('pipeline_run_id').notNull().references(() => pipelineRuns.runId).unique(),
   resultType: text('result_type').notNull(),  // 'packet' | 'deadlock'
   data: jsonb('data').notNull(),
+  rationalePdfUrl: text('rationale_pdf_url'),
+  rationalePdfGeneratedAt: timestamp('rationale_pdf_generated_at'),
   createdAt: timestamp('created_at').defaultNow(),
 })
 
@@ -319,6 +321,26 @@ export const driftReports = pgTable('drift_reports', {
   currentCasUploadId: uuid('current_cas_upload_id').notNull().references(() => casUploads.id),
   report: jsonb('report').notNull(),
   generatedAt: timestamp('generated_at').defaultNow().notNull(),
+})
+
+export const complianceReports = pgTable('compliance_reports', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  pipelineRunId: uuid('pipeline_run_id').notNull().references(() => pipelineRuns.runId).unique(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  report: jsonb('report').notNull(),
+  overallCompliant: boolean('overall_compliant').notNull(),
+  taxEfficiencyScore: integer('tax_efficiency_score').notNull(),
+  generatedAt: timestamp('generated_at').defaultNow().notNull()
+})
+
+export const sipAdherenceReports = pgTable('sip_adherence_reports', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  casUploadId: uuid('cas_upload_id').notNull().references(() => casUploads.id, { onDelete: 'cascade' }),
+  pipelineRunId: uuid('pipeline_run_id').notNull().references(() => pipelineRuns.runId, { onDelete: 'cascade' }),
+  report: jsonb('report').notNull(),
+  overallAdherenceScore: integer('overall_adherence_score').notNull(),
+  generatedAt: timestamp('generated_at').defaultNow().notNull()
 })
 
 

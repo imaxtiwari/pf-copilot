@@ -11,6 +11,7 @@ import { computeRealReturns } from '@/lib/tools/compute-real-returns'
 import { lookupChatHistory } from '@/lib/tools/lookup-chat-history'
 import { explainFundTool } from '@/lib/tools/explain-fund'
 import { getRecommendationPacket } from '@/lib/tools/get-recommendation-packet'
+import { getSipStatus } from '@/lib/tools/get-sip-status'
 import { ToolArgSchemas } from '@/lib/tools/arg-schemas'
 import type { Citation } from '@/lib/contracts/refusal-types'
 import logger from '@/lib/logger'
@@ -63,6 +64,8 @@ async function dispatchTool(
       return explainFundTool(args.scheme_code, args.question)
     case 'get_recommendation_packet':
       return getRecommendationPacket(userId)
+    case 'get_sip_status':
+      return getSipStatus(userId)
     default:
       logger.warn({ toolName }, 'orchestrator: unknown tool called')
       return { error: `Unknown tool: ${toolName}` }

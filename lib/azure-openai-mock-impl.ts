@@ -197,6 +197,45 @@ export function mockChatCompletion(model: string, messages: any[]): string {
     })
   }
 
+  // 8.5 SEBI Compliance Check
+  if (lastUserMessage.includes('Analyze compliance and switches') || lastUserMessage.includes('SEBI Compliance')) {
+    if (lastUserMessage.includes('SEBI_BLOCK_TEST')) {
+      return JSON.stringify({
+        sebiComplianceFlags: [
+          {
+            rule: "SEBI Circular SEBI/HO/IMD/2021",
+            issue: "Concentration in single AMC exceeds 40%",
+            severity: "BLOCK",
+            remediation: "Reallocate weight to other AMCs"
+          }
+        ],
+        switchingStrategy: [
+          {
+            exitFund: "Mock Exit Fund",
+            entryFund: "Mock Entry Fund",
+            reason: "Tax optimization and AMC diversification",
+            taxImpact: 0,
+            recommendedTiming: "IMMEDIATE"
+          }
+        ],
+        overallCompliant: false
+      })
+    }
+
+    return JSON.stringify({
+      sebiComplianceFlags: [
+        {
+          rule: "SEBI Circular SEBI/HO/IMD/2021",
+          issue: "No significant compliance issue found.",
+          severity: "INFO",
+          remediation: "None"
+        }
+      ],
+      switchingStrategy: [],
+      overallCompliant: true
+    })
+  }
+
   // 9. Kiran Macro Scan bulletin
   if (lastUserMessage.includes('compile the daily 8-point MacroRiskBulletin')) {
     return JSON.stringify({

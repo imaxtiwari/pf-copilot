@@ -7,6 +7,7 @@ export const MessageTypeSchema = z.enum([
   'CRITIQUE',
   'RISK_ALERT',
   'FUND_REPORT',
+  'FUND_COMPOSITION',
   'STRATEGY_PROPOSAL',
   'PORTFOLIO_DRAFT',
   'VOTE',

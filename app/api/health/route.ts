@@ -10,10 +10,10 @@ import { auditTrail } from '@/lib/audit/audit-trail'
 
 export async function GET() {
   const checks = {
-    db: false,
+    db: { status: 'pending', message: '' },
+    qdrant: { status: 'pending', collections: 0, message: '' },
     azure_chat: false,
     azure_embedding: false,
-    qdrant_connected: false,
     audit_trail_accessible: false,
     scheduler_running: false,
     latest_macro_bulletin_age_days: null as number | null,
@@ -28,9 +28,10 @@ export async function GET() {
 
   try {
     await db.execute(sql`SELECT 1`)
-    checks.db = true
-  } catch (e) {
-    errors.push(`db: ${e instanceof Error ? e.message : String(e)}`)
+    checks.db = { status: 'ok', message: '' }
+  } catch (e: any) {
+    checks.db = { status: 'error', message: e.message }
+    errors.push(`db: ${e.message}`)
   }
 
   try {
@@ -42,35 +43,36 @@ export async function GET() {
       max_tokens: 10,
     })
     if (response.choices[0]?.message?.content) checks.azure_chat = true
-  } catch (e) {
-    errors.push(`azure_chat: ${e instanceof Error ? e.message : String(e)}`)
+  } catch (e: any) {
+    errors.push(`azure_chat: ${e.message}`)
   }
 
   try {
     const vector = await getEmbedding('test')
     if (vector.length === 1536) checks.azure_embedding = true
-  } catch (e) {
-    errors.push(`azure_embedding: ${e instanceof Error ? e.message : String(e)}`)
+  } catch (e: any) {
+    errors.push(`azure_embedding: ${e.message}`)
   }
 
   try {
-    await qdrant.getCollections()
-    checks.qdrant_connected = true
-  } catch (e) {
-    errors.push(`qdrant: ${e instanceof Error ? e.message : String(e)}`)
+    const r = await qdrant.getCollections()
+    checks.qdrant = { status: 'ok', collections: r.collections.length, message: '' }
+  } catch (e: any) {
+    checks.qdrant = { status: 'error', collections: 0, message: e.message }
+    errors.push(`qdrant: ${e.message}`)
   }
 
   try {
     auditTrail.query({ pipeline_run_id: 'HEALTH_CHECK' })
     checks.audit_trail_accessible = true
-  } catch (e) {
-    errors.push(`audit_trail: ${e instanceof Error ? e.message : String(e)}`)
+  } catch (e: any) {
+    errors.push(`audit_trail: ${e.message}`)
   }
 
   try {
     checks.scheduler_running = globalThis.__schedulerStarted === true
-  } catch (e) {
-    errors.push(`scheduler: ${e instanceof Error ? e.message : String(e)}`)
+  } catch (e: any) {
+    errors.push(`scheduler: ${e.message}`)
   }
 
   try {
@@ -82,15 +84,15 @@ export async function GET() {
         checks.latest_macro_bulletin_age_days = ageMs / (1000 * 60 * 60 * 24)
       }
     }
-  } catch (e) {
-    errors.push(`macro_bulletin_age: ${e instanceof Error ? e.message : String(e)}`)
+  } catch (e: any) {
+    errors.push(`macro_bulletin_age: ${e.message}`)
   }
 
   const allPassed =
-    checks.db &&
+    checks.db.status === 'ok' &&
     checks.azure_chat &&
     checks.azure_embedding &&
-    checks.qdrant_connected &&
+    checks.qdrant.status === 'ok' &&
     checks.audit_trail_accessible
 
   if (allPassed) {
