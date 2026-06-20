@@ -43,7 +43,7 @@ docker exec -it pf-pg psql -U postgres -c "CREATE DATABASE pf_copilot;"
 
 | Route | Method | Description |
 |-------|--------|-------------|
-| `/api/health` | GET | Liveness check — DB + Azure OpenAI connectivity |
+| `/api/health` | GET | Liveness check — DB + Azure OpenAI connectivity + Memory Usage |
 | `/api/me` | GET | Resolve or create dev user, return profile |
 | `/api/onboarding` | POST | Upsert onboarding profile, compute inflation rate |
 | `/api/portfolio/holdings` | GET | Return current holdings for the session user |
@@ -159,7 +159,7 @@ Background macro scanning and data checking are automated using `node-cron` rout
 ## CAS parsing
 
 - **`lib/cas/parse-text.ts`** — primary path. Regex-based extraction from NSDL/CDSL text PDFs.
-- **`lib/cas/parse-vision.ts`** — GPT-4o vision fallback. Pages batched 10 at a time. Aborts if >50% of batches fail to prevent partial-portfolio writes.
+- **`lib/cas/parse-vision.ts`** — GPT-4o vision fallback. Pages processed sequentially to avoid memory leaks. Aborts if >50% of batches fail to prevent partial-portfolio writes.
 - **`lib/cas/amfi-master.ts`** — single `LIKE ANY(ARRAY[...])` batch query to cross-check scheme names against the AMFI master table.
 
 ---

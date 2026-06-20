@@ -19,6 +19,82 @@ import { getGpt4o } from '../azure-openai'
 import { KnowledgeCommons } from '../research/knowledge-commons'
 import logger from '../logger'
 
+/*
+ * ARIA VOTE DECISION MATRIX
+ * ─────────────────────────────────────────────────────────
+ * Fault profile              Vote    Deciding factor
+ * ─────────────────────────────────────────────────────────
+ * Any CRITICAL               REJECT  CRITICAL_FAULT
+ * Any MAJOR                  REJECT  MAJOR_FAULT
+ * MINOR count > 3            REJECT  MINOR_ACCUMULATION
+ * MINOR count ≤ 3            APPROVE MINOR_ACCEPTABLE
+ * OBSERVATION only / empty   APPROVE CLEAN
+ * ─────────────────────────────────────────────────────────
+ * This matrix is the source of truth. deriveARIAVote() implements it.
+ * Do NOT add LLM judgment to the vote decision — it must be deterministic.
+ */
+
+export function deriveARIAVote(faults: CritiqueFault[]): {
+  vote: 'APPROVE' | 'REJECT'
+  reasoning: string
+  faultSummary: {
+    CRITICAL: number
+    MAJOR: number
+    MINOR: number
+    OBSERVATION: number
+  }
+  decidingFactor: 'CRITICAL_FAULT' | 'MAJOR_FAULT' | 'MINOR_ACCUMULATION' | 'CLEAN' | 'MINOR_ACCEPTABLE'
+} {
+  const summary = {
+    CRITICAL: faults.filter(f => f.severity === 'CRITICAL').length,
+    MAJOR: faults.filter(f => f.severity === 'MAJOR').length,
+    MINOR: faults.filter(f => f.severity === 'MINOR').length,
+    OBSERVATION: faults.filter(f => f.severity === 'OBSERVATION').length
+  }
+
+  if (summary.CRITICAL > 0) {
+    return {
+      vote: 'REJECT',
+      reasoning: `${summary.CRITICAL} CRITICAL fault(s) found.`,
+      faultSummary: summary,
+      decidingFactor: 'CRITICAL_FAULT'
+    }
+  }
+
+  if (summary.MAJOR > 0) {
+    return {
+      vote: 'REJECT',
+      reasoning: `${summary.MAJOR} MAJOR fault(s) found.`,
+      faultSummary: summary,
+      decidingFactor: 'MAJOR_FAULT'
+    }
+  }
+
+  if (summary.MINOR > 3) {
+    return {
+      vote: 'REJECT',
+      reasoning: `${summary.MINOR} MINOR faults found (exceeds threshold of 3).`,
+      faultSummary: summary,
+      decidingFactor: 'MINOR_ACCUMULATION'
+    }
+  }
+
+  if (summary.MINOR > 0) {
+    return {
+      vote: 'APPROVE',
+      reasoning: `${summary.MINOR} MINOR faults found (acceptable).`,
+      faultSummary: summary,
+      decidingFactor: 'MINOR_ACCEPTABLE'
+    }
+  }
+
+  return {
+    vote: 'APPROVE',
+    reasoning: 'No significant faults found.',
+    faultSummary: summary,
+    decidingFactor: 'CLEAN'
+  }
+}
 const ARIA_SYSTEM_PROMPT = `You are ARIA (Analytical Review & Intelligence Agent), the Contrarian Critic in a multi-agent portfolio intelligence system for Indian investors.
 
 YOUR ROLE: Find faults. Your job is not to block progress — it is to make the final portfolio genuinely better by catching problems before they reach the client.

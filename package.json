@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "NODE_OPTIONS='--max-old-space-size=4096' next dev",
+    "dev:debug": "NODE_OPTIONS='--max-old-space-size=4096 --inspect' next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -19,7 +20,7 @@
     "ingest:factsheets": "tsx scripts/ingest-factsheets.ts",
     "eval:setup": "tsx --env-file=.env.local tests/eval/golden-cas/generate-synthetic.ts",
     "eval": "tsx --env-file=.env.local tests/eval/runner.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "NODE_OPTIONS='--max-old-space-size=4096' playwright test"
   },
   "dependencies": {
     "@qdrant/js-client-rest": "^1.18.0",

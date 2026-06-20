@@ -9,6 +9,18 @@ import { qdrant } from '@/lib/memory/memory-store'
 import { auditTrail } from '@/lib/audit/audit-trail'
 
 export async function GET() {
+  const memUsage = process.memoryUsage()
+  const memory = {
+    heapUsedMB: Math.round(memUsage.heapUsed / 1024 / 1024),
+    heapTotalMB: Math.round(memUsage.heapTotal / 1024 / 1024),
+    rssMB: Math.round(memUsage.rss / 1024 / 1024),
+    status: (memUsage.heapUsed / memUsage.heapTotal > 0.85) ? 'warning' : 'ok'
+  }
+
+  if (memory.status === 'warning') {
+    console.warn(`[HEALTH] High memory usage detected: ${memory.heapUsedMB}MB used of ${memory.heapTotalMB}MB total (${Math.round((memUsage.heapUsed / memUsage.heapTotal) * 100)}%)`)
+  }
+
   const checks = {
     db: { status: 'pending', message: '' },
     qdrant: { status: 'pending', collections: 0, message: '' },
@@ -96,11 +108,11 @@ export async function GET() {
     checks.audit_trail_accessible
 
   if (allPassed) {
-    return NextResponse.json(ok(checks))
+    return NextResponse.json(ok({ checks, memory }))
   }
 
   return NextResponse.json(
-    err('health_check_failed', 'One or more health checks failed', { checks, errors }),
+    err('health_check_failed', 'One or more health checks failed', { checks, memory, errors }),
     { status: 503 },
   )
 }

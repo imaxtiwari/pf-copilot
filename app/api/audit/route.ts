@@ -3,6 +3,9 @@ import { resolveOrCreateUserId } from '@/lib/auth/dev-user'
 import { auditTrail } from '@/lib/audit/audit-trail'
 import { deliberationRoom } from '@/lib/deliberation/deliberation-room'
 import logger from '@/lib/logger'
+import { db } from '@/lib/db'
+import { deliberationMessages } from '@/db/schema'
+import { eq } from 'drizzle-orm'
 
 export async function GET(req: NextRequest) {
   try {
@@ -12,6 +15,30 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const view = searchParams.get('view')
     const pipeline_run_id = searchParams.get('pipelineRunId') || searchParams.get('pipeline_run_id') || undefined
+    const check = searchParams.get('check')
+
+    if (check === 'threading') {
+      if (!pipeline_run_id) {
+        return NextResponse.json(
+          { error: 'pipelineRunId is required for threading check', code: 'BAD_REQUEST' },
+          { status: 400 }
+        )
+      }
+      
+      const messages = await db.select().from(deliberationMessages).where(eq(deliberationMessages.pipelineRunId, pipeline_run_id))
+      const totalMessages = messages.length
+      const linkedMessages = messages.filter(m => m.replyToMessageId !== null).length
+      const messageIds = new Set(messages.map(m => m.messageId))
+      const orphanedMessages = messages.filter(m => m.replyToMessageId !== null && !messageIds.has(m.replyToMessageId)).length
+      const threadingIntegrityScore = totalMessages > 0 ? (linkedMessages / totalMessages) * 100 : 100
+
+      return NextResponse.json({
+        totalMessages,
+        linkedMessages,
+        orphanedMessages,
+        threadingIntegrityScore
+      })
+    }
 
     if (view === 'threaded') {
       if (!pipeline_run_id) {

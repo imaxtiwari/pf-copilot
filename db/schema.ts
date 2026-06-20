@@ -251,8 +251,8 @@ export const deliberationMessages = pgTable('deliberation_messages', {
   references: jsonb('references').default([]),
   timestamp: timestamp('timestamp').notNull(),
   createdAt: timestamp('created_at').defaultNow(),
-  replyToMessageId: uuid('reply_to_message_id').references((): any => deliberationMessages.messageId),
-  threadRootId: uuid('thread_root_id').references((): any => deliberationMessages.messageId),
+  replyToMessageId: uuid('reply_to_message_id').references((): any => deliberationMessages.messageId, { onDelete: 'set null' }),
+  threadRootId: uuid('thread_root_id').references((): any => deliberationMessages.messageId, { onDelete: 'set null' }),
   depth: integer('depth').default(0),
 }, (table: any) => [
   index('deliberation_messages_run_id_idx').on(table.pipelineRunId),

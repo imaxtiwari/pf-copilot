@@ -91,6 +91,34 @@ export class DeliberationRoom extends EventEmitter {
     return null
   }
 
+  async resolveThreadRoot(parentId: string): Promise<string> {
+    if (!this.dbClient) return parentId
+    try {
+      const [parent] = await this.dbClient
+        .select({ threadRootId: deliberationMessages.threadRootId })
+        .from(deliberationMessages)
+        .where(eq(deliberationMessages.messageId, parentId))
+        .limit(1)
+      return parent?.threadRootId ?? parentId
+    } catch (e) {
+      return parentId
+    }
+  }
+
+  async getParentDepth(parentId: string): Promise<number> {
+    if (!this.dbClient) return 0
+    try {
+      const [parent] = await this.dbClient
+        .select({ depth: deliberationMessages.depth })
+        .from(deliberationMessages)
+        .where(eq(deliberationMessages.messageId, parentId))
+        .limit(1)
+      return parent?.depth ?? 0
+    } catch (e) {
+      return 0
+    }
+  }
+
   // Publish a message through the full middleware → audit → broadcast pipeline
   async publish(
     rawMsg: Omit<DeliberationMessage, 'message_id' | 'timestamp' | 'oracle_validation' | 'depth' | 'reply_to_message_id' | 'thread_root_id'> & {
@@ -107,15 +135,44 @@ export class DeliberationRoom extends EventEmitter {
     let depth = 0
 
     if (replyTo) {
-      const parent = await this.getMessageById(replyTo)
-      if (parent) {
-        replyToMessageId = parent.message_id
-        threadRootId = parent.thread_root_id || parent.message_id
-        depth = (parent.depth ?? 0) + 1
+      // Step 2: Verify parent exists before linking
+      let parentExists = false
+      if (this.dbClient) {
+        try {
+          const [parent] = await this.dbClient
+            .select({ id: deliberationMessages.messageId })
+            .from(deliberationMessages)
+            .where(eq(deliberationMessages.messageId, replyTo))
+            .limit(1)
+          parentExists = !!parent
+        } catch (e) {
+          logger.warn({ e, replyTo }, 'Failed to query parent existence')
+        }
+      } else {
+        // In-memory fallback if no DB
+        parentExists = !!(await this.getMessageById(replyTo))
+      }
+
+      if (!parentExists) {
+        // Log and send as root message (graceful fallback)
+        auditTrail.log({
+          pipeline_run_id: (rawMsg as any).pipeline_run_id || 'unknown',
+          agent_id: 'SYSTEM',
+          action_type: AuditActionType.DELIBERATION_MESSAGE_SENT,
+          payload: {
+            type: 'THREADING_FALLBACK',
+            attemptedReplyTo: replyTo,
+            reason: 'parent_not_found',
+            messageType: (rawMsg as any).message_type
+          }
+        })
+        replyToMessageId = null
+        threadRootId = messageId
+        depth = 0
       } else {
         replyToMessageId = replyTo
-        threadRootId = replyTo
-        depth = 1
+        threadRootId = await this.resolveThreadRoot(replyTo)
+        depth = (await this.getParentDepth(replyTo)) + 1
       }
     }
 

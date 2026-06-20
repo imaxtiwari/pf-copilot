@@ -996,18 +996,30 @@ export class Dhruv {
     const votes: { voter: 'ARIA' | 'KIRAN' | 'VIKRAM' | 'DHRUV'; vote: 'APPROVE' | 'REJECT'; reasoning: string }[] = []
 
     // 1. ARIA vote
-    const criticalFaults = critiqueReport.faults.filter(f => f.severity === 'CRITICAL')
-    const hasCritical = criticalFaults.length > 0
-    const seriousFaults = critiqueReport.faults.filter(f => f.severity === 'CRITICAL' || f.severity === 'MAJOR')
-    const hasSerious = seriousFaults.length > 0
-    const ariaVote = hasSerious ? 'REJECT' : 'APPROVE'
+    const { deriveARIAVote } from './aria'
+    const ariaDecision = deriveARIAVote(critiqueReport.faults)
+    
     votes.push({
       voter: 'ARIA',
-      vote: ariaVote,
-      reasoning: hasSerious
-        ? `Critique has serious faults: ${seriousFaults.map(f => f.fault_description).join('; ')}`
-        : 'No critical or major faults found.'
+      vote: ariaDecision.vote,
+      reasoning: ariaDecision.reasoning
     })
+
+    if (ariaDecision.decidingFactor === 'MINOR_ACCUMULATION') {
+      auditTrail.log({
+        pipeline_run_id: pipelineRunId,
+        agent_id: 'ARIA',
+        action_type: AuditActionType.ARIA_MINOR_ACCUMULATION_REJECT,
+        payload: {
+          minorFaultCount: ariaDecision.faultSummary.MINOR,
+          threshold: 3,
+          decision: 'REJECT'
+        }
+      })
+    }
+
+    const hasCritical = ariaDecision.faultSummary.CRITICAL > 0
+    const criticalFaults = critiqueReport.faults.filter(f => f.severity === 'CRITICAL')
 
     // 2. KIRAN vote
     const hedgeCoverage = hedgeMap.overall_hedge_coverage_pct

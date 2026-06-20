@@ -6,30 +6,7 @@ import logger from '../logger'
 
 const BATCH_SIZE = 10
 
-async function pdfToImageBuffers(buffer: Buffer): Promise<Buffer[]> {
-  const convert = fromBuffer(buffer, {
-    density: 150,
-    format: 'png',
-    width: 1700,
-    height: 2200,
-    preserveAspectRatio: true,
-  })
-
-  // pdf2pic needs page count — use a large upper bound and stop on error
-  const pages: Buffer[] = []
-  let page = 1
-  while (true) {
-    try {
-      const result = await convert(page, { responseType: 'buffer' })
-      if (!result?.buffer) break
-      pages.push(result.buffer as Buffer)
-      page++
-    } catch {
-      break
-    }
-  }
-  return pages
-}
+// Removed pdfToImageBuffers since it loads all pages into memory at once
 
 function chunk<T>(arr: T[], size: number): T[][] {
   const result: T[][] = []
@@ -143,77 +120,33 @@ function mergeBatchResults(results: (CASExtraction | null)[]): CASExtraction | n
 }
 
 export async function parseCASVision(buffer: Buffer): Promise<CASExtraction | null> {
-  // MOCK FOR E2E TESTING
-  return {
-    source: 'vision',
-    as_of_date: '2026-03-31',
-    total_value_reported: 30670000,
-    holdings: [
-      {
-        scheme_name: 'Parag Parikh Flexi Cap Fund - Direct Plan - Growth',
-        scheme_code: null,
-        folio_number: 'PPFAS12345678',
-        units: 25000,
-        nav: 340,
-        market_value: 8500000,
-      },
-      {
-        scheme_name: 'Quant Small Cap Fund - Direct Plan - Growth',
-        scheme_code: null,
-        folio_number: 'QUANT12345678',
-        units: 15000,
-        nav: 200,
-        market_value: 3000000,
-      },
-      {
-        scheme_name: 'Nippon India Small Cap Fund - Direct Plan - Growth',
-        scheme_code: null,
-        folio_number: 'NIPPON12345678',
-        units: 20000,
-        nav: 125,
-        market_value: 2500000,
-      },
-      {
-        scheme_name: 'SBI Small Cap Fund - Direct Plan - Growth',
-        scheme_code: null,
-        folio_number: 'SBI12345678',
-        units: 12000,
-        nav: 150,
-        market_value: 1800000,
-      },
-      {
-        scheme_name: 'HDFC Mid-Cap Opportunities Fund - Direct Plan - Growth',
-        scheme_code: null,
-        folio_number: 'HDFC12345678',
-        units: 30000,
-        nav: 110,
-        market_value: 3300000,
-      },
-      {
-        scheme_name: 'Motilal Oswal Midcap 30 Fund - Direct Plan - Growth',
-        scheme_code: null,
-        folio_number: 'MOTILAL12345678',
-        units: 22000,
-        nav: 85,
-        market_value: 1870000,
-      },
-      {
-        scheme_name: 'ICICI Prudential Technology Fund - Direct Plan - Growth',
-        scheme_code: null,
-        folio_number: 'ICICI12345678',
-        units: 40000,
-        nav: 160,
-        market_value: 6400000,
-      },
-      {
-        scheme_name: 'Tata Digital India Fund - Direct Plan - Growth',
-        scheme_code: null,
-        folio_number: 'TATA12345678',
-        units: 25000,
-        nav: 132,
-        market_value: 3300000,
-      }
-    ],
-    _extraction_notes: ['Mocked vision extraction']
+  const convert = fromBuffer(buffer, {
+    density: 150,
+    format: 'png',
+    width: 1700,
+    height: 2200,
+    preserveAspectRatio: true,
+  })
+
+  const results: (CASExtraction | null)[] = []
+  let page = 1
+
+  while (true) {
+    try {
+      // Rasterize one page at a time
+      const result = await convert(page, { responseType: 'buffer' })
+      if (!result?.buffer) break
+      
+      const pageBuffer = result.buffer as Buffer
+      const pageHoldings = await callVisionBatch([pageBuffer], page)
+      results.push(pageHoldings)
+      
+      // buffer goes out of scope here -> GC eligible
+      page++
+    } catch {
+      break
+    }
   }
+
+  return mergeBatchResults(results)
 }

@@ -9,7 +9,7 @@ import { and, eq, desc } from 'drizzle-orm'
 import { detectDrift } from '../../../../lib/cas/drift-detector'
 import logger from '../../../../lib/logger'
 
-const MAX_BYTES = 10 * 1024 * 1024 // 10 MB
+const MAX_BYTES = 50 * 1024 * 1024 // 50 MB
 
 export async function POST(req: NextRequest) {
   const { userId, isNew } = await resolveOrCreateUserId()
@@ -41,6 +41,14 @@ export async function POST(req: NextRequest) {
 
   // Read into memory — buffer never touches disk
   let buffer: Buffer | null = Buffer.from(await file.arrayBuffer())
+
+  const fileSizeMB = buffer.length / (1024 * 1024)
+  if (fileSizeMB > 10) {
+    logger.warn({ userId, fileSizeMB: fileSizeMB.toFixed(1) }, '[cas] Large CAS file')
+  }
+  if (fileSizeMB > 50) {
+    return NextResponse.json(err('file_too_large', 'CAS file too large. Maximum 50MB.'), { status: 413 })
+  }
 
   logger.info({ userId, sizeBytes: buffer.length }, 'cas ingest: starting')
 
