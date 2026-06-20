@@ -25,10 +25,10 @@ async function runScenario(
   await dbInstance.insert(schema.users).values({ id: mockUserId }).onConflictDoNothing()
   await dbInstance.insert(schema.userProfile).values({
     userId: mockUserId,
-    age: 34,
+    age: 52,
     cityTier: 'metro', 
-    monthlyRent: '35000', 
-    ownsHome: false,
+    monthlyRent: '0', 
+    ownsHome: true,
     dependents: 'kids',
     medicalConditions: false,
     inflationRate: '7.0',
@@ -36,18 +36,18 @@ async function runScenario(
   }).onConflictDoNothing()
 
   // 1b. Seed CAS Holdings via Pipeline
-  const isDriftTest = process.env.DRIFT_TEST === 'true'
   const isForceVision = process.env.FORCE_VISION === 'true'
   
-  const { nitiGuptaHoldings } = await import('./fixtures/niti-gupta-holdings')
-  const { nitiGuptaHoldingsV2 } = await import('./fixtures/niti-gupta-holdings-v2')
+  const { rohanMehtaHoldings } = await import('./fixtures/rohan-mehta-holdings')
   const { injectCASForUser } = await import('./utils/inject-cas')
 
-  const holdings = isDriftTest ? nitiGuptaHoldingsV2 : nitiGuptaHoldings
-  const expectedCount = isDriftTest ? 8 : 7
+  const expectedCount = 8
 
-  const casResult = await injectCASForUser(mockUserId, holdings, { forceVisionFallback: isForceVision })
+  const casResult = await injectCASForUser(mockUserId, rohanMehtaHoldings, { forceVisionFallback: isForceVision })
   console.log(`CAS injected: ${casResult.holdingsCount} holdings, confidence ${casResult.parseConfidence}, mode: ${casResult.parseMode}`)
+
+  const casResultDup = await injectCASForUser(mockUserId, rohanMehtaHoldings, { forceVisionFallback: isForceVision })
+  console.log(`CAS DUPLICATE TEST: ${casResultDup.casUploadId === casResult.casUploadId ? 'PASS' : 'FAIL'} (IDs match)`)
 
   if (casResult.holdingsCount !== expectedCount) {
     throw new Error(`Expected ${expectedCount} holdings, got ${casResult.holdingsCount}`)
@@ -57,13 +57,13 @@ async function runScenario(
   const dhruv = new Dhruv(deliberationRoom, agentMemoryStore, dhruvResearchTool, dbInstance as any)
 
   const clientData = {
-    age: 34,
+    age: 52,
     cityTier: 'metro' as const,
-    monthlyRent: 35000,
-    ownsHome: false,
+    monthlyRent: 0,
+    ownsHome: true,
     dependents: 'kids' as const,
     medicalConditions: false,
-    yearsToGoal: 26, // Retirement is longest
+    yearsToGoal: 8, // Retirement is longest
     taxBracketPct: 30,
     version: 1
   }
@@ -77,40 +77,40 @@ async function runScenario(
   const { GOAL_TYPE } = await import('../lib/types/goal-types')
   const providedAnswers = {
     monthly_income_lakh: monthlyIncomeLakh,
-    monthly_expenses_lakh: 0.8, // Approximation based on rent and other expenses
+    monthly_expenses_lakh: 1.0, // Approximation
     stated_goals: [
-      "Child's higher education — ₹50L corpus in 14 years",
-      "Own apartment down payment — ₹30L in 6 years",
-      "Retirement — ₹3Cr corpus in 26 years"
+      "Retirement — ₹5Cr corpus in 8 years",
+      "Younger child's MBA abroad — ₹40L in 3 years",
+      "Medical emergency corpus — ₹15L immediately"
     ],
     answers: {},
     goals_data: [
       {
         goal_id: randomUUID(),
-        goal_type: GOAL_TYPE.CHILD_EDUCATION,
-        description: "Child's higher education — ₹50L corpus in 14 years",
-        target_corpus_lakh: 50.0,
-        current_corpus_lakh: 0.0,
-        monthly_sip_required_lakh: 0,
-        target_date: new Date(new Date().getFullYear() + 14, 0, 1).toISOString()
-      },
-      {
-        goal_id: randomUUID(),
-        goal_type: GOAL_TYPE.HOME_PURCHASE,
-        description: "Own apartment down payment — ₹30L in 6 years",
-        target_corpus_lakh: 30.0,
-        current_corpus_lakh: 0.0,
-        monthly_sip_required_lakh: 0,
-        target_date: new Date(new Date().getFullYear() + 6, 0, 1).toISOString()
-      },
-      {
-        goal_id: randomUUID(),
         goal_type: GOAL_TYPE.RETIREMENT,
-        description: "Retirement — ₹3Cr corpus in 26 years",
-        target_corpus_lakh: 300.0,
+        description: "Retirement — ₹5Cr corpus in 8 years",
+        target_corpus_lakh: 500.0,
         current_corpus_lakh: 0.0,
         monthly_sip_required_lakh: 0,
-        target_date: new Date(new Date().getFullYear() + 26, 0, 1).toISOString()
+        target_date: new Date(new Date().getFullYear() + 8, 0, 1).toISOString()
+      },
+      {
+        goal_id: randomUUID(),
+        goal_type: GOAL_TYPE.CHILD_EDUCATION,
+        description: "Younger child's MBA abroad — ₹40L in 3 years",
+        target_corpus_lakh: 40.0,
+        current_corpus_lakh: 0.0,
+        monthly_sip_required_lakh: 0,
+        target_date: new Date(new Date().getFullYear() + 3, 0, 1).toISOString()
+      },
+      {
+        goal_id: randomUUID(),
+        goal_type: GOAL_TYPE.EMERGENCY_CORPUS,
+        description: "Medical emergency corpus — ₹15L immediately (within 1 year)",
+        target_corpus_lakh: 15.0,
+        current_corpus_lakh: 0.0,
+        monthly_sip_required_lakh: 0,
+        target_date: new Date(new Date().getFullYear() + 1, 0, 1).toISOString()
       }
     ]
   }
@@ -156,12 +156,14 @@ async function main() {
   if (!checks.qdrant || checks.qdrant.status !== 'ok') throw new Error('Qdrant not ready — run the server first')
   if (!checks.db || checks.db.status !== 'ok') throw new Error('DB not ready')
 
-  console.log('--- Initializing Database for Niti Gupta (E2E) ---')
+  console.log('--- Initializing Database for Rohan Mehta (E2E) ---')
   const pool = new Pool({ connectionString: process.env.DATABASE_URL })
   const dbInstance = drizzle(pool, { schema })
 
-  await runScenario(dbInstance, pool, 'Success Path - Normal Cash Flow', 1.2, false)
-  await runScenario(dbInstance, pool, 'Mathematical Impossibility - Insufficient Cash Flow', 0.6, true)
+  // Rohan takes home 2.2L/mo.
+  await runScenario(dbInstance, pool, 'Success Path - Aggressive Cash Flow', 2.2, false)
+  // Force a deadlock scenario by giving him only 0.8L/mo income
+  await runScenario(dbInstance, pool, 'Mathematical Impossibility - Insufficient Cash Flow', 0.8, true)
 
   await pool.end()
 }

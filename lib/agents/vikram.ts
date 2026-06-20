@@ -282,7 +282,7 @@ ${conflicts.join('\n')}
     })
 
     await this.memoryStore.write('VIKRAM', {
-      content: JSON.stringify(validated),
+      content: validated,
       memory_type: 'VIKRAM_CLIENT_GOAL_ASSESSMENT',
       source_url: 'Internal',
       confidence_tier: 'VERIFIED',
@@ -418,7 +418,7 @@ Generate a GoalHypothesis JSON object following the prompt instructions.
     const userId = clientData.userId || clientData.client_id || 'anonymous'
     const memoryKey = `VIKRAM:goal_hypothesis:${userId}:${pipelineRunId}`
     await this.memoryStore.write('VIKRAM', {
-      content: JSON.stringify(validated),
+      content: validated,
       memory_type: 'VIKRAM_GOAL_HYPOTHESIS',
       source_url: 'Internal',
       confidence_tier: 'ASSUMED',
@@ -579,7 +579,7 @@ Return ONLY the updated GoalHypothesis JSON object. Do not include markdown code
       hypothesis = await this.applyCorrections(hypothesis, context.userCorrections, pipelineRunId)
       
       await this.memoryStore.write('VIKRAM', {
-        content: JSON.stringify(hypothesis),
+        content: hypothesis,
         memory_type: 'VIKRAM_GOAL_HYPOTHESIS',
         source_url: 'Internal',
         confidence_tier: 'ASSUMED',
@@ -599,7 +599,7 @@ Return ONLY the updated GoalHypothesis JSON object. Do not include markdown code
     const validated = ClientGoalAssessmentSchema.parse(assessment)
 
     await this.memoryStore.write('VIKRAM', {
-      content: JSON.stringify(validated),
+      content: validated,
       memory_type: 'VIKRAM_CLIENT_GOAL_ASSESSMENT',
       source_url: 'Internal',
       confidence_tier: 'VERIFIED',
@@ -755,7 +755,7 @@ JSON Schema:
     })
 
     await this.memoryStore.write('VIKRAM', {
-      content: JSON.stringify(validated),
+      content: validated,
       memory_type: 'VIKRAM_STRATEGY_FRAMEWORK',
       source_url: validated.selected_frameworks[0]?.source_url || 'Internal',
       confidence_tier: 'VERIFIED',

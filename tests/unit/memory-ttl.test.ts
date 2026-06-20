@@ -87,7 +87,7 @@ describe('Memory Store TTL Unit Tests', () => {
     const recalled = await store.recall('KIRAN', 'Interest rates', { include_stale: true })
     expect(recalled).toHaveLength(1)
     expect(recalled[0].status).toBe('STALE')
-    expect(recalled[0].content).toContain('[STALE — 8 days ago]')
+    expect(recalled[0].payload).toContain('[STALE — 8 days ago]')
   })
 
   it('should not return stale entries if include_stale is false (default)', async () => {
@@ -135,6 +135,6 @@ describe('Memory Store TTL Unit Tests', () => {
     const recalled = await store.recall('DHRUV', 'voted', { include_stale: true })
     expect(recalled).toHaveLength(1)
     expect(recalled[0].status).toBe('ACTIVE')
-    expect(recalled[0].content).not.toContain('[STALE')
+    expect(recalled[0].payload).not.toContain('[STALE')
   })
 })

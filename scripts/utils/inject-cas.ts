@@ -27,7 +27,14 @@ export async function injectCASForUser(
 
   // 3. Create a FormData with the PDF as a file upload
   const formData = new FormData()
-  const blob = new Blob([pdfBuffer], { type: 'application/pdf' })
+  const pdfUint8 = new Uint8Array(pdfBuffer)
+  const blob = new Blob([pdfUint8], { type: 'application/pdf' })
+
+  // Extend global fetch timeout to 10 minutes for vision parsing
+  try {
+    const { Agent, setGlobalDispatcher } = await import('undici')
+    setGlobalDispatcher(new Agent({ headersTimeout: 600000 }))
+  } catch (e) {}
   formData.append('file', blob, 'statement.pdf')
   formData.append('userId', userId) // API might get it from cookie/session, but test runner bypasses auth
 
@@ -35,19 +42,22 @@ export async function injectCASForUser(
   const apiUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000') + '/api/cas/ingest'
   
   // Set fake cookies/headers if the API requires auth for the E2E user
-  const headers = new Headers()
-  headers.append('Cookie', `dev_user_id=${userId}`)
-
-  const res = await fetch(apiUrl, {
-    method: 'POST',
-    body: formData,
-    headers
-  })
-
-  const json = await res.json()
-
-  // 6. If status = 'failed': throw with the error message
-  if (!res.ok || !json.ok) {
+  const axios = require('axios')
+  let json
+  try {
+    const res = await axios.post(apiUrl, formData, {
+      headers: {
+        Cookie: `dev_user_id=${userId}`,
+        'Content-Type': 'multipart/form-data'
+      },
+      timeout: 600000 // 10 minutes
+    })
+    json = res.data
+  } catch (error: any) {
+    throw new Error(`CAS Ingest failed: ${error.response ? JSON.stringify(error.response.data) : error.message}`)
+  }
+  
+  if (!json.ok) {
     throw new Error(`CAS Ingest failed: ${JSON.stringify(json)}`)
   }
 

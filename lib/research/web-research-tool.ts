@@ -91,8 +91,8 @@ export class WebResearchTool {
         )
         return freshCached.map(entry => ({
           url: entry.source_url,
-          title: entry.content.split('\n')[0] ?? entry.content.slice(0, 80),
-          content_snippet: entry.content,
+          title: entry.payload.split('\n')[0] ?? entry.payload.slice(0, 80),
+          content_snippet: entry.payload,
           retrieved_at: entry.retrieved_at,
           confidence_tier: entry.confidence_tier,
           oracle_flags: [],

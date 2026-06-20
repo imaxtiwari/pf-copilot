@@ -358,7 +358,7 @@ JSON Schema:
     const validated = FundComparisonMatrixSchema.parse(matrix)
 
     await this.memoryStore.write('SOMA', {
-      content: JSON.stringify(validated),
+      content: validated,
       memory_type: 'SOMA_FUND_RESEARCH',
       source_url: 'Internal',
       confidence_tier: 'VERIFIED',
@@ -475,7 +475,7 @@ JSON Schema:
     const validated = CompositionAuditSchema.parse(audit)
 
     await this.memoryStore.write('SOMA', {
-      content: JSON.stringify(validated),
+      content: validated,
       memory_type: 'SOMA_FUND_COMPOSITION',
       source_url: sourceUrl,
       confidence_tier: 'VERIFIED',
@@ -653,7 +653,7 @@ JSON Schema:
     }
 
     await this.memoryStore.write('SOMA', {
-      content: JSON.stringify(validated),
+      content: validated,
       memory_type: 'SOMA_FUND_RESEARCH',
       source_url: 'https://amfiindia.com',
       confidence_tier: 'VERIFIED',

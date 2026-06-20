@@ -1,7 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    instrumentationHook: true,
-  },
+  serverExternalPackages: ['pdf-parse', 'pdfjs-dist'],
 }
 module.exports = nextConfig

@@ -101,38 +101,38 @@ export class Dhruv {
   private buildDeadlockDirective(trigger: DeadlockTrigger, context: PipelineContext): string {
     switch (trigger.stage) {
       case 'SEBI_COMPLIANCE':
-        return \`SEBI compliance has blocked this portfolio \${trigger.revisions} times.
-          The fundamental issue is: \${trigger.complianceBlockReason}.
-          Resolution: Restructure goal \${trigger.mostProblematicGoal} with a
+        return `SEBI compliance has blocked this portfolio ${trigger.revisions} times.
+          The fundamental issue is: ${trigger.complianceBlockReason}.
+          Resolution: Restructure goal ${trigger.mostProblematicGoal} with a
           more conservative equity allocation. Reduce equity to 50% for the
-          \${trigger.shortestGoalTimeline}-year goal. Prioritize compliance over
-          return optimization.\`;
+          ${trigger.shortestGoalTimeline}-year goal. Prioritize compliance over
+          return optimization.`;
 
       case 'ARIA_CRITIQUE':
-        return \`ARIA has raised CRITICAL faults on \${trigger.revisions} consecutive drafts.
-          Persistent fault: \${trigger.persistentFaultCategory}.
+        return `ARIA has raised CRITICAL faults on ${trigger.revisions} consecutive drafts.
+          Persistent fault: ${trigger.persistentFaultCategory}.
           Resolution: Constrain PRIYA to use only index funds for this run.
           Remove all active fund selections. Prioritize diversification
-          over alpha generation.\`;
+          over alpha generation.`;
 
       case 'PRIYA_DRAFTING':
         const goalList = context.goals.map((g: any) => g.description || g.goal_type || 'Unknown').join(', ');
-        return \`PRIYA has failed to produce a valid draft after \${trigger.revisions} attempts.
-          Mathematical constraint: \${trigger.impossibilityReason}.
-          Resolution: We must prioritize the following goals and defer the least critical ones: \${goalList}\`;
+        return `PRIYA has failed to produce a valid draft after ${trigger.revisions} attempts.
+          Mathematical constraint: ${trigger.impossibilityReason}.
+          Resolution: We must prioritize the following goals and defer the least critical ones: ${goalList}`;
 
       case 'ARIA_PREFLIGHT':
-        return \`Pre-flight analysis detected a mathematically impossible goal set.
-          Reason: \${trigger.impossibilityReason}.
+        return `Pre-flight analysis detected a mathematically impossible goal set.
+          Reason: ${trigger.impossibilityReason}.
           Resolution: Present the user with a goal gap analysis before
           attempting portfolio construction. The pipeline cannot proceed
-          without goal modification.\`;
+          without goal modification.`;
 
       case 'COMMITTEE_VOTE':
-        return \`Committee vote deadlocked after \${trigger.revisions} revision cycles.
-          Highest confidence draft: \${trigger.bestDraftId} (score: \${trigger.bestConfidence}).
+        return `Committee vote deadlocked after ${trigger.revisions} revision cycles.
+          Highest confidence draft: ${trigger.bestDraftId} (score: ${trigger.bestConfidence}).
           Resolution: Accept the highest confidence draft with the following
-          risk disclosures attached: \${trigger.riskDisclosures.join(', ')}.\`;
+          risk disclosures attached: ${trigger.riskDisclosures.join(', ')}.`;
     }
   }
 
@@ -806,6 +806,22 @@ export class Dhruv {
         draft.backtest_summary.scenario_overlay = stressTest
         allDrafts.push(draft)
 
+        if (allDrafts.length >= 2) {
+          const currentDraft = allDrafts[allDrafts.length - 1]
+          const previousDraft = allDrafts[allDrafts.length - 2]
+          if (currentDraft.confidence_score.total < 60 && previousDraft.confidence_score.total < 60) {
+            const delta = currentDraft.confidence_score.total - previousDraft.confidence_score.total
+            if (delta <= 0) {
+              await this.stateMachine.transition('REVISION', 'DEADLOCKED', pipelineRunId)
+              await this.evaluateEarlyDeadlock(allDrafts, pipelineRunId)
+              await this.safeDeadlockTransition(pipelineRunId, 'Phase 2 Early deadlock due to confidence trajectory divergence')
+              await this.executeDeadlockProtocol(pipelineRunId, allDrafts, { stage: 'PRIYA_DRAFTING', revisions: cycle, bestDraftId: currentDraft.portfolio_id, bestConfidence: currentDraft.confidence_score.total, riskDisclosures: ['Mathematical impossibility detected. Confidence thrashing.'] }, { goals: currentDraft.goal_buckets })
+              logger.warn({ pipelineRunId }, 'DHRUV: runPhase2 completed with early deadlock')
+              return
+            }
+          }
+        }
+
         // Update snapshots for new funds if any
         const newSchemeCodes = new Set<string>()
         existingHoldings.forEach((h: any) => { if (h.schemeCode) newSchemeCodes.add(h.schemeCode) })
@@ -918,6 +934,22 @@ export class Dhruv {
           draft.hedge_instruments = realHedgeMap
           draft.backtest_summary.scenario_overlay = stressTest
           allDrafts.push(draft)
+
+          if (allDrafts.length >= 2) {
+            const currentDraft = allDrafts[allDrafts.length - 1]
+            const previousDraft = allDrafts[allDrafts.length - 2]
+            if (currentDraft.confidence_score.total < 60 && previousDraft.confidence_score.total < 60) {
+              const delta = currentDraft.confidence_score.total - previousDraft.confidence_score.total
+              if (delta <= 0) {
+                await this.stateMachine.transition('REVISION', 'DEADLOCKED', pipelineRunId)
+                await this.evaluateEarlyDeadlock(allDrafts, pipelineRunId)
+                await this.safeDeadlockTransition(pipelineRunId, 'Phase 2 Early deadlock due to confidence trajectory divergence')
+                await this.executeDeadlockProtocol(pipelineRunId, allDrafts, { stage: 'PRIYA_DRAFTING', revisions: cycle, bestDraftId: currentDraft.portfolio_id, bestConfidence: currentDraft.confidence_score.total, riskDisclosures: ['Mathematical impossibility detected. Confidence thrashing.'] }, { goals: currentDraft.goal_buckets })
+                logger.warn({ pipelineRunId }, 'DHRUV: runPhase2 completed with early deadlock')
+                return
+              }
+            }
+          }
         }
       }
 
@@ -966,13 +998,15 @@ export class Dhruv {
     // 1. ARIA vote
     const criticalFaults = critiqueReport.faults.filter(f => f.severity === 'CRITICAL')
     const hasCritical = criticalFaults.length > 0
-    const ariaVote = hasCritical ? 'REJECT' : 'APPROVE'
+    const seriousFaults = critiqueReport.faults.filter(f => f.severity === 'CRITICAL' || f.severity === 'MAJOR')
+    const hasSerious = seriousFaults.length > 0
+    const ariaVote = hasSerious ? 'REJECT' : 'APPROVE'
     votes.push({
       voter: 'ARIA',
       vote: ariaVote,
-      reasoning: hasCritical
-        ? `Critique has critical faults: ${criticalFaults.map(f => f.fault_description).join('; ')}`
-        : 'No critical faults found.'
+      reasoning: hasSerious
+        ? `Critique has serious faults: ${seriousFaults.map(f => f.fault_description).join('; ')}`
+        : 'No critical or major faults found.'
     })
 
     // 2. KIRAN vote
@@ -1051,7 +1085,7 @@ export class Dhruv {
     })
 
     await this.memoryStore.write('DHRUV', {
-      content: JSON.stringify(validated),
+      content: validated,
       memory_type: 'DHRUV_COMMITTEE_VOTE',
       source_url: 'Internal',
       confidence_tier: 'VERIFIED',
@@ -1411,7 +1445,7 @@ ${JSON.stringify(goalAssessment.stated_goals, null, 2)}
 
     try {
       await this.memoryStore.write('DHRUV', {
-        content: JSON.stringify(validated).substring(0, 20000), // Roughly 5000 tokens
+        content: validated,
         memory_type: 'DHRUV_FINAL_PORTFOLIO',
         source_url: 'Internal',
         confidence_tier: 'VERIFIED',

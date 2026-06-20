@@ -533,7 +533,7 @@ JSON Schema:
     const validated = ScenarioStressTestSchema.parse(stressTest)
 
     await this.memoryStore.write('KIRAN', {
-      content: JSON.stringify(validated),
+      content: validated,
       memory_type: 'KIRAN_HEDGE_MAP', // using HEDGE_MAP TTL
       source_url: 'Internal',
       confidence_tier: 'VERIFIED',

@@ -118,7 +118,7 @@ ${JSON.stringify(context.fundUniverse, null, 2)}
     // Persist to memory using makePipelineKey
     const memoryKey = makePipelineKey('ARIA', 'preflight_report', context.userId, context.pipelineRunId)
     await this.memoryStore.write('ARIA', {
-      content: JSON.stringify(preflightReport),
+      content: preflightReport,
       memory_type: 'ARIA_PREFLIGHT_REPORT',
       source_url: `internal://aria/preflight/${context.pipelineRunId}`,
       confidence_tier: 'INFERRED',

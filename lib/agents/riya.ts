@@ -411,7 +411,7 @@ Drift Analysis (Since last upload ${driftReport.daysBetweenUploads} days ago):
 
     // Write to Qdrant memory
     await this.memoryStore.write('RIYA', {
-      content: JSON.stringify(fingerprint),
+      content: fingerprint,
       memory_type: 'RIYA_BEHAVIORAL_FINGERPRINT' as any,
       source_url: 'Internal',
       confidence_tier: 'INFERRED',

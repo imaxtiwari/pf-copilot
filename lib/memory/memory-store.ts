@@ -4,6 +4,7 @@ import { auditTrail, AuditActionType, AgentId } from '../audit/audit-trail'
 import { MEMORY_TTL_DAYS, MemoryType } from './ttl-config'
 import { randomUUID } from 'crypto'
 import logger from '../logger'
+import { extractSemanticSummary } from './semantic-summary'
 
 class MockQdrantClient {
   private collections = new Map<string, Array<{ id: string | number; vector: number[]; payload: any }>>()
@@ -88,8 +89,11 @@ export type ConfidenceTier = 'VERIFIED' | 'INFERRED' | 'ASSUMED'
 export type MemoryStatus = 'ACTIVE' | 'STALE' | 'ARCHIVED'
 
 export interface MemoryEntry {
-  content: string
-  agent_id: string
+  payload: any
+  _key?: string
+  _summary: string
+  _storedAt: string
+  _agentId: string
   memory_type: MemoryType
   source_url: string
   retrieved_at: string
@@ -102,7 +106,7 @@ export interface MemoryEntry {
 }
 
 export interface WriteMemoryInput {
-  content: string
+  content: any
   memory_type: MemoryType
   source_url: string
   confidence_tier: ConfidenceTier
@@ -135,7 +139,9 @@ export async function initQdrant() {
           vectors: { size: 1536, distance: 'Cosine' }
         })
       } catch (e: any) {
-        if (e.status !== 409) throw e
+        // Qdrant returns 400 Bad Request for "already exists" in some versions, or 409 in others.
+        const isExists = e.status === 409 || (e.status === 400 && JSON.stringify(e.data || e).includes('already exists'));
+        if (!isExists) throw e;
       }
       logger.info(`Qdrant collection ${coll}: ready`)
     }
@@ -166,13 +172,25 @@ export class AgentMemoryStore {
   }
 
   async write(agentId: AgentId, entry: WriteMemoryInput): Promise<string> {
-    const vector = await getEmbedding(entry.content)
+    const key = entry.tags[0] || 'unknown';
+    const summary = extractSemanticSummary(entry.content, key);
+    const summaryTokenEstimate = Math.ceil(summary.length / 4);
+
+    if (summaryTokenEstimate > 8000) {
+      logger.error({ key, estimatedTokens: summaryTokenEstimate }, '[memory-store] Summary too long for embedding');
+      throw new Error(`Semantic summary exceeds embedding limit for key: ${key}. Add a case to extractSemanticSummary() for this key type.`);
+    }
+
+    const vector = await getEmbedding(summary)
     const id = randomUUID()
     const now = new Date().toISOString()
     
     const payload: MemoryEntry = {
-      content: entry.content,
-      agent_id: agentId,
+      payload: entry.content,
+      _key: key,
+      _summary: summary,
+      _storedAt: now,
+      _agentId: agentId,
       memory_type: entry.memory_type,
       source_url: entry.source_url,
       retrieved_at: now,
@@ -225,9 +243,7 @@ export class AgentMemoryStore {
       if (newStatus === 'ACTIVE') {
         finalEntries.push(payload)
       } else if (newStatus === 'STALE' && options?.include_stale) {
-        const ageMs = Date.now() - new Date(payload.created_at).getTime()
-        const ageDays = Math.floor(ageMs / (1000 * 60 * 60 * 24))
-        payload.content = `[STALE — ${ageDays} days ago] ${payload.content}`
+        payload.payload = typeof payload.payload === 'string' ? `[STALE] ${payload.payload}` : { ...payload.payload, _isStale: true };
         finalEntries.push(payload)
       }
     }
@@ -253,13 +269,25 @@ export class AgentMemoryStore {
   }
 
   async writeToKnowledgeCommons(entry: WriteMemoryInput & { agent_id: AgentId }): Promise<string> {
-    const vector = await getEmbedding(entry.content)
+    const key = entry.tags[0] || 'unknown';
+    const summary = extractSemanticSummary(entry.content, key);
+    const summaryTokenEstimate = Math.ceil(summary.length / 4);
+
+    if (summaryTokenEstimate > 8000) {
+      logger.error({ key, estimatedTokens: summaryTokenEstimate }, '[memory-store] Summary too long for embedding');
+      throw new Error(`Semantic summary exceeds embedding limit for key: ${key}. Add a case to extractSemanticSummary() for this key type.`);
+    }
+
+    const vector = await getEmbedding(summary)
     const id = randomUUID()
     const now = new Date().toISOString()
     
     const payload: MemoryEntry = {
-      content: entry.content,
-      agent_id: entry.agent_id,
+      payload: entry.content,
+      _key: key,
+      _summary: summary,
+      _storedAt: now,
+      _agentId: entry.agent_id,
       memory_type: entry.memory_type,
       source_url: entry.source_url,
       retrieved_at: now,
@@ -311,9 +339,7 @@ export class AgentMemoryStore {
       if (newStatus === 'ACTIVE') {
         finalEntries.push(payload)
       } else if (newStatus === 'STALE' && options?.include_stale) {
-        const ageMs = Date.now() - new Date(payload.created_at).getTime()
-        const ageDays = Math.floor(ageMs / (1000 * 60 * 60 * 24))
-        payload.content = `[STALE — ${ageDays} days ago] ${payload.content}`
+        payload.payload = typeof payload.payload === 'string' ? `[STALE] ${payload.payload}` : { ...payload.payload, _isStale: true };
         finalEntries.push(payload)
       }
     }

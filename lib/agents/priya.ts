@@ -375,7 +375,7 @@ JSON Output Schema:
     })
 
     await this.memoryStore.write('PRIYA', {
-      content: JSON.stringify(validated),
+      content: validated,
       memory_type: 'PRIYA_PORTFOLIO_DRAFT',
       source_url: 'Internal',
       confidence_tier: 'VERIFIED',
@@ -656,7 +656,7 @@ JSON Output Schema:
     }, ariaCritiqueMessageId)
 
     await this.memoryStore.write('PRIYA', {
-      content: JSON.stringify(validated),
+      content: validated,
       memory_type: 'PRIYA_PORTFOLIO_DRAFT',
       source_url: 'Internal',
       confidence_tier: 'VERIFIED',
