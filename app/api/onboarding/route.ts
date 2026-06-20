@@ -5,6 +5,7 @@ import { userProfile } from '../../../db/schema'
 import { ok, err } from '../../../lib/contracts/error-envelope'
 import { computePersonalInflation } from '../../../lib/inflation/compute'
 import { resolveOrCreateUserId, COOKIE_NAME, cookieOptions } from '../../../lib/auth/dev-user'
+import { GoalTypeSchema } from '../../../lib/types/goal-types'
 import logger from '../../../lib/logger'
 
 const OnboardingSchema = z.object({
@@ -14,6 +15,11 @@ const OnboardingSchema = z.object({
   owns_home: z.boolean(),
   dependents: z.enum(['none', 'spouse', 'kids', 'parents', 'multiple']),
   medical_conditions: z.boolean(),
+  goals: z.array(z.object({
+    type: GoalTypeSchema,
+    amount: z.number(),
+    timeline: z.number()
+  })).optional(),
 })
 
 export async function POST(req: NextRequest) {

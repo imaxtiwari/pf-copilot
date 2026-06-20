@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { GoalTypeSchema } from '../../types/goal-types'
 
 // ── Hypothesis-first interview types ──────────────────────────────────────────
 
@@ -49,15 +50,7 @@ export type UserCorrection = z.infer<typeof UserCorrectionSchema>
 // ── Core goal types ────────────────────────────────────────────────────────────
 export const DecomposedGoalSchema = z.object({
   goal_id: z.string().uuid(),
-  goal_type: z.enum([
-    'RETIREMENT',
-    'CHILD_EDUCATION',
-    'HOME_PURCHASE',
-    'EMERGENCY_CORPUS',
-    'WEALTH_CREATION',
-    'VACATION',
-    'CUSTOM',
-  ]),
+  goal_type: GoalTypeSchema,
   description: z.string(),
   target_corpus_lakh: z.number().positive(),
   target_date: z.string(), // ISO date or string YYYY-MM-DD
@@ -135,7 +128,7 @@ export const MarketContextBriefSchema = z.object({
 export type MarketContextBrief = z.infer<typeof MarketContextBriefSchema>
 
 export const InterviewGoalSchema = z.object({
-  goal_type: z.enum(['RETIREMENT', 'CHILD_EDUCATION', 'HOME_PURCHASE', 'EMERGENCY_CORPUS', 'WEALTH_CREATION', 'VACATION', 'CUSTOM']),
+  goal_type: GoalTypeSchema,
   description: z.string(),
   target_corpus_lakh: z.number().positive(),
   current_corpus_lakh: z.number().nonnegative().default(0),

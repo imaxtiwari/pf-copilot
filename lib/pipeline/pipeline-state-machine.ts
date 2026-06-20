@@ -4,19 +4,19 @@ import * as schema from '../../db/schema'
 import { auditTrail, AuditActionType } from '../audit/audit-trail'
 import logger from '../logger'
 
-const LEGAL_TRANSITIONS: Record<PipelineStage, PipelineStage[]> = {
+export const LEGAL_TRANSITIONS: Record<PipelineStage, PipelineStage[]> = {
   ONBOARDING: ['RIYA_BEHAVIORAL_PROFILING', 'PROFILING_AND_GOAL_ASSESSMENT', 'FAILED'],
   RIYA_BEHAVIORAL_PROFILING: ['PROFILING_AND_GOAL_ASSESSMENT', 'FAILED'],
   PROFILING_AND_GOAL_ASSESSMENT: ['SOMA_FUND_UNIVERSE', 'REVISION', 'FAILED'],
   SOMA_FUND_UNIVERSE: ['VIKRAM_STRATEGY', 'FAILED'],
   VIKRAM_STRATEGY: ['KIRAN_HEDGE_MAP', 'FAILED'],
   KIRAN_HEDGE_MAP: ['ARIA_PREFLIGHT', 'FAILED'],
-  ARIA_PREFLIGHT: ['PRIYA_BUILD', 'FAILED'],
-  PRIYA_BUILD: ['SEBI_COMPLIANCE', 'DELIBERATION', 'FAILED'],
+  ARIA_PREFLIGHT: ['PRIYA_BUILD', 'DEADLOCKED', 'FAILED'],
+  PRIYA_BUILD: ['SEBI_COMPLIANCE', 'DELIBERATION', 'DEADLOCKED', 'FAILED'],
   SEBI_COMPLIANCE: ['DELIBERATION', 'REVISION', 'DEADLOCKED', 'FAILED'],
-  DELIBERATION: ['COMMITTEE_VOTE', 'FAILED'],
+  DELIBERATION: ['COMMITTEE_VOTE', 'DEADLOCKED', 'FAILED'],
   COMMITTEE_VOTE: ['APPROVED', 'ATLAS_COMPARISON', 'PDF_GENERATION', 'REVISION', 'DEADLOCKED', 'FAILED'],
-  REVISION: ['PRIYA_BUILD', 'PROFILING_AND_GOAL_ASSESSMENT', 'COMMITTEE_VOTE', 'SEBI_COMPLIANCE', 'FAILED'],
+  REVISION: ['PRIYA_BUILD', 'PROFILING_AND_GOAL_ASSESSMENT', 'COMMITTEE_VOTE', 'SEBI_COMPLIANCE', 'DEADLOCKED', 'FAILED'],
   ATLAS_COMPARISON: ['APPROVED', 'PDF_GENERATION', 'FAILED'],
   PDF_GENERATION: ['APPROVED', 'FAILED'],
   APPROVED: [],
@@ -130,5 +130,26 @@ export class PipelineStateMachine {
       logger.error({ err, pipelineRunId }, 'Failed to check convergence')
       return false
     }
+  }
+
+  async forceSetStage(
+    pipelineRunId: string,
+    stage: PipelineStage,
+    callerMustBe: 'DHRUV' = 'DHRUV'
+  ): Promise<void> {
+    await this.db.update(schema.pipelineRuns)
+      .set({ status: stage })
+      .where(eq(schema.pipelineRuns.runId, pipelineRunId));
+
+    auditTrail.log({
+      pipeline_run_id: pipelineRunId,
+      agent_id: 'SYSTEM',
+      action_type: AuditActionType.FORCE_STAGE_SET || 'FORCE_STAGE_SET' as any,
+      payload: {
+        stage,
+        caller: callerMustBe,
+        warning: 'Transition validation bypassed — use only in deadlock recovery'
+      }
+    });
   }
 }

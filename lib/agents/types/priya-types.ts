@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { GoalTypeSchema } from '../../types/goal-types'
 import { HedgeMapSchema, ScenarioStressTestSchema } from './kiran-types'
 import { CritiqueFaultSchema } from './aria-types'
 import { StrategyFrameworkSchema } from './vikram-types'
@@ -6,15 +7,7 @@ import { StrategyFrameworkSchema } from './vikram-types'
 export const GoalBucketSchema = z.object({
   bucket_id: z.string().uuid(),
   goal_id: z.string().uuid(),
-  goal_type: z.enum([
-    'RETIREMENT',
-    'CHILD_EDUCATION',
-    'HOME_PURCHASE',
-    'EMERGENCY_CORPUS',
-    'WEALTH_CREATION',
-    'VACATION',
-    'CUSTOM',
-  ]),
+  goal_type: GoalTypeSchema,
   target_corpus_lakh: z.number().positive(),
   target_date: z.string(),
   time_horizon_years: z.number(),

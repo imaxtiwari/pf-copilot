@@ -25,6 +25,14 @@ async function main() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL })
   const dbInstance = drizzle(pool, { schema })
 
+async function runScenario(
+  dbInstance: any,
+  pool: Pool,
+  scenarioName: string,
+  monthlyIncomeLakh: number,
+  expectDeadlock: boolean
+) {
+  console.log(`\n\n=== SCENARIO: ${scenarioName} ===\n`)
   const mockUserId = randomUUID()
 
   // 1. Seed user profile
@@ -41,31 +49,22 @@ async function main() {
     computedAt: new Date()
   }).onConflictDoNothing()
 
-  // 1b. Seed CAS Holdings
-  const casUploadId = randomUUID()
-  await dbInstance.insert(schema.casUploads).values({
-    id: casUploadId,
-    userId: mockUserId,
-    fileHash: 'mock-hash-niti-gupta',
-    status: 'processed',
-    visionUsed: false
-  }).onConflictDoNothing()
+  // 1b. Seed CAS Holdings via Pipeline
+  const isDriftTest = process.env.DRIFT_TEST === 'true'
+  const isForceVision = process.env.FORCE_VISION === 'true'
+  
+  const { nitiGuptaHoldings } = await import('./fixtures/niti-gupta-holdings')
+  const { nitiGuptaHoldingsV2 } = await import('./fixtures/niti-gupta-holdings-v2')
+  const { injectCASForUser } = await import('./utils/inject-cas')
 
-  const mockHoldings = [
-    { schemeCode: '120465', schemeName: 'Axis Bluechip Fund - Direct Growth', folioNumber: 'F1', units: '1000', nav: '50', marketValue: '50000', asOfDate: new Date().toISOString(), source: 'manual' as const, casUploadId },
-    { schemeCode: '112323', schemeName: 'Axis Long Term Equity Fund - Direct Growth (ELSS)', folioNumber: 'F2', units: '500', nav: '80', marketValue: '40000', asOfDate: new Date().toISOString(), source: 'manual' as const, casUploadId },
-    { schemeCode: '125354', schemeName: 'Axis Small Cap Fund - Direct Growth', folioNumber: 'F3', units: '800', nav: '70', marketValue: '56000', asOfDate: new Date().toISOString(), source: 'manual' as const, casUploadId },
-    { schemeCode: '120466', schemeName: 'Axis Liquid Fund - Direct Growth', folioNumber: 'F4', units: '2000', nav: '100', marketValue: '200000', asOfDate: new Date().toISOString(), source: 'manual' as const, casUploadId },
-    { schemeCode: '120823', schemeName: 'Quant Active Fund - Direct Growth', folioNumber: 'F5', units: '300', nav: '120', marketValue: '36000', asOfDate: new Date().toISOString(), source: 'manual' as const, casUploadId },
-    { schemeCode: '120828', schemeName: 'Quant Small Cap Fund - Direct Growth', folioNumber: 'F6', units: '400', nav: '110', marketValue: '44000', asOfDate: new Date().toISOString(), source: 'manual' as const, casUploadId },
-    { schemeCode: '122639', schemeName: 'Parag Parikh Flexi Cap Fund - Direct Growth', folioNumber: 'F7', units: '600', nav: '90', marketValue: '54000', asOfDate: new Date().toISOString(), source: 'manual' as const, casUploadId }
-  ]
+  const holdings = isDriftTest ? nitiGuptaHoldingsV2 : nitiGuptaHoldings
+  const expectedCount = isDriftTest ? 8 : 7
 
-  for (const holding of mockHoldings) {
-    await dbInstance.insert(schema.portfolioHoldings).values({
-      userId: mockUserId,
-      ...holding
-    })
+  const casResult = await injectCASForUser(mockUserId, holdings, { forceVisionFallback: isForceVision })
+  console.log(`CAS injected: ${casResult.holdingsCount} holdings, confidence ${casResult.parseConfidence}, mode: ${casResult.parseMode}`)
+
+  if (casResult.holdingsCount !== expectedCount) {
+    throw new Error(`Expected ${expectedCount} holdings, got ${casResult.holdingsCount}`)
   }
 
   const dhruvResearchTool = new WebResearchTool('DHRUV', agentMemoryStore, deliberationRoom)
@@ -89,8 +88,9 @@ async function main() {
   console.log('--- Running Phase 1 (Onboarding -> Kiran Risk Profile -> Vikram Interview) ---')
   await dhruv.runPhase1(runId, mockUserId, clientData)
 
+  const { GOAL_TYPE } = await import('../lib/types/goal-types')
   const providedAnswers = {
-    monthly_income_lakh: 1.2,
+    monthly_income_lakh: monthlyIncomeLakh,
     monthly_expenses_lakh: 0.8, // Approximation based on rent and other expenses
     stated_goals: [
       "Child's higher education — ₹50L corpus in 14 years",
@@ -101,7 +101,7 @@ async function main() {
     goals_data: [
       {
         goal_id: randomUUID(),
-        goal_type: 'CHILD_EDUCATION' as const,
+        goal_type: GOAL_TYPE.CHILD_EDUCATION,
         description: "Child's higher education — ₹50L corpus in 14 years",
         target_corpus_lakh: 50.0,
         current_corpus_lakh: 0.0,
@@ -110,7 +110,7 @@ async function main() {
       },
       {
         goal_id: randomUUID(),
-        goal_type: 'HOME_PURCHASE' as const,
+        goal_type: GOAL_TYPE.HOME_PURCHASE,
         description: "Own apartment down payment — ₹30L in 6 years",
         target_corpus_lakh: 30.0,
         current_corpus_lakh: 0.0,
@@ -119,7 +119,7 @@ async function main() {
       },
       {
         goal_id: randomUUID(),
-        goal_type: 'RETIREMENT' as const,
+        goal_type: GOAL_TYPE.RETIREMENT,
         description: "Retirement — ₹3Cr corpus in 26 years",
         target_corpus_lakh: 300.0,
         current_corpus_lakh: 0.0,
@@ -137,21 +137,45 @@ async function main() {
   const [run] = await dbInstance.select().from(schema.pipelineRuns).where(eq(schema.pipelineRuns.runId, runId)).limit(1)
   console.log('Final Status:', run?.status)
 
-  if (run?.status === 'COMPLETED') {
+  if (expectDeadlock) {
+    if (run?.status !== 'DEADLOCKED') throw new Error(`Expected DEADLOCKED status, got ${run?.status}`);
     const [result] = await dbInstance.select().from(schema.pipelineResults).where(eq(schema.pipelineResults.pipelineRunId, runId)).limit(1)
-    console.log('\n===== FINAL PORTFOLIO =====\n')
-    console.log(JSON.stringify(result?.fullPortfolio, null, 2))
-    console.log('\n===========================\n')
+    if (!result || result.resultType !== 'deadlock') throw new Error(`Expected pipeline_results to have result_type='deadlock'`);
+    console.log('Successfully confirmed DEADLOCKED status and deadlock payload.');
+    console.log('Deadlock Directive:', (result.data as any).directive);
+  } else {
+    if (run?.status !== 'COMPLETED' && run?.status !== 'APPROVED') {
+      console.warn(`Expected successful completion, got ${run?.status}. (Check if it deadlocked unexpectedly)`);
+    } else {
+      const [result] = await dbInstance.select().from(schema.pipelineResults).where(eq(schema.pipelineResults.pipelineRunId, runId)).limit(1)
+      console.log('\n===== FINAL PORTFOLIO =====\n')
+      console.log(JSON.stringify((result?.data as any)?.fullPortfolio || result?.data, null, 2))
+      console.log('\n===========================\n')
+    }
   }
 
-  const messages = await dbInstance.select().from(schema.deliberationMessages).where(eq(schema.deliberationMessages.pipelineRunId, runId)).orderBy(schema.deliberationMessages.createdAt)
+  // Also check if subsequent API calls would succeed
+  const postPipelineUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000') + '/api/health' // Using health just to check server alive
+  const healthRes = await fetch(postPipelineUrl)
+  if (!healthRes.ok) throw new Error('Server dead after pipeline run.')
+}
+
+async function main() {
+  console.log('--- Checking Server Health ---')
+  const healthUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000') + '/api/health'
+  const healthRes = await fetch(healthUrl)
+  const healthData = await healthRes.json()
+  const checks = healthData.data || healthData.error?.details?.checks || {}
   
-  console.log('\n===== DELIBERATION MESSAGES =====\n')
-  messages.forEach((m: any) => {
-    console.log(`[${m.sender}] -> [${m.messageType}]`)
-    console.log(JSON.stringify(m.payload, null, 2))
-    console.log('---')
-  })
+  if (!checks.qdrant || checks.qdrant.status !== 'ok') throw new Error('Qdrant not ready — run the server first')
+  if (!checks.db || checks.db.status !== 'ok') throw new Error('DB not ready')
+
+  console.log('--- Initializing Database for Niti Gupta (E2E) ---')
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL })
+  const dbInstance = drizzle(pool, { schema })
+
+  await runScenario(dbInstance, pool, 'Success Path - Normal Cash Flow', 1.2, false)
+  await runScenario(dbInstance, pool, 'Mathematical Impossibility - Insufficient Cash Flow', 0.6, true)
 
   await pool.end()
 }

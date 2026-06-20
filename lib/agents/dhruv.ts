@@ -34,6 +34,17 @@ import { AgentId } from '../deliberation/message-schema'
 import { getGpt4o } from '../azure-openai'
 import logger from '../logger'
 
+export type DeadlockTrigger = 
+  | { stage: 'SEBI_COMPLIANCE'; revisions: number; complianceBlockReason: string; mostProblematicGoal: string; shortestGoalTimeline: number }
+  | { stage: 'ARIA_CRITIQUE'; revisions: number; persistentFaultCategory: string }
+  | { stage: 'PRIYA_DRAFTING'; revisions: number; impossibilityReason: string }
+  | { stage: 'ARIA_PREFLIGHT'; impossibilityReason: string }
+  | { stage: 'COMMITTEE_VOTE'; revisions: number; bestDraftId: string; bestConfidence: number; riskDisclosures: string[] }
+
+export type PipelineContext = {
+  goals: any[]
+}
+
 const DHRUV_SYSTEM_PROMPT = `You are DHRUV (Dynamic Head of Recommendation & Utility Validation), the Investment Committee Chair and Pipeline Controller.
 
 YOUR ROLE: Orchestrate the entire multi-agent recommendation pipeline. Oversee the committee voting process. Resolve deadlocks on the 5th revision cycle. Compile the final portfolio packet.
@@ -66,6 +77,63 @@ export class Dhruv {
     this.webResearchTool = webResearchTool
     this.db = db
     this.stateMachine = new PipelineStateMachine(db)
+  }
+
+  private async safeDeadlockTransition(pipelineRunId: string, reason: string): Promise<void> {
+    const currentStage = this.stateMachine.getCurrentStage(pipelineRunId)
+    const { LEGAL_TRANSITIONS } = await import('../pipeline/pipeline-state-machine')
+    const canDeadlock = LEGAL_TRANSITIONS[currentStage]?.includes('DEADLOCKED')
+
+    if (!canDeadlock) {
+      await this.stateMachine.forceSetStage(pipelineRunId, 'COMMITTEE_VOTE')
+      auditTrail.log({
+        pipeline_run_id: pipelineRunId,
+        agent_id: 'DHRUV',
+        action_type: AuditActionType.DEADLOCK_STAGE_CORRECTION || 'DEADLOCK_STAGE_CORRECTION' as any,
+        payload: { fromStage: currentStage, forcedTo: 'COMMITTEE_VOTE' }
+      })
+    }
+    
+    const stageToTransitionFrom = canDeadlock ? currentStage : 'COMMITTEE_VOTE'
+    await this.stateMachine.transition(stageToTransitionFrom, 'DEADLOCKED', pipelineRunId)
+  }
+
+  private buildDeadlockDirective(trigger: DeadlockTrigger, context: PipelineContext): string {
+    switch (trigger.stage) {
+      case 'SEBI_COMPLIANCE':
+        return \`SEBI compliance has blocked this portfolio \${trigger.revisions} times.
+          The fundamental issue is: \${trigger.complianceBlockReason}.
+          Resolution: Restructure goal \${trigger.mostProblematicGoal} with a
+          more conservative equity allocation. Reduce equity to 50% for the
+          \${trigger.shortestGoalTimeline}-year goal. Prioritize compliance over
+          return optimization.\`;
+
+      case 'ARIA_CRITIQUE':
+        return \`ARIA has raised CRITICAL faults on \${trigger.revisions} consecutive drafts.
+          Persistent fault: \${trigger.persistentFaultCategory}.
+          Resolution: Constrain PRIYA to use only index funds for this run.
+          Remove all active fund selections. Prioritize diversification
+          over alpha generation.\`;
+
+      case 'PRIYA_DRAFTING':
+        const goalList = context.goals.map((g: any) => g.description || g.goal_type || 'Unknown').join(', ');
+        return \`PRIYA has failed to produce a valid draft after \${trigger.revisions} attempts.
+          Mathematical constraint: \${trigger.impossibilityReason}.
+          Resolution: We must prioritize the following goals and defer the least critical ones: \${goalList}\`;
+
+      case 'ARIA_PREFLIGHT':
+        return \`Pre-flight analysis detected a mathematically impossible goal set.
+          Reason: \${trigger.impossibilityReason}.
+          Resolution: Present the user with a goal gap analysis before
+          attempting portfolio construction. The pipeline cannot proceed
+          without goal modification.\`;
+
+      case 'COMMITTEE_VOTE':
+        return \`Committee vote deadlocked after \${trigger.revisions} revision cycles.
+          Highest confidence draft: \${trigger.bestDraftId} (score: \${trigger.bestConfidence}).
+          Resolution: Accept the highest confidence draft with the following
+          risk disclosures attached: \${trigger.riskDisclosures.join(', ')}.\`;
+    }
   }
 
   async startPipeline(clientId: string, clientData: any): Promise<string> {
@@ -435,15 +503,16 @@ export class Dhruv {
           const drafts = await this.db.select().from(schema.portfolioDrafts).where(eq(schema.portfolioDrafts.pipelineRunId, pipelineRunId))
           const trajectoryData = drafts.map((d: any) => ({ version: d.version, confidenceScore: d.confidenceScore }))
           await this.evaluateEarlyDeadlock(trajectoryData, pipelineRunId)
-          await this.stateMachine.transition('COMMITTEE_VOTE', 'DEADLOCKED', pipelineRunId)
-          return this.executeDeadlockProtocol(pipelineRunId, allDrafts)
+          
+          await this.safeDeadlockTransition(pipelineRunId, 'Thrashing detected')
+          return this.executeDeadlockProtocol(pipelineRunId, allDrafts, { stage: 'COMMITTEE_VOTE', revisions: cycle, bestDraftId: draft.portfolio_id, bestConfidence: draft.confidence_score.total, riskDisclosures: ['Thrashing detected'] }, { goals: draft.goal_buckets })
         }
       }
     }
 
     // 10. revision_cycle reaches 5 -> Deadlock
-    await this.stateMachine.transition('COMMITTEE_VOTE', 'DEADLOCKED', pipelineRunId)
-    const deadlockReport = await this.executeDeadlockProtocol(pipelineRunId, allDrafts)
+    await this.safeDeadlockTransition(pipelineRunId, 'Max revisions reached')
+    const deadlockReport = await this.executeDeadlockProtocol(pipelineRunId, allDrafts, { stage: 'COMMITTEE_VOTE', revisions: maxCycles, bestDraftId: allDrafts[allDrafts.length-1].portfolio_id, bestConfidence: allDrafts[allDrafts.length-1].confidence_score.total, riskDisclosures: ['Max revisions reached'] }, { goals: allDrafts[allDrafts.length-1].goal_buckets })
     return deadlockReport
   }
 
@@ -853,9 +922,8 @@ export class Dhruv {
       }
 
       // 10. revision_cycle reaches 5 -> Deadlock
-      const currentState = this.stateMachine.getCurrentStage(pipelineRunId)
-      await this.stateMachine.transition(currentState, 'DEADLOCKED', pipelineRunId)
-      await this.executeDeadlockProtocol(pipelineRunId, allDrafts)
+      await this.safeDeadlockTransition(pipelineRunId, 'Phase 2 Max revisions reached')
+      await this.executeDeadlockProtocol(pipelineRunId, allDrafts, { stage: 'COMMITTEE_VOTE', revisions: maxCycles, bestDraftId: allDrafts[allDrafts.length-1].portfolio_id, bestConfidence: allDrafts[allDrafts.length-1].confidence_score.total, riskDisclosures: ['Max revisions reached'] }, { goals: allDrafts[allDrafts.length-1].goal_buckets })
       logger.warn({ pipelineRunId }, 'DHRUV: runPhase2 completed with deadlock')
     } catch (err) {
       logger.error({ err, pipelineRunId }, 'DHRUV: runPhase2 failed')
@@ -996,7 +1064,9 @@ export class Dhruv {
 
   async executeDeadlockProtocol(
     pipelineRunId: string,
-    allDrafts: PortfolioDraft[]
+    allDrafts: PortfolioDraft[],
+    trigger: DeadlockTrigger,
+    context: PipelineContext
   ): Promise<DeadlockReport> {
     logger.warn({ pipelineRunId }, 'DHRUV: PIPELINE DEADLOCK triggered')
 
@@ -1187,14 +1257,29 @@ CRITICAL RULE:
       references: [bestDraft.portfolio_id]
     }, triggeringMessageId)
 
+    const directive = this.buildDeadlockDirective(trigger, context)
+
     // Save to DB
+    const deadlockPayload = {
+      directive,
+      triggerStage: trigger.stage,
+      triggerReason: trigger.stage === 'SEBI_COMPLIANCE' ? trigger.complianceBlockReason :
+                     trigger.stage === 'ARIA_CRITIQUE' ? trigger.persistentFaultCategory :
+                     trigger.stage === 'PRIYA_DRAFTING' ? trigger.impossibilityReason :
+                     trigger.stage === 'ARIA_PREFLIGHT' ? trigger.impossibilityReason : 'COMMITTEE_VOTE_NO_QUORUM',
+      revisionCyclesAtDeadlock: trigger.stage === 'ARIA_PREFLIGHT' ? 0 : trigger.revisions,
+      bestDraftId: bestDraft ? bestDraft.portfolio_id : null,
+      bestDraftConfidence: bestDraft ? bestDraft.confidence_score.total : null,
+      goalsRecommendedForDeferral: trigger.stage === 'PRIYA_DRAFTING' ? context.goals.map(g => g.description || g.goal_type) : []
+    }
+
     await this.db.insert(schema.pipelineResults).values({
       pipelineRunId,
       resultType: 'deadlock',
-      data: validated,
+      data: deadlockPayload,
     }).onConflictDoUpdate({
       target: schema.pipelineResults.pipelineRunId,
-      set: { data: validated, resultType: 'deadlock' }
+      set: { data: deadlockPayload, resultType: 'deadlock' }
     })
 
     const mentor = new Mentor(this.deliberationRoom, this.memoryStore, this.db)

@@ -173,6 +173,13 @@ npm run eval                 # LLM eval suite (requires .env.local + running DB)
 npx playwright test          # e2e tests
 ```
 
+### Running E2E Tests
+1. Ensure server is running: `npm run dev`
+2. Ensure `/api/health` returns 200 (all systems ready)
+3. Run the Niti Gupta Persona E2E: `npx tsx scripts/run-niti-gupta-e2e.ts`
+4. To test drift detection: run the script with `DRIFT_TEST=true npx tsx scripts/run-niti-gupta-e2e.ts`
+5. To force vision fallback: `FORCE_VISION=true npx tsx scripts/run-niti-gupta-e2e.ts`
+
 ### Mocking and Local Testing
 * **Mock Azure OpenAI**: `tests/mocks/azure-openai.mock.ts` provides mock implementations for all Azure OpenAI ChatCompletion and Embedding calls.
 * **Qdrant Mocking**: When running with `MOCK_LLM=true` (set in `.env.local`), a `MockQdrantClient` in `lib/memory/memory-store.ts` handles all vector operations locally without requiring a running Qdrant instance.
