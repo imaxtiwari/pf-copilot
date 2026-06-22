@@ -42,7 +42,7 @@ export const PLANTS = [
   { x: 1120, y: 600 },
 ];
 
-export function drawOffice(ctx, tileSheet) {
+export function drawOffice(ctx, tileSheet, agentManager, state) {
   // CRITICAL: Ensure image smoothing is disabled for pixel art rendering
   ctx.imageSmoothingEnabled = false;
 
@@ -69,7 +69,7 @@ export function drawOffice(ctx, tileSheet) {
     }
   }
 
-  // 2. Draw top wall with navy color and windows
+  // 2. Draw top wall with navy color and windows (Window light pulse & warm yellow patches)
   ctx.fillStyle = OFFICE_LAYOUT.walls.color;
   ctx.fillRect(0, 0, OFFICE_LAYOUT.width, 16);
 
@@ -98,7 +98,36 @@ export function drawOffice(ctx, tileSheet) {
     ctx.strokeStyle = '#FFFFFF';
     ctx.lineWidth = 2;
     ctx.strokeRect(wx, wy, windowW, windowH);
+
+    // Warm yellow light patch below each window (pulsing opacity)
+    const lightPulse = 0.6 + Math.sin(Date.now() / 2000) * 0.1;
+    ctx.fillStyle = `rgba(255, 235, 59, ${lightPulse * 0.15})`;
+    ctx.fillRect(wx - 8, wy + windowH, windowW + 16, 40);
   }
+
+  // Draw Clock on the wall (top-center, 20x20px, white face, dark border)
+  const clockX = 600;
+  const clockY = 8;
+  const clockRadius = 6;
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath();
+  ctx.arc(clockX, clockY, clockRadius, 0, 2 * Math.PI);
+  ctx.fill();
+
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(clockX, clockY, clockRadius, 0, 2 * Math.PI);
+  ctx.stroke();
+
+  // Minute hand updates in real time using Date.now()
+  const minutesAngle = ((Date.now() / 60000) % 60) * (360 / 60) * (Math.PI / 180) - Math.PI / 2;
+  ctx.strokeStyle = '#2C2C54';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(clockX, clockY);
+  ctx.lineTo(clockX + Math.cos(minutesAngle) * 4, clockY + Math.sin(minutesAngle) * 4);
+  ctx.stroke();
 
   // 3. Draw bottom wall with navy color and bookshelf tiles
   ctx.fillStyle = OFFICE_LAYOUT.walls.color;
@@ -157,6 +186,17 @@ export function drawOffice(ctx, tileSheet) {
     const deskW = isDhruv ? 72 : 48;
     const deskH = 24;
 
+    // Draw DHRUV's desk gold glow during active pipeline
+    if (isDhruv && state && state.dhruvGlow > 0) {
+      ctx.save();
+      ctx.shadowColor = '#ffd700';
+      ctx.shadowBlur = Math.floor(8 * state.dhruvGlow);
+      ctx.strokeStyle = `rgba(255, 215, 0, ${state.dhruvGlow})`;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(pos.x - 2, pos.y - 2, deskW + 4, deskH + 4);
+      ctx.restore();
+    }
+
     // Draw chair below the desk (top-down RPG perspective)
     const chairW = 16;
     const chairH = 16;
@@ -203,6 +243,12 @@ export function drawOffice(ctx, tileSheet) {
       ctx.moveTo(pinboardX + 5, pinboardY + 6);
       ctx.lineTo(pinboardX + 10, pinboardY + 14);
       ctx.stroke();
+
+      // Blinking red dot representing active fault detection (every 800ms)
+      if (Math.floor(Date.now() / 800) % 2 === 0) {
+        ctx.fillStyle = '#FF1744';
+        ctx.fillRect(pinboardX + 11, pinboardY + 5, 2, 2);
+      }
     }
 
     // Special item: MENTOR's bookshelf behind desk
@@ -268,8 +314,8 @@ export function drawOffice(ctx, tileSheet) {
     ctx.strokeRect(cx, cy, chairW, chairH);
   });
 
-  // 7. Draw Plants
-  PLANTS.forEach((pos) => {
+  // 7. Draw Plants with swaying motion
+  PLANTS.forEach((pos, plantIndex) => {
     // Terracotta pot
     const potW = 12;
     const potH = 10;
@@ -281,11 +327,12 @@ export function drawOffice(ctx, tileSheet) {
     ctx.lineWidth = 1;
     ctx.strokeRect(potX, potY, potW, potH);
 
-    // Leaves
+    // Swaying leaves
+    const sway = Math.sin(Date.now() / 1200 + plantIndex) * 1.5;
     ctx.fillStyle = '#2E7D32';
-    ctx.fillRect(pos.x - 8, pos.y - 8, 16, 12);
+    ctx.fillRect(Math.floor(pos.x - 8 + sway), pos.y - 8, 16, 12);
     ctx.fillStyle = '#4CAF50';
-    ctx.fillRect(pos.x - 5, pos.y - 5, 10, 8);
+    ctx.fillRect(Math.floor(pos.x - 5 + sway), pos.y - 5, 10, 8);
   });
 
   // 8. Draw Water Cooler near MENTOR's desk area
@@ -301,8 +348,7 @@ export function drawOffice(ctx, tileSheet) {
   ctx.fillStyle = '#29B6F6'; // Water shine reflection
   ctx.fillRect(coolerX + 3, coolerY + 2, 4, 8);
 
-  // 9. Draw agent name labels above desks
-  ctx.font = '8px monospace';
+  // 9. Draw agent name labels and status dots above desks
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
   ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
@@ -311,6 +357,33 @@ export function drawOffice(ctx, tileSheet) {
     const deskW = isDhruv ? 72 : 48;
     const labelX = pos.x + deskW / 2;
     const labelY = pos.y - 4;
+
+    // Set ctx.font strictly before drawing text (monospace only)
+    ctx.font = '8px monospace';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
     ctx.fillText(agentId, labelX, labelY);
+
+    // Get current state of agent if agentManager is available
+    const agent = agentManager ? agentManager.get(agentId) : null;
+    const stateVal = agent ? agent.state : 'IDLE';
+
+    // Status dot (above label)
+    const dotX = labelX;
+    const dotY = labelY - 12;
+    let dotColor = '#546e7a'; // IDLE grey
+    let dotSize = 4;
+
+    if (stateVal === 'ACTIVE') {
+      dotColor = '#4fc3f7';
+      const pulseScale = 1 + Math.sin(Date.now() / 300) * 0.3;
+      dotSize = Math.floor(4 * pulseScale);
+    } else if (stateVal === 'WALKING') {
+      dotColor = '#ffb300';
+    } else if (stateVal === 'VOTING') {
+      dotColor = '#9c27b0';
+    }
+
+    ctx.fillStyle = dotColor;
+    ctx.fillRect(Math.floor(dotX - dotSize / 2), Math.floor(dotY - dotSize / 2), dotSize, dotSize);
   });
 }

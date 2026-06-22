@@ -28,6 +28,13 @@ export class Renderer {
     this.flashTimer = 0;
     this.confettiParticles = [];
 
+    // Pipeline progress bar states
+    this.completedStages = 0;
+    this.progressBarFlashTimer = 0;
+    this.progressBarFlashColor = null;
+    this.pipelineActive = false;
+    this.dhruvGlow = 0;
+
     this.bindEvents();
   }
 
@@ -40,6 +47,12 @@ export class Renderer {
   }
 
   bindEvents() {
+    eventBus.on('PIPELINE_STARTED', () => {
+      this.pipelineActive = true;
+      this.completedStages = 0;
+      this.pipelineOutcome = null;
+    });
+
     eventBus.on('AGENT_ACTIVATED', ({ agentId, stage }) => {
       const agent = this.agentManager.get(agentId);
       if (!agent) return;
@@ -56,6 +69,11 @@ export class Renderer {
     });
 
     eventBus.on('AGENT_DONE', ({ agentId, outcome }) => {
+      // Increment completedStages (10 stages total, cap at 9 before final outcome)
+      if (this.completedStages < 9) {
+        this.completedStages += 1;
+      }
+
       const agent = this.agentManager.get(agentId);
       if (!agent) return;
       if (agent.thoughtBubble) {
@@ -108,6 +126,10 @@ export class Renderer {
 
     eventBus.on('PIPELINE_APPROVED', () => {
       this.pipelineOutcome = 'APPROVED';
+      this.pipelineActive = false;
+      this.completedStages = 10;
+      this.progressBarFlashTimer = 1500;
+      this.progressBarFlashColor = '#66bb6a'; // green flash
       setBoardroomOutcome('APPROVED');
       this.startConfetti();
       setTimeout(() => this.agentsReturnToDesks(), 3000);
@@ -115,6 +137,9 @@ export class Renderer {
 
     eventBus.on('PIPELINE_DEADLOCKED', () => {
       this.pipelineOutcome = 'DEADLOCKED';
+      this.pipelineActive = false;
+      this.progressBarFlashTimer = 1500;
+      this.progressBarFlashColor = '#ef5350'; // red flash
       setBoardroomOutcome('DEADLOCKED');
       this.flashTimer = 1200;  // red flash duration ms
       setTimeout(() => this.agentsReturnToDesks(), 3000);
@@ -140,7 +165,6 @@ export class Renderer {
       resetBoardroom();
     }, 5000);
   }
-
 
   startConfetti() {
     this.confettiParticles = Array.from({ length: 80 }, () => ({
@@ -178,6 +202,18 @@ export class Renderer {
   update(deltaMs) {
     this.agentManager.update(deltaMs);
 
+    // Update DHRUV desk glow fade
+    if (this.pipelineActive) {
+      this.dhruvGlow = Math.min(this.dhruvGlow + deltaMs / 1000, 1);
+    } else {
+      this.dhruvGlow = Math.max(this.dhruvGlow - deltaMs / 1000, 0);
+    }
+
+    // Update progress bar flash timer
+    if (this.progressBarFlashTimer > 0) {
+      this.progressBarFlashTimer -= deltaMs;
+    }
+
     // Update confetti
     this.confettiParticles = this.confettiParticles.filter(p => {
       p.x += p.vx * (deltaMs / 1000);
@@ -193,9 +229,39 @@ export class Renderer {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    drawOffice(ctx);
+    // Draw office layout with ambient parameters and agentManager
+    drawOffice(ctx, this.spriteSheet, this.agentManager, {
+      dhruvGlow: this.dhruvGlow,
+      pipelineActive: this.pipelineActive
+    });
+
     if (this.boardroomActive) drawBoardroom(ctx);
     this.agentManager.draw(ctx, this.spriteSheet);
+
+    // Draw pipeline progress bar (top of canvas, thin 4px bar)
+    // Track background
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(0, 0, this.canvas.width, 4);
+
+    const progress = this.completedStages / 10;
+    if (progress > 0) {
+      let barColor;
+      if (this.progressBarFlashTimer > 0) {
+        if (Math.floor(Date.now() / 150) % 2 === 0) {
+          barColor = this.progressBarFlashColor;
+        } else {
+          barColor = '#1a1a2e';
+        }
+      } else {
+        const gradient = ctx.createLinearGradient(0, 0, this.canvas.width, 0);
+        gradient.addColorStop(0, '#4fc3f7');
+        gradient.addColorStop(1, '#66bb6a');
+        barColor = gradient;
+      }
+
+      ctx.fillStyle = barColor;
+      ctx.fillRect(0, 0, Math.floor(this.canvas.width * progress), 4);
+    }
 
     // Red flash overlay on deadlock
     if (this.flashTimer > 0) {

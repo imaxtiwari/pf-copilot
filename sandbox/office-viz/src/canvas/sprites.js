@@ -62,7 +62,7 @@ function drawAgentFallback(ctx, agentId, x, y, scale) {
   ctx.fillRect(Math.floor(x), Math.floor(y),
     SPRITE_SIZE * scale, SPRITE_SIZE * scale);
   ctx.fillStyle = '#ffffff';
-  ctx.font = `${Math.floor(12 * scale)}px monospace`;
+  ctx.font = '10px monospace';
   ctx.textAlign = 'center';
   ctx.fillText(
     agentId ? agentId[0] : '?',

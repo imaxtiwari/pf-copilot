@@ -99,7 +99,7 @@ export function drawBoardroom(ctx) {
       ctx.strokeRect(cx - 12, cy - 16, 24, 32);
 
       ctx.fillStyle = isApprove ? '#A5D6A7' : '#EF9A9A';
-      ctx.font = '7px monospace';
+      ctx.font = '8px monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(isApprove ? '✓' : '✗', cx, cy - 4);
@@ -109,6 +109,7 @@ export function drawBoardroom(ctx) {
       );
       // Agent name below card
       ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = '8px monospace';
       ctx.fillText(agentId, cx, cy + 24);
     }
   });
@@ -121,7 +122,7 @@ export function drawBoardroom(ctx) {
     ctx.fillStyle = outcomeLabel === 'APPROVED'
       ? 'rgba(76, 175, 80, 0.9)'
       : 'rgba(244, 67, 54, 0.9)';
-    ctx.font = 'bold 14px monospace';
+    ctx.font = '10px monospace';
     ctx.textAlign = 'center';
     ctx.fillText(
       outcomeLabel === 'APPROVED' ? '✓ APPROVED' : '✗ DEADLOCKED',
