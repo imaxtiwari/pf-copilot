@@ -1,4 +1,7 @@
-[
+{
+  "runId": "mock-run-001",
+  "persona": "Rohan Mehta",
+  "events": [
   {
     "id": "evt-001",
     "t": 0,
@@ -913,4 +916,5 @@
       "summary": "Atlas Comparison Report compiled. Overlap: 8.4%. Annual cost savings: 31,800 INR. Switch order generated."
     }
   }
-]
+  ]
+}
