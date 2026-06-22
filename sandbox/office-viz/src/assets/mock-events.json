@@ -1,0 +1,916 @@
+[
+  {
+    "id": "evt-001",
+    "t": 0,
+    "type": "PIPELINE_STARTED",
+    "agentId": "SYSTEM",
+    "payload": {
+      "runId": "mock-run-001",
+      "persona": "Rohan Mehta",
+      "goals": [
+        "Retirement corpus building (Target: 2 Crores in 8 years)",
+        "Fund child's MBA overseas (Target: 25 Lakhs in 5 years)",
+        "Shift out of low-yield overnight funds (Current: 75% of portfolio)"
+      ]
+    }
+  },
+  {
+    "id": "evt-002",
+    "t": 1000,
+    "type": "AGENT_ACTIVATED",
+    "agentId": "RIYA",
+    "payload": {
+      "stage": "RIYA_BEHAVIORAL_PROFILING"
+    }
+  },
+  {
+    "id": "evt-003",
+    "t": 1500,
+    "type": "AGENT_THINKING",
+    "agentId": "RIYA",
+    "payload": {
+      "text": "Initiating behavioral assessment for Rohan Mehta (Age 52)...",
+      "append": false
+    }
+  },
+  {
+    "id": "evt-004",
+    "t": 2500,
+    "type": "AGENT_THINKING",
+    "agentId": "RIYA",
+    "payload": {
+      "text": " Rohan holds 75% of his liquid assets in overnight funds. This is a classic symptom of extreme loss aversion, likely triggered by entering equity markets during past peaks and suffering losses.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-005",
+    "t": 3500,
+    "type": "AGENT_THINKING",
+    "agentId": "RIYA",
+    "payload": {
+      "text": " His goals require a 12% CAGR. Staying in low-yield overnight funds (~4.5% returns) creates a massive purchasing power deficit against inflation.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-006",
+    "t": 4500,
+    "type": "AGENT_THINKING",
+    "agentId": "RIYA",
+    "payload": {
+      "text": " I detect a pattern of recency chasing in his active equity history, where he sells during dips and buys during bull runs.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-007",
+    "t": 5500,
+    "type": "AGENT_THINKING",
+    "agentId": "RIYA",
+    "payload": {
+      "text": " Direct equity deployment will trigger anxiety and panic-selling. We must recommend a structured Systematic Transfer Plan (STP) over 12 months to smooth out the timing risk.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-008",
+    "t": 6500,
+    "type": "AGENT_THINKING",
+    "agentId": "RIYA",
+    "payload": {
+      "text": " Behavioral constraint set: Limit immediate lumpsum equity exposure to 15%. Direct remaining 85% through an STP route to maintain peace of mind.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-009",
+    "t": 7500,
+    "type": "AGENT_DONE",
+    "agentId": "RIYA",
+    "payload": {
+      "outcome": "SUCCESS",
+      "summary": "Behavioral profile analyzed. Loss aversion and recency chasing identified. STP constraint enforced."
+    }
+  },
+  {
+    "id": "evt-010",
+    "t": 8500,
+    "type": "AGENT_ACTIVATED",
+    "agentId": "KIRAN",
+    "payload": {
+      "stage": "KIRAN_HEDGE_MAP"
+    }
+  },
+  {
+    "id": "evt-011",
+    "t": 9000,
+    "type": "AGENT_ACTIVATED",
+    "agentId": "VIKRAM",
+    "payload": {
+      "stage": "VIKRAM_STRATEGY"
+    }
+  },
+  {
+    "id": "evt-012",
+    "t": 9500,
+    "type": "AGENT_THINKING",
+    "agentId": "KIRAN",
+    "payload": {
+      "text": "Performing global and local macro scan for asset-class hedging...",
+      "append": false
+    }
+  },
+  {
+    "id": "evt-013",
+    "t": 10000,
+    "type": "AGENT_THINKING",
+    "agentId": "VIKRAM",
+    "payload": {
+      "text": "Decomposing Rohan's dual goals: MBA (5 years) and Retirement (8 years)...",
+      "append": false
+    }
+  },
+  {
+    "id": "evt-014",
+    "t": 11500,
+    "type": "AGENT_THINKING",
+    "agentId": "KIRAN",
+    "payload": {
+      "text": " Domestic interest rate cycle is peaking. Debt yields are highly attractive. We should secure long-duration yields or dynamic bond configurations.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-015",
+    "t": 12000,
+    "type": "AGENT_THINKING",
+    "agentId": "VIKRAM",
+    "payload": {
+      "text": " For the 5-year MBA goal, we need a portfolio with low-to-medium volatility. High equity exposure is dangerous here. A hybrid allocation is optimal.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-016",
+    "t": 13500,
+    "type": "AGENT_THINKING",
+    "agentId": "KIRAN",
+    "payload": {
+      "text": " Mid-cap and Small-cap valuations are currently in the 90th percentile of historical P/E. Equity portion must lean heavily towards Large-cap value.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-017",
+    "t": 14000,
+    "type": "AGENT_THINKING",
+    "agentId": "VIKRAM",
+    "payload": {
+      "text": " Retirement at 60 requires an aggressive equity growth component, but the short horizon (8 years) calls for a safety net. Suggesting a 65/35 equity-debt split.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-018",
+    "t": 15500,
+    "type": "AGENT_THINKING",
+    "agentId": "KIRAN",
+    "payload": {
+      "text": " Recommending 65% Equity, 25% Active Debt, and 10% Gold (as a hedge against geopolitical turbulence and inflation).",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-019",
+    "t": 16000,
+    "type": "AGENT_THINKING",
+    "agentId": "VIKRAM",
+    "payload": {
+      "text": " Blending Riya's STP recommendation: We will structure a liquid overnight fund buffer that progressively feeds the equity allocations over 12 months.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-020",
+    "t": 17500,
+    "type": "AGENT_THINKING",
+    "agentId": "KIRAN",
+    "payload": {
+      "text": " Sending macro-hedging parameters to Soma: Large-cap tilt, dynamic duration debt, and arbitrage/gold hedges.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-021",
+    "t": 18000,
+    "type": "AGENT_THINKING",
+    "agentId": "VIKRAM",
+    "payload": {
+      "text": " Goal targets finalized: MBA (Moderate hybrid focus) + Retirement (Large/Mid-cap growth). Handoff to Soma.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-022",
+    "t": 19000,
+    "type": "AGENT_DONE",
+    "agentId": "KIRAN",
+    "payload": {
+      "outcome": "SUCCESS",
+      "summary": "Macro constraints set: 65% Equity (Large-tilt), 25% Debt, 10% Gold."
+    }
+  },
+  {
+    "id": "evt-023",
+    "t": 19500,
+    "type": "AGENT_DONE",
+    "agentId": "VIKRAM",
+    "payload": {
+      "outcome": "SUCCESS",
+      "summary": "Goal targets mapped. Liquid STP buffer strategy approved."
+    }
+  },
+  {
+    "id": "evt-024",
+    "t": 20500,
+    "type": "AGENT_ACTIVATED",
+    "agentId": "SOMA",
+    "payload": {
+      "stage": "SOMA_FUND_UNIVERSE"
+    }
+  },
+  {
+    "id": "evt-025",
+    "t": 21000,
+    "type": "AGENT_THINKING",
+    "agentId": "SOMA",
+    "payload": {
+      "text": "Scanning active mutual fund universe for Rohan's portfolio constraints...",
+      "append": false
+    }
+  },
+  {
+    "id": "evt-026",
+    "t": 22000,
+    "type": "AGENT_THINKING",
+    "agentId": "SOMA",
+    "payload": {
+      "text": " Evaluating large-cap consistent performers. Filtering for downside capture ratio < 85% and rolling outperformance over index.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-027",
+    "t": 23000,
+    "type": "AGENT_THINKING",
+    "agentId": "SOMA",
+    "payload": {
+      "text": " Selecting active dynamic debt: SBI Dynamic Bond is highly ranked but requires duration management checking.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-028",
+    "t": 24000,
+    "type": "AGENT_THINKING",
+    "agentId": "SOMA",
+    "payload": {
+      "text": " Selecting Large & Mid-Cap: ICICI Pru Large & Midcap Fund shows strong consistency and a reasonable expense ratio of 0.88%.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-029",
+    "t": 25000,
+    "type": "AGENT_THINKING",
+    "agentId": "SOMA",
+    "payload": {
+      "text": " Selecting Flexi-Cap: Parag Parikh Flexi Cap Fund for international diversification (currently 15% US equity exposure).",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-030",
+    "t": 26000,
+    "type": "AGENT_THINKING",
+    "agentId": "SOMA",
+    "payload": {
+      "text": " Identified liquid source for STP: HDFC Liquid Fund (Direct-Growth). Passing selected list to Aria and Priya.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-031",
+    "t": 27000,
+    "type": "AGENT_DONE",
+    "agentId": "SOMA",
+    "payload": {
+      "outcome": "SUCCESS",
+      "summary": "5 candidate funds selected: HDFC Liquid, ICICI Pru Large & Midcap, Parag Parikh Flexi Cap, SBI Dynamic Bond, Nippon India Gold."
+    }
+  },
+  {
+    "id": "evt-032",
+    "t": 28000,
+    "type": "AGENT_ACTIVATED",
+    "agentId": "ARIA",
+    "payload": {
+      "stage": "ARIA_PREFLIGHT"
+    }
+  },
+  {
+    "id": "evt-033",
+    "t": 28500,
+    "type": "AGENT_THINKING",
+    "agentId": "ARIA",
+    "payload": {
+      "text": "Running preflight validation on selected funds...",
+      "append": false
+    }
+  },
+  {
+    "id": "evt-034",
+    "t": 29500,
+    "type": "AGENT_THINKING",
+    "agentId": "ARIA",
+    "payload": {
+      "text": " Verifying scheme codes against AMFI official database. All scheme codes resolve correctly to direct-growth plans.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-035",
+    "t": 30500,
+    "type": "AGENT_THINKING",
+    "agentId": "ARIA",
+    "payload": {
+      "text": " Scanning fund management team changes: SBI Dynamic Bond fund manager transitioned last month. AUM remains stable, no red flags.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-036",
+    "t": 31500,
+    "type": "AGENT_THINKING",
+    "agentId": "ARIA",
+    "payload": {
+      "text": " Checking liquid fund exit loads: HDFC Liquid has 0% exit load after 7 days, safe for systematic transfers.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-037",
+    "t": 32500,
+    "type": "AGENT_THINKING",
+    "agentId": "ARIA",
+    "payload": {
+      "text": " All chosen assets are active and liquid. AUM thresholds (>1,000 Crores) met.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-038",
+    "t": 33500,
+    "type": "AGENT_THINKING",
+    "agentId": "ARIA",
+    "payload": {
+      "text": " Preflight audit completed. Handing over to Priya for drafting the allocation.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-039",
+    "t": 34500,
+    "type": "AGENT_DONE",
+    "agentId": "ARIA",
+    "payload": {
+      "outcome": "SUCCESS",
+      "summary": "Preflight check passed. Fund metadata verified."
+    }
+  },
+  {
+    "id": "evt-040",
+    "t": 35500,
+    "type": "AGENT_ACTIVATED",
+    "agentId": "PRIYA",
+    "payload": {
+      "stage": "PRIYA_BUILD"
+    }
+  },
+  {
+    "id": "evt-041",
+    "t": 36000,
+    "type": "AGENT_THINKING",
+    "agentId": "PRIYA",
+    "payload": {
+      "text": "Drafting portfolio allocation v1.0 based on Kiran and Vikram's parameters...",
+      "append": false
+    }
+  },
+  {
+    "id": "evt-042",
+    "t": 37000,
+    "type": "AGENT_THINKING",
+    "agentId": "PRIYA",
+    "payload": {
+      "text": " Allocating 40% to ICICI Pru Large & Midcap for equity growth. Allocating 25% to Parag Parikh Flexi Cap.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-043",
+    "t": 38000,
+    "type": "AGENT_THINKING",
+    "agentId": "PRIYA",
+    "payload": {
+      "text": " Allocating 25% to SBI Dynamic Bond for active duration debt play.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-044",
+    "t": 39000,
+    "type": "AGENT_THINKING",
+    "agentId": "PRIYA",
+    "payload": {
+      "text": " Allocating 10% to Nippon India Gold ETF for diversification hedge.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-045",
+    "t": 40000,
+    "type": "AGENT_THINKING",
+    "agentId": "PRIYA",
+    "payload": {
+      "text": " All assets mapped directly to the target portfolio. Sending Draft v1.0 for audit review.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-046",
+    "t": 41000,
+    "type": "AGENT_THINKING",
+    "agentId": "PRIYA",
+    "payload": {
+      "text": " Saving draft state. Awaiting verification results.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-047",
+    "t": 42000,
+    "type": "AGENT_DONE",
+    "agentId": "PRIYA",
+    "payload": {
+      "outcome": "SUCCESS",
+      "summary": "Draft v1.0 compiled (Lumpsum layout)."
+    }
+  },
+  {
+    "id": "evt-048",
+    "t": 43000,
+    "type": "AGENT_ACTIVATED",
+    "agentId": "ARIA",
+    "payload": {
+      "stage": "ARIA_AUDIT"
+    }
+  },
+  {
+    "id": "evt-049",
+    "t": 43500,
+    "type": "AGENT_THINKING",
+    "agentId": "ARIA",
+    "payload": {
+      "text": "Auditing Priya's Draft v1.0 against behavioral guidelines...",
+      "append": false
+    }
+  },
+  {
+    "id": "evt-050",
+    "t": 44500,
+    "type": "AGENT_THINKING",
+    "agentId": "ARIA",
+    "payload": {
+      "text": " Analyzing transaction flow. Wait, Draft v1.0 deploys 100% of Rohan's capital immediately as a lump sum.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-051",
+    "t": 45500,
+    "type": "AGENT_THINKING",
+    "agentId": "ARIA",
+    "payload": {
+      "text": " This directly violates Riya's behavioral assessment! Rohan has extreme loss aversion. A lump sum equity entry will cause anxiety and risk immediate panic-selling on a market dip.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-052",
+    "t": 46500,
+    "type": "AGENT_THINKING",
+    "agentId": "ARIA",
+    "payload": {
+      "text": " We MUST route the equity allocation via a Systematic Transfer Plan (STP) from a liquid cash buffer.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-053",
+    "t": 47500,
+    "type": "AGENT_THINKING",
+    "agentId": "ARIA",
+    "payload": {
+      "text": " MAJOR FAULT: Immediate lump-sum equity deployment exposes the client to high timing risk. Rejecting draft.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-054",
+    "t": 48500,
+    "type": "AGENT_THINKING",
+    "agentId": "ARIA",
+    "payload": {
+      "text": " Directive to Priya: Allocate 60% of the capital to HDFC Liquid Fund as a source buffer, and set up a 12-month STP into the equity components.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-055",
+    "t": 49500,
+    "type": "AGENT_DONE",
+    "agentId": "ARIA",
+    "payload": {
+      "outcome": "FAULT",
+      "summary": "Draft rejected. Major fault: Lump-sum equity allocation violates STP behavioral recommendation."
+    }
+  },
+  {
+    "id": "evt-056",
+    "t": 50500,
+    "type": "AGENT_ACTIVATED",
+    "agentId": "PRIYA",
+    "payload": {
+      "stage": "PRIYA_REVISION"
+    }
+  },
+  {
+    "id": "evt-057",
+    "t": 51000,
+    "type": "AGENT_THINKING",
+    "agentId": "PRIYA",
+    "payload": {
+      "text": "Processing Aria's rejection. Restructuring portfolio for STP deployment...",
+      "append": false
+    }
+  },
+  {
+    "id": "evt-058",
+    "t": 52000,
+    "type": "AGENT_THINKING",
+    "agentId": "PRIYA",
+    "payload": {
+      "text": " Allocating 60% of the total amount to HDFC Liquid Fund as the STP source buffer.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-059",
+    "t": 53000,
+    "type": "AGENT_THINKING",
+    "agentId": "PRIYA",
+    "payload": {
+      "text": " Setting up 12-month systematic transfer out of HDFC Liquid: 40% systematically transferring into ICICI Pru Large & Midcap and 20% into Parag Parikh Flexi Cap.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-060",
+    "t": 54000,
+    "type": "AGENT_THINKING",
+    "agentId": "PRIYA",
+    "payload": {
+      "text": " Allocating remaining 30% lump sum: 20% SBI Dynamic Bond (direct-growth) and 10% Nippon Gold ETF.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-061",
+    "t": 55000,
+    "type": "AGENT_THINKING",
+    "agentId": "PRIYA",
+    "payload": {
+      "text": " This structure meets Riya's risk-mitigation rules while maintaining Vikram's CAGR goals. Draft v1.1 finalized.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-062",
+    "t": 56000,
+    "type": "AGENT_THINKING",
+    "agentId": "PRIYA",
+    "payload": {
+      "text": " Sending updated draft to Dhruv for regulatory compliance checking.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-063",
+    "t": 57000,
+    "type": "AGENT_DONE",
+    "agentId": "PRIYA",
+    "payload": {
+      "outcome": "SUCCESS",
+      "summary": "Draft v1.1 compiled (60% STP, 30% Debt/Gold lumpsum)."
+    }
+  },
+  {
+    "id": "evt-064",
+    "t": 58000,
+    "type": "AGENT_ACTIVATED",
+    "agentId": "DHRUV",
+    "payload": {
+      "stage": "SEBI_COMPLIANCE_CHECK"
+    }
+  },
+  {
+    "id": "evt-065",
+    "t": 58500,
+    "type": "AGENT_THINKING",
+    "agentId": "DHRUV",
+    "payload": {
+      "text": "Initiating SEBI Mutual Fund compliance checks on Draft v1.1...",
+      "append": false
+    }
+  },
+  {
+    "id": "evt-066",
+    "t": 59500,
+    "type": "AGENT_THINKING",
+    "agentId": "DHRUV",
+    "payload": {
+      "text": " Checking scheme classification. Large & Midcap and Flexi-Cap fund types match SEBI categorization guidelines.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-067",
+    "t": 60500,
+    "type": "AGENT_THINKING",
+    "agentId": "DHRUV",
+    "payload": {
+      "text": " Verifying asset concentration limits. No single asset management company (AMC) holds more than 35% of total portfolio value. Diversified across HDFC, ICICI, SBI, Parag Parikh, and Nippon.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-068",
+    "t": 61500,
+    "type": "AGENT_THINKING",
+    "agentId": "DHRUV",
+    "payload": {
+      "text": " Checking transaction transparency. All recommended funds are verified as 'Direct Plan' to ensure zero intermediary brokerage fee leaks.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-069",
+    "t": 62500,
+    "type": "AGENT_THINKING",
+    "agentId": "DHRUV",
+    "payload": {
+      "text": " Auditing riskometer labeling. HDFC Liquid is labeled 'Low to Moderate Risk'. SBI Dynamic is 'Moderate'. Equity funds are 'Very High'. Disclosures complete.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-070",
+    "t": 63500,
+    "type": "AGENT_THINKING",
+    "agentId": "DHRUV",
+    "payload": {
+      "text": " All regulatory and transparency checkmarks are green. Passing to the Investment Committee for final voting.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-071",
+    "t": 64500,
+    "type": "AGENT_DONE",
+    "agentId": "DHRUV",
+    "payload": {
+      "outcome": "SUCCESS",
+      "summary": "SEBI Compliance verified. Zero violations found."
+    }
+  },
+  {
+    "id": "evt-072",
+    "t": 65500,
+    "type": "VOTE_CALLED",
+    "agentId": "SYSTEM",
+    "payload": {
+      "draftVersion": 1.1,
+      "confidenceScore": 0.94
+    }
+  },
+  {
+    "id": "evt-073",
+    "t": 67000,
+    "type": "VOTE_CAST",
+    "agentId": "ARIA",
+    "payload": {
+      "vote": "APPROVE",
+      "reasoning": "The 60% STP buffer solves the timing risk constraint and respects the client's loss aversion profile."
+    }
+  },
+  {
+    "id": "evt-074",
+    "t": 68500,
+    "type": "VOTE_CAST",
+    "agentId": "KIRAN",
+    "payload": {
+      "vote": "APPROVE",
+      "reasoning": "Asset allocations align with macro defensive positioning while ensuring growth goals are funded."
+    }
+  },
+  {
+    "id": "evt-075",
+    "t": 70000,
+    "type": "VOTE_CAST",
+    "agentId": "VIKRAM",
+    "payload": {
+      "vote": "APPROVE",
+      "reasoning": "Goal-based timeline target is achievable with this diversified strategy."
+    }
+  },
+  {
+    "id": "evt-076",
+    "t": 71500,
+    "type": "PIPELINE_APPROVED",
+    "agentId": "SYSTEM",
+    "payload": {
+      "finalConfidence": 0.95,
+      "revisionCycles": 1
+    }
+  },
+  {
+    "id": "evt-077",
+    "t": 73000,
+    "type": "AGENT_ACTIVATED",
+    "agentId": "MENTOR",
+    "payload": {
+      "stage": "LEARNINGS_DEPOSIT"
+    }
+  },
+  {
+    "id": "evt-078",
+    "t": 73500,
+    "type": "AGENT_THINKING",
+    "agentId": "MENTOR",
+    "payload": {
+      "text": "Reviewing execution history of Rohan Mehta's optimization flow...",
+      "append": false
+    }
+  },
+  {
+    "id": "evt-079",
+    "t": 74500,
+    "type": "AGENT_THINKING",
+    "agentId": "MENTOR",
+    "payload": {
+      "text": " Storing critical case insight: High-net-worth individuals with cash-rich portfolios but high loss aversion require gradual STP entry rules.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-080",
+    "t": 75500,
+    "type": "AGENT_THINKING",
+    "agentId": "MENTOR",
+    "payload": {
+      "text": " Simple lumpsum optimization models fail user experience tests here. The 12-month STP buffer is a repeatable success pattern.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-081",
+    "t": 76500,
+    "type": "AGENT_THINKING",
+    "agentId": "MENTOR",
+    "payload": {
+      "text": " Logging this constraint override pattern to the central vector database for future agent instantiation guidelines.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-082",
+    "t": 77500,
+    "type": "AGENT_THINKING",
+    "agentId": "MENTOR",
+    "payload": {
+      "text": " Depositing learnings into central archive... Success.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-083",
+    "t": 78500,
+    "type": "AGENT_THINKING",
+    "agentId": "MENTOR",
+    "payload": {
+      "text": " Run archive sequence complete. Ready to activate Atlas comparison.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-084",
+    "t": 79500,
+    "type": "AGENT_DONE",
+    "agentId": "MENTOR",
+    "payload": {
+      "outcome": "SUCCESS",
+      "summary": "Learnings deposited: Behavioral STP override successfully saved for low-risk-tolerance cohorts."
+    }
+  },
+  {
+    "id": "evt-085",
+    "t": 81000,
+    "type": "AGENT_ACTIVATED",
+    "agentId": "ATLAS",
+    "payload": {
+      "stage": "COMPARISON_GENERATION"
+    }
+  },
+  {
+    "id": "evt-086",
+    "t": 81500,
+    "type": "AGENT_THINKING",
+    "agentId": "ATLAS",
+    "payload": {
+      "text": "Running Atlas comparison engine on Rohan Mehta's current holdings vs approved portfolio...",
+      "append": false
+    }
+  },
+  {
+    "id": "evt-087",
+    "t": 82500,
+    "type": "AGENT_THINKING",
+    "agentId": "ATLAS",
+    "payload": {
+      "text": " Current holdings: 75% overnight funds, 25% legacy underperforming equity. Overlap percentage: 8.4%. Recommended portfolio has exit strategies for low-yield holdings.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-088",
+    "t": 83500,
+    "type": "AGENT_THINKING",
+    "agentId": "ATLAS",
+    "payload": {
+      "text": " Expense ratio comparison: Current weighted ratio is 0.85%, recommended portfolio (Direct Plans) weighted ratio is 0.32%. Estimated annual cost savings: 31,800 INR.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-089",
+    "t": 84500,
+    "type": "AGENT_THINKING",
+    "agentId": "ATLAS",
+    "payload": {
+      "text": " Portfolio return analysis: Recommended portfolio has a 3-year backtested CAGR of 13.8%, offering a +2.4% alpha over current benchmark holdings.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-090",
+    "t": 85500,
+    "type": "AGENT_THINKING",
+    "agentId": "ATLAS",
+    "payload": {
+      "text": " Switch load cost and tax liability assessment: STCG tax on overnight fund exit is negligible. exit load is 0%. Liquidating current equity holdings shows STCG liability of 4,200 INR.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-091",
+    "t": 86500,
+    "type": "AGENT_THINKING",
+    "agentId": "ATLAS",
+    "payload": {
+      "text": " Generating step-by-step transition order to execute STP and minimize tax drag. Atlas report generation complete.",
+      "append": true
+    }
+  },
+  {
+    "id": "evt-092",
+    "t": 87500,
+    "type": "AGENT_DONE",
+    "agentId": "ATLAS",
+    "payload": {
+      "outcome": "SUCCESS",
+      "summary": "Atlas Comparison Report compiled. Overlap: 8.4%. Annual cost savings: 31,800 INR. Switch order generated."
+    }
+  }
+]
