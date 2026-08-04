@@ -46,13 +46,23 @@ test.describe('Happy path: onboard → upload CAS → real returns → chat', ()
     expect(rateText).toBeTruthy()
   })
 
-  test('2. CAS upload — upload synthetic PDF and see holdings count', async ({ page }) => {
+  test('2. CAS upload — upload PDF and see holdings count', async ({ page }) => {
     await page.goto('http://localhost:3000/portfolio/upload')
 
     await page.setInputFiles('input[type="file"]', CAS_PDF_PATH)
 
-    // Wait for import success (LLM extraction can take up to 60s)
-    await expect(page.locator('text=/holdings? imported/i')).toBeVisible({ timeout: 60_000 })
+    // Wait for either review page or import success.
+    // High-confidence extractions auto-confirm; low-confidence ones redirect to review.
+    const reviewHeading = page.locator('text=Review CAS extraction')
+    const successMessage = page.locator('text=/holdings? imported/i')
+    await expect(reviewHeading.or(successMessage)).toBeVisible({ timeout: 60_000 })
+
+    // If review page appeared, confirm the holdings
+    if (await reviewHeading.isVisible().catch(() => false)) {
+      await expect(page.locator('text=Confirm & Save')).toBeVisible()
+      await page.click('text=Confirm & Save')
+      await expect(successMessage).toBeVisible({ timeout: 30_000 })
+    }
   })
 
   test('3. Real returns view — see nominal vs real callout', async ({ page }) => {

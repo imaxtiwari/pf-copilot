@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useState, useEffect, useRef, type ChangeEvent } from 'react'
 
 type Holding = {
@@ -20,6 +21,7 @@ type UploadState =
   | { status: 'error'; message: string; details?: unknown }
 
 export default function PortfolioPage() {
+  const router = useRouter()
   const [holdings, setHoldings] = useState<Holding[]>([])
   const [loadingHoldings, setLoadingHoldings] = useState(true)
   const [upload, setUpload] = useState<UploadState>({ status: 'idle' })
@@ -59,18 +61,51 @@ export default function PortfolioPage() {
     form.append('file', file)
 
     try {
-      const res = await fetch('/api/cas/ingest', { method: 'POST', body: form })
-      const json = await res.json()
-      if (json.ok) {
+      const sessionRes = await fetch('/api/cas/review-session', { method: 'POST', body: form })
+      const sessionJson = await sessionRes.json()
+      if (!sessionJson.ok) {
+        setUpload({ status: 'error', message: sessionJson.error?.message ?? 'Upload failed.', details: sessionJson.error?.details })
+        if (fileRef.current) fileRef.current.value = ''
+        return
+      }
+
+      const { extraction, thumbnails, confidence, unmatched_schemes, hash } = sessionJson.data
+
+      if (confidence.overallConfidence === 'low') {
+        const params = new URLSearchParams({
+          extraction: encodeURIComponent(JSON.stringify(extraction)),
+          thumbnails: encodeURIComponent(JSON.stringify(thumbnails)),
+          confidence: encodeURIComponent(JSON.stringify(confidence)),
+          unmatched: encodeURIComponent(JSON.stringify(unmatched_schemes ?? [])),
+          hash: encodeURIComponent(hash),
+        })
+        router.push(`/portfolio/review?${params.toString()}`)
+        return
+      }
+
+      // High/medium confidence: confirm automatically
+      const confirmRes = await fetch('/api/cas/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          source: extraction.source,
+          as_of_date: extraction.as_of_date,
+          total_value_reported: extraction.total_value_reported,
+          holdings: extraction.holdings,
+          hash,
+        }),
+      })
+      const confirmJson = await confirmRes.json()
+      if (confirmJson.ok) {
         setUpload({
           status: 'success',
-          holdingsCount: json.data.holdings_count,
-          unmatched: json.data.unmatched_schemes ?? [],
-          fromCache: json.data.from_cache,
+          holdingsCount: confirmJson.data.holdings_count,
+          unmatched: unmatched_schemes ?? [],
+          fromCache: false,
         })
         fetchHoldings()
       } else {
-        setUpload({ status: 'error', message: json.error?.message ?? 'Upload failed.', details: json.error?.details })
+        setUpload({ status: 'error', message: confirmJson.error?.message ?? 'Upload failed.', details: confirmJson.error?.details })
       }
     } catch {
       setUpload({ status: 'error', message: 'Network error. Please try again.' })

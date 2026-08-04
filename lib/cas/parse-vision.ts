@@ -6,7 +6,7 @@ import logger from '../logger'
 
 const BATCH_SIZE = 10
 
-async function pdfToImageBuffers(buffer: Buffer): Promise<Buffer[]> {
+export async function pdfToImageBuffers(buffer: Buffer): Promise<Buffer[]> {
   const convert = fromBuffer(buffer, {
     density: 150,
     format: 'png',
