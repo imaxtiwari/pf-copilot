@@ -17,12 +17,14 @@ type SchemeRow = {
   schemeName: string
   amcName: string
   schemeType: string
+  amfiCategory: string | null
 }
 
 function parseAmfiFile(text: string): SchemeRow[] {
   const rows: SchemeRow[] = []
   let currentAmc = 'Unknown'
   let currentType = 'Unknown'
+  let currentAmfiCategory: string | null = null
 
   for (const raw of text.split('\n')) {
     const line = raw.trim()
@@ -35,15 +37,33 @@ function parseAmfiFile(text: string): SchemeRow[] {
       const schemeCode = parts[0].trim()
       const schemeName = parts[3].trim()
       if (!schemeCode || !schemeName || schemeName === 'Scheme Name') continue
-      rows.push({ schemeCode, schemeName, amcName: currentAmc, schemeType: currentType })
+      rows.push({
+        schemeCode,
+        schemeName,
+        amcName: currentAmc,
+        schemeType: currentType,
+        amfiCategory: currentAmfiCategory,
+      })
       continue
     }
 
     if (line.startsWith('Scheme Code;')) continue
 
-    // Category/type header lines
-    if (/open\s+ended|close\s+ended|interval\s+fund/i.test(line)) {
-      currentType = line.replace(/\(/, ' - ').replace(/\)/, '').replace(/\s{2,}/g, ' ').trim()
+    // Top-level scheme type header lines (e.g. "Open Ended Schemes")
+    if (/open\s+ended\s+schemes|close\s+ended\s+schemes|interval\s+fund\s+schemes/i.test(line)) {
+      currentType = line.replace(/\(/g, ' - ').replace(/\)/g, '').replace(/\s{2,}/g, ' ').trim()
+      currentAmfiCategory = null
+      continue
+    }
+
+    // AMFI category lines (e.g. "Equity Scheme - Large Cap Fund")
+    if (
+      /fund$/i.test(line) &&
+      !/^Scheme Code|Net Asset/i.test(line) &&
+      line.length >= 10 &&
+      line.length <= 140
+    ) {
+      currentAmfiCategory = line.replace(/\s{2,}/g, ' ').trim()
       continue
     }
 
@@ -99,6 +119,7 @@ async function main() {
             schemeName: sql`excluded.scheme_name`,
             amcName: sql`excluded.amc_name`,
             schemeType: sql`excluded.scheme_type`,
+            amfiCategory: sql`excluded.amfi_category`,
             lastSynced: sql`excluded.last_synced`,
           },
         })

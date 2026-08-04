@@ -9,7 +9,11 @@ import { computePersonalInflation } from '@/lib/inflation/compute'
 import { RealVsNominal } from '@/components/real-vs-nominal'
 import { PortfolioTable } from '@/components/portfolio-table'
 import { PortfolioTimelineChart } from '@/components/portfolio-timeline-chart'
+import { PortfolioAllocationChart } from '@/components/portfolio-allocation-chart'
+import { PortfolioConcentration } from '@/components/portfolio-concentration'
 import { parseNominalReturn1y } from '@/lib/inflation/parse-return'
+import { describeAgeBand, ageBasedEquityBand } from '@/lib/portfolio/allocation'
+import { getAllocationForUser } from '@/lib/portfolio/get-allocation'
 import type { UserProfileInput } from '@/lib/inflation/compute'
 import type { InflationConfidence } from '@/lib/validation/schemas'
 
@@ -168,6 +172,51 @@ export default async function PortfolioPage() {
 
   const latestRolling1y = timelineData[timelineData.length - 1]?.real_return_annualized ?? null
 
+  // ── allocation data ─────────────────────────────────────────────────────────
+  let allocation: {
+    ok: boolean
+    data: {
+      buckets: Array<{
+        bucket: string
+        value: number
+        weight: number
+        holdingCount: number
+      }>
+      totalValue: number
+      topHoldings: Array<{
+        schemeName: string
+        schemeCode: string | null
+        marketValue: number
+        bucket: string
+        amfiCategory: string | null
+      }>
+      unknownWeight: number
+    }
+  } = { ok: false, data: { buckets: [], totalValue: 0, topHoldings: [], unknownWeight: 0 } }
+
+  try {
+    allocation = await getAllocationForUser(userId)
+  } catch {
+    // leave allocation empty on error
+  }
+
+  const age = profile?.age ?? null
+  const ageBand = describeAgeBand(age)
+  const equityBand = ageBasedEquityBand(age)
+  const equityWeight = allocation.ok
+    ? allocation.data.buckets
+      .filter((b) =>
+        [
+          'Equity - Large Cap',
+          'Equity - Mid Cap',
+          'Equity - Small Cap',
+          'Equity - Multi/ Flexi/ Focused',
+          'ELSS (Tax Saver)',
+        ].includes(b.bucket),
+      )
+      .reduce((sum, b) => sum + b.weight, 0)
+    : 0
+
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
       {/* Header row */}
@@ -229,6 +278,78 @@ export default async function PortfolioPage() {
         </div>
         <PortfolioTimelineChart data={timelineData} />
       </section>
+
+      {/* Allocation section */}
+      {allocation.ok && allocation.data.totalValue > 0 && (
+        <section className="mb-6 rounded-xl border bg-white p-4 shadow-sm">
+          <div className="mb-4">
+            <h2 className="text-base font-semibold text-gray-800">Allocation by category</h2>
+            <p className="text-xs text-gray-500">
+              Buckets are based on AMFI categories or scheme-name keywords, not advice.
+            </p>
+          </div>
+
+          <div className="mb-4 rounded border border-gray-100 bg-gray-50 p-3">
+            <div className="mb-2 flex items-center justify-between text-sm">
+              <span className="text-gray-600">Equity exposure</span>
+              <span className="font-semibold text-gray-900">{(equityWeight * 100).toFixed(1)}%</span>
+            </div>
+            {age !== null && ageBand && (
+              <div className="relative h-3 w-full rounded-full bg-gray-200">
+                <div
+                  className="absolute top-0 h-3 rounded-full bg-indigo-100"
+                  style={{
+                    left: `${equityBand.min * 100}%`,
+                    width: `${(equityBand.max - equityBand.min) * 100}%`,
+                  }}
+                />
+                <div
+                  className="absolute top-0 h-3 w-1 rounded-full bg-indigo-600"
+                  style={{
+                    left: `${Math.min(Math.max(equityWeight * 100, 0), 100)}%`,
+                  }}
+                />
+              </div>
+            )}
+            {age === null && <p className="text-xs text-gray-500">Share your age to see a reference band.</p>}
+          </div>
+
+          <div className="mb-4">
+            <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              {ageBand.label}
+            </h3>
+            <p className="text-sm text-gray-600">{ageBand.description}</p>
+          </div>
+
+          <div className="mb-6">
+            <PortfolioAllocationChart
+              buckets={allocation.data.buckets}
+              totalValue={allocation.data.totalValue}
+            />
+          </div>
+
+          <div>
+            <h3 className="mb-3 text-sm font-semibold text-gray-800">Top holdings</h3>
+            <PortfolioConcentration
+              holdings={allocation.data.topHoldings}
+              totalValue={allocation.data.totalValue}
+            />
+          </div>
+
+          {allocation.data.unknownWeight > 0.1 && (
+            <p className="mt-4 text-xs text-gray-500">
+              {((allocation.data.unknownWeight) * 100).toFixed(1)}% of your portfolio is in categories we
+              could not clearly classify yet. Review the holdings list or update your CAS after
+              syncing the latest AMFI master.
+            </p>
+          )}
+
+          <div className="mt-4 rounded border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+            This is a descriptive view of what you already hold. It is not guidance to add, exit,
+            or change any fund.
+          </div>
+        </section>
+      )}
 
       {/* Holdings table */}
       <div className="mb-4">

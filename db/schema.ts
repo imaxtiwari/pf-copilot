@@ -144,5 +144,6 @@ export const amfiSchemeMaster = pgTable('amfi_scheme_master', {
   schemeName: text('scheme_name').notNull(),
   amcName: text('amc_name').notNull(),
   schemeType: text('scheme_type').notNull(),
+  amfiCategory: text('amfi_category'),
   lastSynced: timestamp('last_synced').notNull(),
 })
