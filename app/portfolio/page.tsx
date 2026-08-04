@@ -8,6 +8,7 @@ import { computeRealReturns } from '@/lib/inflation/real-returns'
 import { computePersonalInflation } from '@/lib/inflation/compute'
 import { RealVsNominal } from '@/components/real-vs-nominal'
 import { PortfolioTable } from '@/components/portfolio-table'
+import { PortfolioTimelineChart } from '@/components/portfolio-timeline-chart'
 import { parseNominalReturn1y } from '@/lib/inflation/parse-return'
 import type { UserProfileInput } from '@/lib/inflation/compute'
 import type { InflationConfidence } from '@/lib/validation/schemas'
@@ -105,8 +106,8 @@ export default async function PortfolioPage() {
   const returnsChunks: Array<{ schemeCode: string; chunkText: string; factsheetDate: string }> =
     schemeCodes.length > 0
       ? (
-          await db.execute<{ scheme_code: string; chunk_text: string; factsheet_date: string }>(
-            sql`
+        await db.execute<{ scheme_code: string; chunk_text: string; factsheet_date: string }>(
+          sql`
               SELECT DISTINCT ON (scheme_code)
                 scheme_code,
                 chunk_text,
@@ -116,12 +117,12 @@ export default async function PortfolioPage() {
                 AND section = 'returns'
               ORDER BY scheme_code, factsheet_date DESC
             `,
-          )
-        ).rows.map((r) => ({
-          schemeCode: r.scheme_code,
-          chunkText: r.chunk_text,
-          factsheetDate: r.factsheet_date,
-        }))
+        )
+      ).rows.map((r) => ({
+        schemeCode: r.scheme_code,
+        chunkText: r.chunk_text,
+        factsheetDate: r.factsheet_date,
+      }))
       : []
 
   const returnsMap = new Map(
@@ -142,6 +143,30 @@ export default async function PortfolioPage() {
 
   const result = computeRealReturns(holdingsForComputation, inflationRate)
   const missingCount = result.per_holding.filter((h) => h.nominal_return_1y === null).length
+
+  const snapshotRows = await db
+    .select({
+      asOfDate: schema.portfolioSnapshots.asOfDate,
+      totalValue: schema.portfolioSnapshots.totalValue,
+      realReturnAnnualized: schema.portfolioSnapshots.realReturnAnnualized,
+    })
+    .from(schema.portfolioSnapshots)
+    .where(eq(schema.portfolioSnapshots.userId, userId))
+    .orderBy(schema.portfolioSnapshots.asOfDate)
+
+  const timelineData = snapshotRows.map((r) => ({
+    as_of_date: r.asOfDate,
+    total_value: Number(r.totalValue),
+    real_return_annualized: r.realReturnAnnualized !== null ? Number(r.realReturnAnnualized) : null,
+  }))
+
+  // Compute XIRR on the server for the initial render
+  const { computePortfolioXIRR } = await import('@/lib/portfolio/xirr')
+  const xirr = computePortfolioXIRR(
+    timelineData.map((d) => ({ asOfDate: d.as_of_date, totalValue: d.total_value })),
+  )
+
+  const latestRolling1y = timelineData[timelineData.length - 1]?.real_return_annualized ?? null
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
@@ -177,6 +202,33 @@ export default async function PortfolioPage() {
       <div className="mb-6">
         <RealVsNominal portfolio={result.portfolio} inflationConfidence={inflationConfidence} />
       </div>
+
+      {/* Timeline section */}
+      <section className="mb-6 rounded-xl border bg-white p-4 shadow-sm">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
+          <h2 className="text-base font-semibold text-gray-800">Portfolio journey</h2>
+          <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+            {xirr !== null && (
+              <span>
+                XIRR:{' '}
+                <span className={`font-semibold ${xirr >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {(xirr * 100).toFixed(2)}%
+                </span>
+              </span>
+            )}
+            {latestRolling1y !== null && (
+              <span>
+                Latest real return:{' '}
+                <span className={`font-semibold ${latestRolling1y >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {(latestRolling1y * 100).toFixed(2)}%
+                </span>
+              </span>
+            )}
+            <span>{timelineData.length} snapshot{timelineData.length !== 1 ? 's' : ''}</span>
+          </div>
+        </div>
+        <PortfolioTimelineChart data={timelineData} />
+      </section>
 
       {/* Holdings table */}
       <div className="mb-4">

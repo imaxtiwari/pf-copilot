@@ -79,6 +79,22 @@ export const portfolioHoldings = pgTable('portfolio_holdings', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
+export const portfolioSnapshots = pgTable(
+  'portfolio_snapshots',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    asOfDate: date('as_of_date').notNull(),
+    totalValue: numeric('total_value').notNull(),
+    realReturnAnnualized: numeric('real_return_annualized'),
+    inflationRateUsed: numeric('inflation_rate_used').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('portfolio_snapshots_user_date_idx').on(table.userId, table.asOfDate),
+  ],
+)
+
 export const chatMessages = pgTable(
   'chat_messages',
   {

@@ -5,6 +5,7 @@ import { casUploads, portfolioHoldings } from '../../../../db/schema'
 import { ok, err } from '../../../../lib/contracts/error-envelope'
 import { validateCAS, type CASHolding, type CASExtraction } from '../../../../lib/contracts/cas-validation'
 import { hashFileContent } from '../../../../lib/cas/hash'
+import { refreshSnapshots } from '../../../../lib/portfolio/snapshots'
 import { resolveOrCreateUserId, COOKIE_NAME, cookieOptions } from '../../../../lib/auth/dev-user'
 import logger from '../../../../lib/logger'
 
@@ -105,6 +106,13 @@ export async function POST(req: NextRequest) {
             err('db_error', 'Failed to persist holdings'),
             { status: 500 },
         )
+    }
+
+    // Build portfolio snapshots for the new/updated holdings
+    try {
+        await refreshSnapshots(userId)
+    } catch (e) {
+        logger.warn({ userId, err: e }, 'cas confirm: snapshot refresh failed')
     }
 
     logger.info(

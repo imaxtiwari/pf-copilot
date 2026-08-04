@@ -8,6 +8,20 @@
       "when": 1779722187531,
       "tag": "0000_kind_hammerhead",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1779722187532,
+      "tag": "0001_pgvector",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779722187533,
+      "tag": "0002_portfolio_snapshots",
+      "breakpoints": true
     }
   ]
 }
