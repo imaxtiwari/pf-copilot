@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import * as schema from '@/db/schema'
 import { getGpt4oMini } from '@/lib/azure-openai'
 import { ORCHESTRATOR_PROMPT } from '@/lib/prompts/orchestrator'
+import type { SupportedLanguage } from '@/lib/rag/explain-fund'
 import { TOOL_DEFINITIONS } from '@/lib/tools/definitions'
 import { getPortfolio } from '@/lib/tools/get-portfolio'
 import { computePersonalInflationTool } from '@/lib/tools/compute-inflation'
@@ -40,10 +41,16 @@ export type OrchestratorResult = {
 
 // ── tool dispatcher ───────────────────────────────────────────────────────────
 
+function detectHinglish(message: string): SupportedLanguage {
+  // Devanagari ranges: excludes Sanskrit/Vedic marks, includes common Hindi/Nagari
+  return /[\u0900-\u097F]/.test(message) ? 'hi-en' : 'en'
+}
+
 async function dispatchTool(
   toolName: string,
   args: Record<string, string>,
   userId: string,
+  language: SupportedLanguage,
 ): Promise<unknown> {
   // Args are validated by the call site (parsedArgs block) before reaching here.
   switch (toolName) {
@@ -56,7 +63,7 @@ async function dispatchTool(
     case 'lookup_chat_history':
       return lookupChatHistory(userId)
     case 'explain_fund':
-      return explainFundTool(args.scheme_code, args.question)
+      return explainFundTool(args.scheme_code, args.question, language)
     case 'compare_funds':
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return compareFundsTool((args as any).scheme_codes, args.question)
@@ -71,6 +78,7 @@ async function dispatchTool(
 export async function runOrchestrator(
   userId: string,
   message: string,
+  language?: SupportedLanguage,
 ): Promise<OrchestratorResult> {
   const startedAt = Date.now()
 
@@ -87,6 +95,8 @@ export async function runOrchestrator(
     .where(eq(schema.chatMessages.userId, userId))
     .orderBy(desc(schema.chatMessages.ts))
     .limit(10)
+
+  const resolvedLanguage = language ?? detectHinglish(message)
 
   // 3. Build messages array (oldest first) — only user/assistant roles for context window
   const messages: ChatCompletionMessageParam[] = [
@@ -170,7 +180,7 @@ export async function runOrchestrator(
         parsedArgs = {}
       }
 
-      const result = await dispatchTool(tc.function.name, parsedArgs, userId)
+      const result = await dispatchTool(tc.function.name, parsedArgs, userId, resolvedLanguage)
 
       traces.push({ tool: tc.function.name, args: parsedArgs, result })
 

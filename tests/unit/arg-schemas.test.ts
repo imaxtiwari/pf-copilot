@@ -195,6 +195,36 @@ describe('ToolArgSchemas — explain_fund', () => {
     const result = ToolArgSchemas.explain_fund.safeParse({})
     expect(result.success).toBe(false)
   })
+
+  it('language defaults to "en" when omitted', () => {
+    const result = ToolArgSchemas.explain_fund.safeParse({
+      scheme_code: '119551',
+      question: 'What is the expense ratio?',
+    })
+    expect(result.success).toBe(true)
+    if (!result.success) return
+    expect(result.data.language).toBe('en')
+  })
+
+  it('language "hi-en" is accepted', () => {
+    const result = ToolArgSchemas.explain_fund.safeParse({
+      scheme_code: '119551',
+      question: 'What is the expense ratio?',
+      language: 'hi-en',
+    })
+    expect(result.success).toBe(true)
+    if (!result.success) return
+    expect(result.data.language).toBe('hi-en')
+  })
+
+  it('invalid language is rejected', () => {
+    const result = ToolArgSchemas.explain_fund.safeParse({
+      scheme_code: '119551',
+      question: 'What is the expense ratio?',
+      language: 'es',
+    })
+    expect(result.success).toBe(false)
+  })
 })
 
 // ── coercion edge cases ───────────────────────────────────────────────────────

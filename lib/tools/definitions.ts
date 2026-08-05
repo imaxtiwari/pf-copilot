@@ -75,6 +75,11 @@ export const TOOL_DEFINITIONS: ChatCompletionTool[] = [
             type: 'string',
             description: "The user's specific question about the fund, verbatim or closely paraphrased.",
           },
+          language: {
+            type: 'string',
+            enum: ['en', 'hi-en'],
+            description: "Output language. 'en' (default) for English, 'hi-en' for simple Hinglish (Hindi-English).",
+          },
         },
         required: ['scheme_code', 'question'],
       },

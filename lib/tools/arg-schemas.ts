@@ -8,7 +8,11 @@ export const ToolArgSchemas = {
   compute_personal_inflation: z.object({}),
   compute_real_returns: z.object({ scheme_code: schemeCode }),
   lookup_chat_history: z.object({}),
-  explain_fund: z.object({ scheme_code: schemeCode, question: z.string().min(1) }),
+  explain_fund: z.object({
+    scheme_code: schemeCode,
+    question: z.string().min(1),
+    language: z.enum(['en', 'hi-en']).default('en'),
+  }),
   compare_funds: z.object({
     scheme_codes: z.array(schemeCode).min(2),
     question: z.string().min(1),

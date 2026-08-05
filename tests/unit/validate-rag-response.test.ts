@@ -267,3 +267,25 @@ describe('validateRagResponse — refused passthrough', () => {
     expect(r.ok).toBe(true)
   })
 })
+
+// ── Hinglish citation preservation ───────────────────────────────────────────
+
+describe('validateRagResponse — Hinglish citation preservation', () => {
+  it('accepts Hinglish prose with preserved chunk citations', () => {
+    const answer =
+      'Expense ratio 1.42% hai [chunk_1]. Yeh fund large cap stocks mein invest karta hai [chunk_2].'
+    const r = validateRagResponse(
+      {
+        answer,
+        citations: [
+          { chunk_id: 'chunk_1', factsheet_date: '2025-05-01', section: 'expense_ratio' },
+          { chunk_id: 'chunk_2', factsheet_date: '2025-05-01', section: 'portfolio' },
+        ],
+        refused: false,
+        refusal_reason: null,
+      },
+      CHUNK_IDS,
+    )
+    expect(r.ok).toBe(true)
+  })
+})

@@ -6,6 +6,7 @@ import * as schema from '@/db/schema'
 import { ok, err } from '@/lib/contracts/error-envelope'
 import { resolveOrCreateUserId, COOKIE_NAME, cookieOptions } from '@/lib/auth/dev-user'
 import { runOrchestrator } from '@/lib/orchestrator'
+import type { SupportedLanguage } from '@/lib/rag/explain-fund'
 import logger from '@/lib/logger'
 
 // ── Next.js timeout hint (respected by Vercel; no-op on localhost) ─────────────
@@ -47,6 +48,7 @@ export async function GET() {
 
 const ChatRequestSchema = z.object({
   message: z.string().min(1).max(2000),
+  language: z.enum(['en', 'hi-en']).optional(),
 })
 
 export async function POST(req: NextRequest) {
@@ -67,11 +69,11 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const { message } = parsed.data
-  logger.info({ userId, messageLength: message.length }, 'chat: incoming message')
+  const { message, language } = parsed.data
+  logger.info({ userId, messageLength: message.length, language }, 'chat: incoming message')
 
   try {
-    const result = await runOrchestrator(userId, message)
+    const result = await runOrchestrator(userId, message, language as SupportedLanguage | undefined)
     const response = NextResponse.json(
       ok({
         assistant_message: result.assistant_message,

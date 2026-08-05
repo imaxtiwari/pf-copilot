@@ -10,6 +10,8 @@ type Citation = {
   factsheet_date: string
 }
 
+export type SupportedLanguage = 'en' | 'hi-en'
+
 type Message = {
   id?: string
   role: 'user' | 'assistant'
@@ -38,11 +40,10 @@ function ChatBubble({ message }: { message: Message }) {
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-          isUser
+        className={`max-w-[80%] rounded-2xl px-4 py-3 ${isUser
             ? 'bg-indigo-600 text-white'
             : 'bg-white text-gray-900 shadow-sm ring-1 ring-gray-100'
-        }`}
+          }`}
       >
         {/* Content — preserve whitespace */}
         <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
@@ -76,11 +77,16 @@ function TypingIndicator() {
   )
 }
 
+function detectDevanagari(text: string): boolean {
+  return /[\u0900-\u097F]/.test(text)
+}
+
 // ── main page ─────────────────────────────────────────────────────────────────
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
+  const [language, setLanguage] = useState<SupportedLanguage>('en')
   const [loading, setLoading] = useState(false)
   const [historyLoaded, setHistoryLoaded] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -104,6 +110,14 @@ export default function ChatPage() {
     void loadHistory()
   }, [])
 
+  // Auto-detect language from user input
+  useEffect(() => {
+    if (input.trim().length > 0) {
+      const detected = detectDevanagari(input) ? 'hi-en' : 'en'
+      if (detected !== language) setLanguage(detected)
+    }
+  }, [input, language])
+
   // Scroll to bottom whenever messages change
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -123,7 +137,7 @@ export default function ChatPage() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, language }),
       })
       const json = (await res.json()) as {
         ok: boolean
@@ -183,12 +197,36 @@ export default function ChatPage() {
           <h1 className="text-base font-semibold text-gray-900">PF Copilot</h1>
           <p className="text-xs text-gray-500">Educational only · Not investment advice</p>
         </div>
-        <a
-          href="/onboarding"
-          className="text-xs text-indigo-600 underline-offset-2 hover:underline"
-        >
-          Edit profile
-        </a>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+            <button
+              type="button"
+              onClick={() => setLanguage('en')}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${language === 'en'
+                  ? 'bg-white text-indigo-700 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              EN
+            </button>
+            <button
+              type="button"
+              onClick={() => setLanguage('hi-en')}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${language === 'hi-en'
+                  ? 'bg-white text-indigo-700 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              हिंदी
+            </button>
+          </div>
+          <a
+            href="/onboarding"
+            className="text-xs text-indigo-600 underline-offset-2 hover:underline"
+          >
+            Edit profile
+          </a>
+        </div>
       </header>
 
       {/* Messages */}
