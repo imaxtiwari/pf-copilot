@@ -8,6 +8,7 @@ import { resolveOrCreateUserId, COOKIE_NAME, cookieOptions } from '@/lib/auth/de
 import { runOrchestrator } from '@/lib/orchestrator'
 import type { SupportedLanguage } from '@/lib/rag/explain-fund'
 import logger from '@/lib/logger'
+import { randomUUID } from 'node:crypto'
 
 // ── Next.js timeout hint (respected by Vercel; no-op on localhost) ─────────────
 export const maxDuration = 30
@@ -23,6 +24,10 @@ export async function GET() {
       role: schema.chatMessages.role,
       content: schema.chatMessages.content,
       ts: schema.chatMessages.ts,
+      citations: schema.chatMessages.citations,
+      modelVersion: schema.chatMessages.modelVersion,
+      refusalReason: schema.chatMessages.refusalReason,
+      requestId: schema.chatMessages.requestId,
     })
     .from(schema.chatMessages)
     .where(eq(schema.chatMessages.userId, userId))
@@ -37,6 +42,10 @@ export async function GET() {
       role: r.role as 'user' | 'assistant',
       content: r.content,
       ts: r.ts.toISOString(),
+      citations: (r.citations ?? []) as Array<{ chunk_id: string; factsheet_date: string; section: string }>,
+      model_version: r.modelVersion,
+      refusal_reason: r.refusalReason,
+      request_id: r.requestId,
     }))
 
   const response = NextResponse.json(ok({ messages }))
@@ -79,6 +88,9 @@ export async function POST(req: NextRequest) {
         assistant_message: result.assistant_message,
         tool_traces: result.tool_traces,
         citations: result.citations,
+        model_version: result.model_version,
+        refusal_reason: result.refusal_reason,
+        request_id: result.request_id,
       }),
       { status: 200 },
     )
@@ -86,9 +98,24 @@ export async function POST(req: NextRequest) {
     return response
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
-    logger.error({ userId, error: msg }, 'chat: orchestrator threw')
+    const requestId = randomUUID()
+    logger.error({ userId, requestId, error: msg }, 'chat: orchestrator threw')
+
+    // Persist a traceable error response so the audit log shows the failure.
+    try {
+      await db.insert(schema.chatMessages).values({
+        userId,
+        role: 'assistant',
+        content: `An unexpected error occurred. Reference: ${requestId}`,
+        refusalReason: 'contract_violation',
+        requestId,
+      })
+    } catch (dbErr) {
+      logger.error({ userId, requestId, error: dbErr }, 'chat: failed to persist error audit row')
+    }
+
     return NextResponse.json(
-      err('ORCHESTRATOR_ERROR', 'An unexpected error occurred. Please try again.'),
+      err('ORCHESTRATOR_ERROR', 'An unexpected error occurred. Please try again.', undefined, requestId),
       { status: 500 },
     )
   }

@@ -41,8 +41,8 @@ function ChatBubble({ message }: { message: Message }) {
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
         className={`max-w-[80%] rounded-2xl px-4 py-3 ${isUser
-            ? 'bg-indigo-600 text-white'
-            : 'bg-white text-gray-900 shadow-sm ring-1 ring-gray-100'
+          ? 'bg-indigo-600 text-white'
+          : 'bg-white text-gray-900 shadow-sm ring-1 ring-gray-100'
           }`}
       >
         {/* Content — preserve whitespace */}
@@ -203,8 +203,8 @@ export default function ChatPage() {
               type="button"
               onClick={() => setLanguage('en')}
               className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${language === 'en'
-                  ? 'bg-white text-indigo-700 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-white text-indigo-700 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
                 }`}
             >
               EN
@@ -213,13 +213,19 @@ export default function ChatPage() {
               type="button"
               onClick={() => setLanguage('hi-en')}
               className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${language === 'hi-en'
-                  ? 'bg-white text-indigo-700 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-white text-indigo-700 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
                 }`}
             >
               हिंदी
             </button>
           </div>
+          <a
+            href="/chat/audit"
+            className="text-xs text-indigo-600 underline-offset-2 hover:underline"
+          >
+            Audit log
+          </a>
           <a
             href="/onboarding"
             className="text-xs text-indigo-600 underline-offset-2 hover:underline"

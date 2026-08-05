@@ -36,6 +36,13 @@
       "when": 1779722187535,
       "tag": "0004_portfolio_insights",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1785950635702,
+      "tag": "0005_chat_audit",
+      "breakpoints": true
     }
   ]
 }

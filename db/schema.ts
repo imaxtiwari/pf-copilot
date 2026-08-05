@@ -114,10 +114,16 @@ export const chatMessages = pgTable(
     toolCalls: jsonb('tool_calls'),
     toolCallId: text('tool_call_id'),
     toolName: text('tool_name'),
+    // Audit / transparency fields
+    citations: jsonb('citations').default([]),
+    modelVersion: text('model_version'),
+    refusalReason: text('refusal_reason'),
+    requestId: text('request_id'),
   },
   (table) => [
     // DESC ordering applied via raw SQL in db/migrate.ts for exact (user_id, ts DESC) semantics
     index('chat_messages_user_ts_idx').on(table.userId, sql`${table.ts} DESC`),
+    index('chat_messages_request_id_idx').on(table.requestId),
   ],
 )
 

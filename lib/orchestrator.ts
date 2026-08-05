@@ -13,8 +13,9 @@ import { lookupChatHistory } from '@/lib/tools/lookup-chat-history'
 import { explainFundTool } from '@/lib/tools/explain-fund'
 import { compareFundsTool } from '@/lib/tools/compare-funds'
 import { ToolArgSchemas } from '@/lib/tools/arg-schemas'
-import type { Citation } from '@/lib/contracts/refusal-types'
+import type { Citation, RefusalReason } from '@/lib/contracts/refusal-types'
 import logger from '@/lib/logger'
+import { randomUUID } from 'node:crypto'
 
 // ── config ────────────────────────────────────────────────────────────────────
 
@@ -37,6 +38,9 @@ export type OrchestratorResult = {
   assistant_message: string
   tool_traces: ToolTrace[]
   citations: Citation[]
+  model_version: string
+  refusal_reason: RefusalReason | null
+  request_id: string
 }
 
 // ── tool dispatcher ───────────────────────────────────────────────────────────
@@ -70,6 +74,20 @@ async function dispatchTool(
     default:
       logger.warn({ toolName }, 'orchestrator: unknown tool called')
       return { error: `Unknown tool: ${toolName}` }
+  }
+}
+
+function collectToolMetadata(
+  result: unknown,
+  opts: { citations: Citation[]; refusalReason: RefusalReason | null },
+) {
+  if (!result || typeof result !== 'object') return
+  const r = result as { refused?: unknown; refusal_reason?: unknown; citations?: Citation[] }
+  if (Array.isArray(r.citations)) {
+    opts.citations.push(...r.citations)
+  }
+  if (r.refused === true && typeof r.refusal_reason === 'string') {
+    opts.refusalReason = r.refusal_reason as RefusalReason
   }
 }
 
@@ -112,6 +130,8 @@ export async function runOrchestrator(
 
   const traces: ToolTrace[] = []
   const citations: Citation[] = []
+  let refusalReason: RefusalReason | null = null
+  const requestId = randomUUID()
 
   // 4. Tool-call loop with iteration cap
   for (let i = 0; i < MAX_TOOL_ITERATIONS; i++) {
@@ -134,6 +154,10 @@ export async function runOrchestrator(
         userId,
         role: 'assistant',
         content: finalContent,
+        citations,
+        modelVersion: _deployment,
+        refusalReason,
+        requestId,
       })
 
       const elapsed = Date.now() - startedAt
@@ -149,7 +173,14 @@ export async function runOrchestrator(
         'orchestrator: turn complete',
       )
 
-      return { assistant_message: finalContent, tool_traces: traces, citations }
+      return {
+        assistant_message: finalContent,
+        tool_traces: traces,
+        citations,
+        model_version: _deployment,
+        refusal_reason: refusalReason,
+        request_id: requestId,
+      }
     }
 
     // Process tool calls
@@ -162,9 +193,9 @@ export async function runOrchestrator(
       let parsedArgs: Record<string, string> = {}
       try {
         const raw = JSON.parse(tc.function.arguments)
-        const schema = ToolArgSchemas[tc.function.name as keyof typeof ToolArgSchemas]
-        if (schema) {
-          const validated = schema.safeParse(raw)
+        const argSchema = ToolArgSchemas[tc.function.name as keyof typeof ToolArgSchemas]
+        if (argSchema) {
+          const validated = argSchema.safeParse(raw)
           if (validated.success) {
             parsedArgs = validated.data as Record<string, string>
           } else {
@@ -184,15 +215,9 @@ export async function runOrchestrator(
 
       traces.push({ tool: tc.function.name, args: parsedArgs, result })
 
-      // Collect citations from explain_fund and compare_funds results
-      if (
-        (tc.function.name === 'explain_fund' || tc.function.name === 'compare_funds') &&
-        result &&
-        typeof result === 'object' &&
-        'citations' in result &&
-        Array.isArray((result as { citations: Citation[] }).citations)
-      ) {
-        citations.push(...(result as { citations: Citation[] }).citations)
+      // Collect citations and refusal metadata from strict-RAG tools
+      if (tc.function.name === 'explain_fund' || tc.function.name === 'compare_funds') {
+        collectToolMetadata(result, { citations, refusalReason })
       }
 
       messages.push({
@@ -210,10 +235,17 @@ export async function runOrchestrator(
     userId,
     role: 'assistant',
     content: fallbackMessage,
+    citations,
+    modelVersion: _deployment,
+    refusalReason: refusalReason ?? 'contract_violation',
+    requestId,
   })
   return {
     assistant_message: fallbackMessage,
     tool_traces: traces,
     citations,
+    model_version: _deployment,
+    refusal_reason: refusalReason ?? 'contract_violation',
+    request_id: requestId,
   }
 }
