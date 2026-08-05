@@ -5,6 +5,7 @@ import { ok, err } from '../../../../lib/contracts/error-envelope'
 import { parseCAS } from '../../../../lib/cas/parse'
 import { resolveOrCreateUserId, COOKIE_NAME, cookieOptions } from '../../../../lib/auth/dev-user'
 import { refreshSnapshots } from '../../../../lib/portfolio/snapshots'
+import { generateInsight, persistInsight } from '../../../../lib/portfolio/insights'
 import logger from '../../../../lib/logger'
 
 const MAX_BYTES = 10 * 1024 * 1024 // 10 MB
@@ -77,7 +78,7 @@ export async function POST(req: NextRequest) {
   const { extraction, source, schemeCheck, hash } = result
 
   // All-or-nothing: insert cas_upload + holdings in a transaction
-  let uploadId: string
+  let uploadId = ''
   try {
     await db.transaction(async (tx) => {
       const [upload] = await tx
@@ -126,6 +127,14 @@ export async function POST(req: NextRequest) {
     await refreshSnapshots(userId)
   } catch (e) {
     logger.warn({ userId, err: e }, 'cas ingest: snapshot refresh failed')
+  }
+
+  // Generate a deterministic educational insight tied to this upload
+  try {
+    const insight = await generateInsight({ userId, uploadId })
+    await persistInsight(insight)
+  } catch (e) {
+    logger.warn({ userId, uploadId, err: e }, 'cas ingest: insight generation failed')
   }
 
   logger.info(

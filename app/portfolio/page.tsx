@@ -11,6 +11,7 @@ import { PortfolioTable } from '@/components/portfolio-table'
 import { PortfolioTimelineChart } from '@/components/portfolio-timeline-chart'
 import { PortfolioAllocationChart } from '@/components/portfolio-allocation-chart'
 import { PortfolioConcentration } from '@/components/portfolio-concentration'
+import { getLatestInsight } from '@/lib/portfolio/insights'
 import { parseNominalReturn1y } from '@/lib/inflation/parse-return'
 import { describeAgeBand, ageBasedEquityBand } from '@/lib/portfolio/allocation'
 import { getAllocationForUser } from '@/lib/portfolio/get-allocation'
@@ -148,6 +149,16 @@ export default async function PortfolioPage() {
   const result = computeRealReturns(holdingsForComputation, inflationRate)
   const missingCount = result.per_holding.filter((h) => h.nominal_return_1y === null).length
 
+  // ── latest insight card ─────────────────────────────────────────────────────
+  let insight: Awaited<ReturnType<typeof getLatestInsight>> = null
+  if (holdingRows.length > 0) {
+    try {
+      insight = await getLatestInsight(userId)
+    } catch {
+      insight = null
+    }
+  }
+
   const snapshotRows = await db
     .select({
       asOfDate: schema.portfolioSnapshots.asOfDate,
@@ -246,6 +257,27 @@ export default async function PortfolioPage() {
           </Link>
         </div>
       </div>
+
+      {insight && (
+        <section
+          className="mb-6 rounded-xl border-l-4 border-indigo-500 bg-white p-4 shadow-sm"
+          aria-label="Portfolio insight"
+          data-testid="insight-card"
+        >
+          <div className="mb-2 flex items-center gap-2">
+            <span className="text-lg">💡</span>
+            <h2 className="text-base font-semibold text-gray-900">{insight.title}</h2>
+            <span className="ml-auto rounded bg-gray-100 px-2 py-0.5 text-[10px] uppercase tracking-wide text-gray-500">
+              Insight
+            </span>
+          </div>
+          <p className="text-sm leading-relaxed text-gray-700">{insight.body}</p>
+          <p className="mt-2 text-xs text-gray-400">
+            This insight is generated from your CAS data for educational purposes only. It is not
+            investment advice.
+          </p>
+        </section>
+      )}
 
       {/* Big callout */}
       <div className="mb-6">

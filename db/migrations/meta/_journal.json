@@ -29,6 +29,13 @@
       "when": 1779722187534,
       "tag": "0003_amfi_category",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1779722187535,
+      "tag": "0004_portfolio_insights",
+      "breakpoints": true
     }
   ]
 }

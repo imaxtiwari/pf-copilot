@@ -13,9 +13,17 @@ import {
   uniqueIndex,
   vector,
 } from 'drizzle-orm/pg-core'
+
 import { sql } from 'drizzle-orm'
 
 // ── Enums (truly fixed sets) ──────────────────────────────────────────────────
+
+export const insightTemplateEnum = pgEnum('insight_template', [
+  'personal_inflation_vs_cpi',
+  'highest_lowest_real_return',
+  'mid_small_cap_concentration',
+  'unmatched_schemes',
+])
 
 export const cityTierEnum = pgEnum('city_tier', ['metro', 'tier2', 'tier3'])
 export const dependentsEnum = pgEnum('dependents', ['none', 'spouse', 'kids', 'parents', 'multiple'])
@@ -147,3 +155,20 @@ export const amfiSchemeMaster = pgTable('amfi_scheme_master', {
   amfiCategory: text('amfi_category'),
   lastSynced: timestamp('last_synced').notNull(),
 })
+
+export const portfolioInsights = pgTable(
+  'portfolio_insights',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    casUploadId: uuid('cas_upload_id').references(() => casUploads.id, { onDelete: 'set null' }),
+    template: insightTemplateEnum('template').notNull(),
+    title: text('title').notNull(),
+    body: text('body').notNull(),
+    data: jsonb('data').notNull().default({}),
+    generatedAt: timestamp('generated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('portfolio_insights_user_generated_idx').on(table.userId, table.generatedAt),
+  ],
+)
