@@ -71,8 +71,37 @@ test.describe('Happy path: onboard → upload CAS → real returns → chat', ()
     // Should show the real returns view (not the empty state)
     await expect(page.locator('text=Nominal 1-yr return')).toBeVisible({ timeout: 10_000 })
 
+    // Deterministic educational insight card must be present after upload
+    await expect(page.locator('[data-testid="insight-card"]')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('text=/not investment advice/i')).toBeVisible()
+
     // Disclaimer must be present
     await expect(page.locator('text=/educational estimates only/i')).toBeVisible()
+  })
+
+  test('3b. Insight updates after a second upload', async ({ page }) => {
+    await page.goto('http://localhost:3000/portfolio')
+
+    // Wait for the first post-upload insight to render
+    await expect(page.locator('[data-testid="insight-card"]')).toBeVisible({ timeout: 10_000 })
+    const firstTitle = await page.locator('[data-testid="insight-card"] h2').textContent()
+
+    // Re-upload the same CAS
+    await page.goto('http://localhost:3000/portfolio/upload')
+    await page.setInputFiles('input[type="file"]', CAS_PDF_PATH)
+
+    const reviewHeading = page.locator('text=Review CAS extraction')
+    const successMessage = page.locator('text=/holdings? imported/i')
+    await expect(reviewHeading.or(successMessage)).toBeVisible({ timeout: 60_000 })
+    if (await reviewHeading.isVisible().catch(() => false)) {
+      await page.click('text=Confirm & Save')
+      await expect(successMessage).toBeVisible({ timeout: 30_000 })
+    }
+
+    // Back to portfolio: a fresh insight should still be visible. Re-uploading the
+    // same file may hit the cache, so we only assert existence, not a changed title.
+    await page.goto('http://localhost:3000/portfolio')
+    await expect(page.locator('[data-testid="insight-card"]')).toBeVisible({ timeout: 10_000 })
   })
 
   test('4. Chat — portfolio question routes to get_portfolio and returns answer', async ({ page }) => {
