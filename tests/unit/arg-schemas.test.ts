@@ -10,6 +10,7 @@ describe('ToolArgSchemas — all five tools are present', () => {
     'compute_real_returns',
     'lookup_chat_history',
     'explain_fund',
+    'compare_funds',
   ] as const
 
   for (const tool of EXPECTED_TOOLS) {
@@ -19,8 +20,8 @@ describe('ToolArgSchemas — all five tools are present', () => {
     })
   }
 
-  it('no extra tools are present beyond the known five', () => {
-    expect(Object.keys(ToolArgSchemas)).toHaveLength(5)
+  it('no extra tools are present beyond the known six', () => {
+    expect(Object.keys(ToolArgSchemas)).toHaveLength(6)
   })
 })
 
@@ -73,6 +74,60 @@ describe('ToolArgSchemas — compute_real_returns', () => {
 
   it('scheme_code missing entirely fails', () => {
     const result = ToolArgSchemas.compute_real_returns.safeParse({})
+    expect(result.success).toBe(false)
+  })
+})
+
+// ── compare_funds ─────────────────────────────────────────────────────────────
+
+describe('ToolArgSchemas — compare_funds', () => {
+  it('valid array of string scheme_codes + non-empty question passes', () => {
+    const result = ToolArgSchemas.compare_funds.safeParse({
+      scheme_codes: ['119551', '145001'],
+      question: 'Compare these funds',
+    })
+    expect(result.success).toBe(true)
+    if (!result.success) return
+    expect(result.data.scheme_codes).toEqual(['119551', '145001'])
+    expect(result.data.question).toBe('Compare these funds')
+  })
+
+  it('numeric scheme_codes are coerced to strings', () => {
+    const result = ToolArgSchemas.compare_funds.safeParse({
+      scheme_codes: [119551, 145001],
+      question: 'Compare these funds',
+    })
+    expect(result.success).toBe(true)
+    if (!result.success) return
+    expect(result.data.scheme_codes).toEqual(['119551', '145001'])
+  })
+
+  it('single scheme_code fails because min is 2', () => {
+    const result = ToolArgSchemas.compare_funds.safeParse({
+      scheme_codes: ['119551'],
+      question: 'Compare these funds',
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('empty scheme_codes array fails', () => {
+    const result = ToolArgSchemas.compare_funds.safeParse({
+      scheme_codes: [],
+      question: 'Compare these funds',
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('missing question fails', () => {
+    const result = ToolArgSchemas.compare_funds.safeParse({ scheme_codes: ['119551', '145001'] })
+    expect(result.success).toBe(false)
+  })
+
+  it('empty question string fails', () => {
+    const result = ToolArgSchemas.compare_funds.safeParse({
+      scheme_codes: ['119551', '145001'],
+      question: '',
+    })
     expect(result.success).toBe(false)
   })
 })

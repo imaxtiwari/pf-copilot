@@ -10,6 +10,7 @@ import { computePersonalInflationTool } from '@/lib/tools/compute-inflation'
 import { computeRealReturns } from '@/lib/tools/compute-real-returns'
 import { lookupChatHistory } from '@/lib/tools/lookup-chat-history'
 import { explainFundTool } from '@/lib/tools/explain-fund'
+import { compareFundsTool } from '@/lib/tools/compare-funds'
 import { ToolArgSchemas } from '@/lib/tools/arg-schemas'
 import type { Citation } from '@/lib/contracts/refusal-types'
 import logger from '@/lib/logger'
@@ -56,6 +57,9 @@ async function dispatchTool(
       return lookupChatHistory(userId)
     case 'explain_fund':
       return explainFundTool(args.scheme_code, args.question)
+    case 'compare_funds':
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return compareFundsTool((args as any).scheme_codes, args.question)
     default:
       logger.warn({ toolName }, 'orchestrator: unknown tool called')
       return { error: `Unknown tool: ${toolName}` }
@@ -170,9 +174,9 @@ export async function runOrchestrator(
 
       traces.push({ tool: tc.function.name, args: parsedArgs, result })
 
-      // Collect citations from explain_fund results
+      // Collect citations from explain_fund and compare_funds results
       if (
-        tc.function.name === 'explain_fund' &&
+        (tc.function.name === 'explain_fund' || tc.function.name === 'compare_funds') &&
         result &&
         typeof result === 'object' &&
         'citations' in result &&

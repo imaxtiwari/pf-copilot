@@ -17,5 +17,7 @@ export type RagResponseFormatted = {
   refusal_reason: RefusalReason | null
   scheme_code?: string
   scheme_name?: string
+  scheme_codes?: string[]
+  scheme_names?: Record<string, string>
   chunks_retrieved?: number
 }

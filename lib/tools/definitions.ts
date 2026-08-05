@@ -80,4 +80,27 @@ export const TOOL_DEFINITIONS: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'compare_funds',
+      description:
+        "Compares two or more mutual funds using official AMFI factsheet data. Returns a cited, grounded side-by-side comparison of expense ratio, returns, AUM, fund manager, benchmark, and risk metrics. May refuse if factsheet data is missing for any scheme. Call this when the user asks to compare funds.",
+      parameters: {
+        type: 'object',
+        properties: {
+          scheme_codes: {
+            type: 'array',
+            items: { type: 'string' },
+            description: "AMFI scheme codes of the funds to compare (e.g. ['119551', '145001']).",
+          },
+          question: {
+            type: 'string',
+            description: "The user's comparison question, verbatim or closely paraphrased.",
+          },
+        },
+        required: ['scheme_codes', 'question'],
+      },
+    },
+  },
 ]

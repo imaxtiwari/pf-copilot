@@ -9,4 +9,8 @@ export const ToolArgSchemas = {
   compute_real_returns: z.object({ scheme_code: schemeCode }),
   lookup_chat_history: z.object({}),
   explain_fund: z.object({ scheme_code: schemeCode, question: z.string().min(1) }),
+  compare_funds: z.object({
+    scheme_codes: z.array(schemeCode).min(2),
+    question: z.string().min(1),
+  }),
 } as const satisfies Record<string, z.ZodObject<z.ZodRawShape>>

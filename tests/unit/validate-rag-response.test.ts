@@ -167,6 +167,95 @@ describe('validateRagResponse — <user_question> exclusion', () => {
   })
 })
 
+// ── multi-fund coverage checks ───────────────────────────────────────────────
+
+describe('validateRagResponse — multi-fund coverage', () => {
+  const chunksByScheme = {
+    scheme_a: ['chunk_1'],
+    scheme_b: ['chunk_2'],
+  }
+
+  it('passes when every requested scheme has at least one citation', () => {
+    const r = validateRagResponse(
+      {
+        answer: 'A expense ratio is 1.1% [chunk_1] and B expense ratio is 0.8% [chunk_2].',
+        citations: [
+          { chunk_id: 'chunk_1', factsheet_date: '2025-05-01', section: 'expense_ratio' },
+          { chunk_id: 'chunk_2', factsheet_date: '2025-05-01', section: 'expense_ratio' },
+        ],
+        refused: false,
+        refusal_reason: null,
+      },
+      CHUNK_IDS,
+      { requiredSchemeCodes: ['scheme_a', 'scheme_b'], chunksByScheme },
+    )
+    expect(r.ok).toBe(true)
+  })
+
+  it('fails when one requested scheme has no citation', () => {
+    const r = validateRagResponse(
+      {
+        answer: 'A expense ratio is 1.1% [chunk_1].',
+        citations: [
+          { chunk_id: 'chunk_1', factsheet_date: '2025-05-01', section: 'expense_ratio' },
+        ],
+        refused: false,
+        refusal_reason: null,
+      },
+      CHUNK_IDS,
+      { requiredSchemeCodes: ['scheme_a', 'scheme_b'], chunksByScheme },
+    )
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.errors.some((e) => e.includes('scheme_b'))).toBe(true)
+  })
+
+  it('skipped when refused=true even if requiredSchemeCodes is set', () => {
+    const r = validateRagResponse(
+      { answer: 'No data available.', citations: [], refused: true, refusal_reason: 'no_factsheet_data' },
+      CHUNK_IDS,
+      { requiredSchemeCodes: ['scheme_a', 'scheme_b'], chunksByScheme },
+    )
+    expect(r.ok).toBe(true)
+  })
+})
+
+// ── numeric-claim citation enforcement ───────────────────────────────────────
+
+describe('validateRagResponse — numeric claim citation', () => {
+  it('passes when a numeric claim cites a chunk in the same sentence', () => {
+    const r = validateRagResponse(
+      { ...BASE_VALID, answer: 'The expense ratio is 1.42% [chunk_1].' },
+      CHUNK_IDS,
+    )
+    expect(r.ok).toBe(true)
+  })
+
+  it('fails when a sentence contains a number+unit without any [chunk_...]', () => {
+    const r = validateRagResponse(
+      { ...BASE_VALID, answer: 'The expense ratio is 1.42%. It is competitive.' },
+      CHUNK_IDS,
+    )
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.errors.some((e) => e.includes('not cited'))).toBe(true)
+  })
+
+  it('does not flag sentences without numeric claims', () => {
+    const r = validateRagResponse(
+      { ...BASE_VALID, answer: 'The fund invests primarily in large cap equities. The expense ratio is 1.42% [chunk_1].' },
+      CHUNK_IDS,
+    )
+    expect(r.ok).toBe(true)
+  })
+
+  it('flags a 3Y return figure missing inline citation', () => {
+    const r = validateRagResponse(
+      { ...BASE_VALID, answer: 'The 3-year return is 12.5%.' },
+      CHUNK_IDS,
+    )
+    expect(r.ok).toBe(false)
+  })
+})
+
 // ── refused response passthrough ─────────────────────────────────────────────
 
 describe('validateRagResponse — refused passthrough', () => {
