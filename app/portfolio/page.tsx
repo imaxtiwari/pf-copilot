@@ -255,6 +255,9 @@ export default async function PortfolioPage() {
           <Link href="/portfolio/upload" className="text-indigo-600 underline-offset-2 hover:underline">
             Update CAS
           </Link>
+          <Link href="/portfolio/equity" className="text-indigo-600 underline-offset-2 hover:underline">
+            Equity →
+          </Link>
         </div>
       </div>
 

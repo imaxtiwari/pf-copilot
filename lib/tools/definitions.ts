@@ -88,6 +88,33 @@ export const TOOL_DEFINITIONS: ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
+      name: 'explain_stock',
+      description:
+        "Explains a stock using official annual report and exchange-announcement data. Returns a cited, grounded answer — never general knowledge. May refuse if document data is not available. Call this whenever the user asks about a specific stock or company: business segments, revenue, profit, debt, dividends, or recent disclosures.",
+      parameters: {
+        type: 'object',
+        properties: {
+          isin: {
+            type: 'string',
+            description: "ISIN of the company (e.g. 'INE002A01018').",
+          },
+          question: {
+            type: 'string',
+            description: "The user's specific question about the stock, verbatim or closely paraphrased.",
+          },
+          language: {
+            type: 'string',
+            enum: ['en', 'hi-en'],
+            description: "Output language. 'en' (default) for English, 'hi-en' for simple Hinglish (Hindi-English).",
+          },
+        },
+        required: ['isin', 'question'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'compare_funds',
       description:
         "Compares two or more mutual funds using official AMFI factsheet data. Returns a cited, grounded side-by-side comparison of expense ratio, returns, AUM, fund manager, benchmark, and risk metrics. May refuse if factsheet data is missing for any scheme. Call this when the user asks to compare funds.",

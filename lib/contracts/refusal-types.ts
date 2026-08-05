@@ -19,5 +19,7 @@ export type RagResponseFormatted = {
   scheme_name?: string
   scheme_codes?: string[]
   scheme_names?: Record<string, string>
+  isin?: string
+  company_name?: string
   chunks_retrieved?: number
 }

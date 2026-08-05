@@ -30,6 +30,14 @@ async function main() {
     WITH (m = 16, ef_construction = 64)
   `)
 
+  console.log('Creating HNSW index on stock_documents.embedding...')
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS stock_documents_embedding_hnsw_idx
+    ON stock_documents
+    USING hnsw (embedding vector_cosine_ops)
+    WITH (m = 16, ef_construction = 64)
+  `)
+
   console.log('All migrations complete.')
   await pool.end()
 }

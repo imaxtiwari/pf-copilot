@@ -11,6 +11,7 @@ import { computePersonalInflationTool } from '@/lib/tools/compute-inflation'
 import { computeRealReturns } from '@/lib/tools/compute-real-returns'
 import { lookupChatHistory } from '@/lib/tools/lookup-chat-history'
 import { explainFundTool } from '@/lib/tools/explain-fund'
+import { explainStockTool } from '@/lib/tools/explain-stock'
 import { compareFundsTool } from '@/lib/tools/compare-funds'
 import { ToolArgSchemas } from '@/lib/tools/arg-schemas'
 import type { Citation, RefusalReason } from '@/lib/contracts/refusal-types'
@@ -68,6 +69,8 @@ async function dispatchTool(
       return lookupChatHistory(userId)
     case 'explain_fund':
       return explainFundTool(args.scheme_code, args.question, language)
+    case 'explain_stock':
+      return explainStockTool(args.isin, args.question, language)
     case 'compare_funds':
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return compareFundsTool((args as any).scheme_codes, args.question)
@@ -216,7 +219,7 @@ export async function runOrchestrator(
       traces.push({ tool: tc.function.name, args: parsedArgs, result })
 
       // Collect citations and refusal metadata from strict-RAG tools
-      if (tc.function.name === 'explain_fund' || tc.function.name === 'compare_funds') {
+      if (tc.function.name === 'explain_fund' || tc.function.name === 'explain_stock' || tc.function.name === 'compare_funds') {
         collectToolMetadata(result, { citations, refusalReason })
       }
 

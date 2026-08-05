@@ -31,7 +31,7 @@ export async function pdfToImageBuffers(buffer: Buffer): Promise<Buffer[]> {
   return pages
 }
 
-function chunk<T>(arr: T[], size: number): T[][] {
+export function chunk<T>(arr: T[], size: number): T[][] {
   const result: T[][] = []
   for (let i = 0; i < arr.length; i += size) result.push(arr.slice(i, i + size))
   return result

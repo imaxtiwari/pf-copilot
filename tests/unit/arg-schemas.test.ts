@@ -10,6 +10,7 @@ describe('ToolArgSchemas — all five tools are present', () => {
     'compute_real_returns',
     'lookup_chat_history',
     'explain_fund',
+    'explain_stock',
     'compare_funds',
   ] as const
 
@@ -20,8 +21,8 @@ describe('ToolArgSchemas — all five tools are present', () => {
     })
   }
 
-  it('no extra tools are present beyond the known six', () => {
-    expect(Object.keys(ToolArgSchemas)).toHaveLength(6)
+  it('no extra tools are present beyond the known seven', () => {
+    expect(Object.keys(ToolArgSchemas)).toHaveLength(7)
   })
 })
 
@@ -129,6 +130,49 @@ describe('ToolArgSchemas — compare_funds', () => {
       question: '',
     })
     expect(result.success).toBe(false)
+  })
+})
+
+// ── explain_stock ─────────────────────────────────────────────────────────────
+
+describe('ToolArgSchemas — explain_stock', () => {
+  it('valid ISIN + question passes', () => {
+    const result = ToolArgSchemas.explain_stock.safeParse({
+      isin: 'INE002A01018',
+      question: 'What is the revenue?',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('coerces isin to uppercase? no — regex is case-insensitive', () => {
+    const result = ToolArgSchemas.explain_stock.safeParse({
+      isin: 'ine002a01018',
+      question: 'What is the revenue?',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects invalid ISIN length', () => {
+    const result = ToolArgSchemas.explain_stock.safeParse({
+      isin: 'INE002A0101',
+      question: 'What is the revenue?',
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects missing question', () => {
+    const result = ToolArgSchemas.explain_stock.safeParse({ isin: 'INE002A01018' })
+    expect(result.success).toBe(false)
+  })
+
+  it('language defaults to "en"', () => {
+    const result = ToolArgSchemas.explain_stock.safeParse({
+      isin: 'INE002A01018',
+      question: 'What is the revenue?',
+    })
+    expect(result.success).toBe(true)
+    if (!result.success) return
+    expect(result.data.language).toBe('en')
   })
 })
 

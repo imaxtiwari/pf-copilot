@@ -13,6 +13,11 @@ export const ToolArgSchemas = {
     question: z.string().min(1),
     language: z.enum(['en', 'hi-en']).default('en'),
   }),
+  explain_stock: z.object({
+    isin: z.string().regex(/^IN[A-Z0-9]{10}$/i, 'ISIN must be 12 characters starting with IN'),
+    question: z.string().min(1),
+    language: z.enum(['en', 'hi-en']).default('en'),
+  }),
   compare_funds: z.object({
     scheme_codes: z.array(schemeCode).min(2),
     question: z.string().min(1),

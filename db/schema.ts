@@ -28,6 +28,7 @@ export const insightTemplateEnum = pgEnum('insight_template', [
 export const cityTierEnum = pgEnum('city_tier', ['metro', 'tier2', 'tier3'])
 export const dependentsEnum = pgEnum('dependents', ['none', 'spouse', 'kids', 'parents', 'multiple'])
 export const holdingSourceEnum = pgEnum('holding_source', ['cas_text', 'cas_vision', 'manual'])
+export const documentSourceEnum = pgEnum('document_source', ['annual_report', 'bse_announcement', 'other'])
 export const chatRoleEnum = pgEnum('chat_role', ['user', 'assistant', 'tool'])
 
 // ── Tables ────────────────────────────────────────────────────────────────────
@@ -176,5 +177,52 @@ export const portfolioInsights = pgTable(
   },
   (table) => [
     index('portfolio_insights_user_generated_idx').on(table.userId, table.generatedAt),
+  ],
+)
+
+export const dematHoldings = pgTable(
+  'demat_holdings',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    isin: text('isin').notNull(),
+    companyName: text('company_name').notNull(),
+    quantity: numeric('quantity').notNull(),
+    price: numeric('price').notNull(),
+    value: numeric('value').notNull(),
+    asOfDate: date('as_of_date').notNull(),
+    source: holdingSourceEnum('source').notNull(),
+    casUploadId: uuid('cas_upload_id').references(() => casUploads.id),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('demat_holdings_user_isin_idx').on(table.userId, table.isin),
+    index('demat_holdings_user_date_idx').on(table.userId, table.asOfDate),
+  ],
+)
+
+export const stockDocuments = pgTable(
+  'stock_documents',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    isin: text('isin').notNull(),
+    companyName: text('company_name').notNull(),
+    documentDate: date('document_date').notNull(),
+    source: documentSourceEnum('source').notNull(),
+    section: text('section').notNull(),
+    chunkText: text('chunk_text').notNull(),
+    embedding: vector('embedding', { dimensions: 1536 }),
+    sourceUrl: text('source_url').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('stock_documents_isin_idx').on(table.isin),
+    uniqueIndex('stock_documents_unique_idx').on(
+      table.isin,
+      table.source,
+      table.documentDate,
+      table.section,
+      table.chunkText,
+    ),
   ],
 )
