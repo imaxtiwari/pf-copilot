@@ -90,25 +90,45 @@ describe('computeRealReturns — portfolio weighted returns', () => {
     expect(result.portfolio.weighted_nominal_return_1y).toBe(0.14)
   })
 
-  it('AC6 all holdings missing data → null weighted portfolio returns', () => {
-    const noDataHoldings = [
-      { ...BASE_HOLDING, scheme_code: 'A', nominal_return_1y: null, factsheet_date: null },
-      { ...BASE_HOLDING, scheme_code: 'B', nominal_return_1y: null, factsheet_date: null },
-    ]
-    const result = computeRealReturns(noDataHoldings, 0.09)
-    expect(result.portfolio.weighted_nominal_return_1y).toBeNull()
-    expect(result.portfolio.weighted_real_return_1y).toBeNull()
-  })
 
-  it('mixed: some with data, some without — weights only over holdings with data', () => {
+  it('mixed: some with data, some without — denominator is total portfolio value', () => {
     const holdings = [
       { ...BASE_HOLDING, scheme_code: 'A', market_value: 80_000, nominal_return_1y: 0.15 },
       { ...BASE_HOLDING, scheme_code: 'B', market_value: 20_000, nominal_return_1y: null, factsheet_date: null },
     ]
-    const result = computeRealReturns(holdings, 0.09)
-    // Only Fund A has data; weighted nominal = 0.15 (only one holding in the weighted pool)
-    expect(result.portfolio.weighted_nominal_return_1y).toBe(0.15)
+    const result = computeRealReturns(holdings, 0.0)
+    // weighted nominal = (80000*0.15 + 0) / 100000 = 0.12
+    expect(result.portfolio.weighted_nominal_return_1y).toBe(0.12)
     expect(result.portfolio.weighted_real_return_1y).not.toBeNull()
+  })
+
+  it('coverage ratio is 50% when half the portfolio value lacks data', () => {
+    const holdings = [
+      { ...BASE_HOLDING, scheme_code: 'A', market_value: 50_000, nominal_return_1y: 0.10 },
+      { ...BASE_HOLDING, scheme_code: 'B', market_value: 50_000, nominal_return_1y: null, factsheet_date: null },
+    ]
+    const result = computeRealReturns(holdings, 0.09)
+    expect(result.portfolio.coverage_ratio).toBe(0.5)
+  })
+
+  it('coverage ratio is 0% when no holdings have factsheet data', () => {
+    const holdings = [
+      { ...BASE_HOLDING, scheme_code: 'A', nominal_return_1y: null, factsheet_date: null },
+      { ...BASE_HOLDING, scheme_code: 'B', nominal_return_1y: null, factsheet_date: null },
+    ]
+    const result = computeRealReturns(holdings, 0.09)
+    expect(result.portfolio.coverage_ratio).toBe(0)
+    expect(result.portfolio.weighted_nominal_return_1y).toBeNull()
+    expect(result.portfolio.weighted_real_return_1y).toBeNull()
+  })
+
+  it('coverage ratio is 100% when all holdings have factsheet data', () => {
+    const holdings = [
+      { ...BASE_HOLDING, scheme_code: 'A', market_value: 60_000, nominal_return_1y: 0.10 },
+      { ...BASE_HOLDING, scheme_code: 'B', market_value: 40_000, nominal_return_1y: 0.20 },
+    ]
+    const result = computeRealReturns(holdings, 0.09)
+    expect(result.portfolio.coverage_ratio).toBe(1)
   })
 
   it('portfolio total_value includes all holdings regardless of return data', () => {

@@ -11,6 +11,7 @@ export type HoldingInput = {
 }
 
 export type PerHoldingResult = {
+  scheme_code: string | null
   scheme_name: string
   market_value: number
   nominal_return_1y: number | null
@@ -22,9 +23,11 @@ export type RealReturnsResult = {
   per_holding: PerHoldingResult[]
   portfolio: {
     total_value: number
-    /** Weighted only over holdings that have factsheet return data; null if none do. */
+    /** Weighted over all holdings; null if no holdings have factsheet return data. */
     weighted_nominal_return_1y: number | null
     weighted_real_return_1y: number | null
+    /** Fraction of total portfolio value covered by factsheet return data. */
+    coverage_ratio: number
     personal_inflation_rate: number
   }
 }
@@ -54,7 +57,10 @@ export function computeRealReturns(
 ): RealReturnsResult {
   const round4 = (n: number) => Math.round(n * 10000) / 10000
 
+  const total_value = holdings.reduce((s, h) => s + h.market_value, 0)
+
   const per_holding: PerHoldingResult[] = holdings.map((h) => ({
+    scheme_code: h.scheme_code,
     scheme_name: h.scheme_name,
     market_value: h.market_value,
     nominal_return_1y: h.nominal_return_1y,
@@ -63,15 +69,19 @@ export function computeRealReturns(
     factsheet_date: h.factsheet_date,
   }))
 
-  const total_value = holdings.reduce((s, h) => s + h.market_value, 0)
+  // Weighted average — denominator is total portfolio value, not only covered holdings.
+  const covered_value = per_holding
+    .filter((h) => h.nominal_return_1y !== null)
+    .reduce((s, h) => s + h.market_value, 0)
 
-  // Weighted average — only over holdings that have return data
-  const withData = per_holding.filter((h) => h.nominal_return_1y !== null)
-  const weightedBase = withData.reduce((s, h) => s + h.market_value, 0)
+  const coverage_ratio = total_value > 0 ? covered_value / total_value : 0
 
   const rawWeightedNominal =
-    weightedBase > 0
-      ? withData.reduce((s, h) => s + h.nominal_return_1y! * h.market_value, 0) / weightedBase
+    covered_value > 0
+      ? per_holding.reduce(
+        (s, h) => s + (h.nominal_return_1y !== null ? h.nominal_return_1y * h.market_value : 0),
+        0,
+      ) / total_value
       : null
 
   const weighted_nominal_return_1y =
@@ -87,6 +97,7 @@ export function computeRealReturns(
       total_value,
       weighted_nominal_return_1y,
       weighted_real_return_1y,
+      coverage_ratio,
       personal_inflation_rate: inflationRate,
     },
   }

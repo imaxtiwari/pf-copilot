@@ -284,7 +284,7 @@ export default async function PortfolioPage() {
 
       {/* Big callout */}
       <div className="mb-6">
-        <RealVsNominal portfolio={result.portfolio} inflationConfidence={inflationConfidence} />
+        <RealVsNominal portfolio={result.portfolio} perHolding={result.per_holding} inflationConfidence={inflationConfidence} />
       </div>
 
       {/* Timeline section */}
