@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
@@ -51,6 +51,20 @@ function confidenceBadge(level: ConfidenceLevel) {
 }
 
 export default function ReviewPage() {
+    return (
+        <Suspense
+            fallback={(
+                <main className="mx-auto max-w-5xl px-4 py-10">
+                    <p className="text-sm text-gray-500">Loading review session…</p>
+                </main>
+            )}
+        >
+            <ReviewPageInner />
+        </Suspense>
+    )
+}
+
+function ReviewPageInner() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const [state, setState] = useState<ReviewState>({ status: 'loading' })

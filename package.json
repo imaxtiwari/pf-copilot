@@ -12,6 +12,7 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:migrate": "tsx db/migrate.ts",
+    "vercel-build": "npm run db:migrate && next build",
     "sync:amfi": "tsx scripts/sync-amfi-master.ts",
     "ingest:factsheets": "tsx scripts/ingest-factsheets.ts",
     "eval:setup": "tsx --env-file=.env.local tests/eval/golden-cas/generate-synthetic.ts",
