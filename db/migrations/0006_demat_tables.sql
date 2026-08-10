@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS stock_documents (
   source document_source NOT NULL,
   section text NOT NULL,
   chunk_text text NOT NULL,
-  embedding vector(1536),
+  embedding vector(3072),
   source_url text NOT NULL,
   created_at timestamp NOT NULL DEFAULT NOW()
 );

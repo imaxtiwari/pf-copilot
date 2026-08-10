@@ -137,7 +137,7 @@ export const factsheetChunks = pgTable(
     // text + zod: will grow (validated in lib/validation/schemas.ts)
     section: text('section').notNull(),
     chunkText: text('chunk_text').notNull(),
-    embedding: vector('embedding', { dimensions: 1536 }),
+    embedding: vector('embedding', { dimensions: 3072 }),
     sourceUrl: text('source_url').notNull(),
     factsheetDate: date('factsheet_date').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -211,7 +211,7 @@ export const stockDocuments = pgTable(
     source: documentSourceEnum('source').notNull(),
     section: text('section').notNull(),
     chunkText: text('chunk_text').notNull(),
-    embedding: vector('embedding', { dimensions: 1536 }),
+    embedding: vector('embedding', { dimensions: 3072 }),
     sourceUrl: text('source_url').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },

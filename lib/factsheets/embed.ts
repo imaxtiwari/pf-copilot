@@ -52,7 +52,7 @@ export async function embedAndInsert(args: EmbedAndInsertArgs): Promise<EmbedRes
     try {
       const embedding = await embedText(client, chunk.text)
 
-      if (embedding.length !== 1536) {
+      if (embedding.length !== 3072) {
         logger.warn({ schemeCode, section: chunk.section, dims: embedding.length }, 'unexpected embedding dimensions')
         errors++
         continue

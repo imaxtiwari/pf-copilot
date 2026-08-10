@@ -16,7 +16,7 @@ export async function GET() {
   try {
     const endpoint = process.env.AZURE_OPENAI_ENDPOINT
     if (endpoint) checks.region = new URL(endpoint).hostname
-  } catch {}
+  } catch { }
 
   try {
     await db.execute(sql`SELECT 1`)
@@ -40,7 +40,7 @@ export async function GET() {
 
   try {
     const vector = await getEmbedding('test')
-    if (vector.length === 1536) checks.azure_embedding = true
+    if (vector.length === 3072) checks.azure_embedding = true
   } catch (e) {
     errors.push(`azure_embedding: ${e instanceof Error ? e.message : String(e)}`)
   }
