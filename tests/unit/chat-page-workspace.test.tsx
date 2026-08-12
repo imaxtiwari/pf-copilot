@@ -5,10 +5,28 @@ import ChatPage from '@/app/chat/page'
 import { buildWorkspaceState } from '@/lib/agent-mapping'
 import type { ToolTrace } from '@/lib/orchestrator'
 
+process.env.DATABASE_URL = 'postgres://localhost:5432/test'
+
 const mockFetch = vi.fn()
 
 function historyResponse() {
     return { ok: true, json: async () => ({ ok: true, data: { messages: [] } }) }
+}
+
+function sseStream(payload: Record<string, unknown>) {
+    const sse = `event: assistant\ndata: ${JSON.stringify(payload)}\n\n`
+    const encoder = new TextEncoder()
+    return {
+        ok: true,
+        status: 200,
+        body: new ReadableStream({
+            start(controller) {
+                controller.enqueue(encoder.encode(sse))
+                controller.close()
+            },
+        }),
+        text: async () => sse,
+    } as unknown as Response
 }
 
 const portfolioTrace: ToolTrace = {
@@ -43,21 +61,17 @@ describe('ChatPage workspace state', () => {
 
         mockFetch
             .mockResolvedValueOnce(historyResponse())
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({
-                    ok: true,
-                    data: {
-                        assistant_message: assistantMessage,
-                        tool_traces: [portfolioTrace],
-                        citations: [],
-                        model_version: 'gpt-4o-mini',
-                        refusal_reason: null,
-                        request_id: 'req-1',
-                        workspace_state: backendWorkspaceState,
-                    },
+            .mockResolvedValueOnce(
+                sseStream({
+                    assistant_message: assistantMessage,
+                    tool_traces: [portfolioTrace],
+                    citations: [],
+                    model_version: 'gpt-4o-mini',
+                    refusal_reason: null,
+                    request_id: 'req-1',
+                    workspace_state: backendWorkspaceState,
                 }),
-            })
+            )
 
         render(<ChatPage />)
 
@@ -85,20 +99,16 @@ describe('ChatPage workspace state', () => {
 
         mockFetch
             .mockResolvedValueOnce(historyResponse())
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({
-                    ok: true,
-                    data: {
-                        assistant_message: assistantMessage,
-                        tool_traces: [portfolioTrace],
-                        citations: [],
-                        model_version: 'gpt-4o-mini',
-                        refusal_reason: null,
-                        request_id: 'req-fallback',
-                    },
+            .mockResolvedValueOnce(
+                sseStream({
+                    assistant_message: assistantMessage,
+                    tool_traces: [portfolioTrace],
+                    citations: [],
+                    model_version: 'gpt-4o-mini',
+                    refusal_reason: null,
+                    request_id: 'req-fallback',
                 }),
-            })
+            )
 
         render(<ChatPage />)
 
@@ -125,20 +135,16 @@ describe('ChatPage workspace state', () => {
 
         mockFetch
             .mockResolvedValueOnce(historyResponse())
-            .mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({
-                    ok: true,
-                    data: {
-                        assistant_message: 'I cannot answer that.',
-                        tool_traces: [],
-                        citations: [],
-                        model_version: 'gpt-4o-mini',
-                        refusal_reason: 'not_in_scope',
-                        request_id: 'req-2',
-                    },
+            .mockResolvedValueOnce(
+                sseStream({
+                    assistant_message: 'I cannot answer that.',
+                    tool_traces: [],
+                    citations: [],
+                    model_version: 'gpt-4o-mini',
+                    refusal_reason: 'not_in_scope',
+                    request_id: 'req-2',
                 }),
-            })
+            )
 
         render(<ChatPage />)
 

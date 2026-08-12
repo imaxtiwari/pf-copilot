@@ -5,8 +5,9 @@ import type { ActivityItem } from "@/lib/contracts/agent-events";
 import { AgentAvatar } from "@/components/agent-avatar";
 import { EvidenceChip } from "@/components/evidence-chip";
 
-function formatTime(date: Date): string {
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+function formatTime(date: Date | string): string {
+    const d = typeof date === "string" ? new Date(date) : date;
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
 type ActivityFeedProps = {
@@ -38,7 +39,7 @@ export function ActivityFeed({ items }: ActivityFeedProps) {
                             <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                                 <span className="font-medium text-slate-700 dark:text-slate-200">{item.agent}</span>
                                 <span>·</span>
-                                <time dateTime={item.timestamp.toISOString()}>{formatTime(item.timestamp)}</time>
+                                <time dateTime={typeof item.timestamp === "string" ? item.timestamp : item.timestamp.toISOString()}>{formatTime(item.timestamp)}</time>
                             </div>
                             <p className="text-sm text-slate-800 dark:text-slate-100">{item.message}</p>
                             {item.evidence && item.evidence.length > 0 && (

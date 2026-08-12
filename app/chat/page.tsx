@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useRef, FormEvent } from 'react'
 
-import type { WorkspaceState } from '@/lib/contracts/agent-events'
+import type { WorkspaceState, AgentEvent, CopilotStatus } from '@/lib/contracts/agent-events'
 import { buildWorkspaceState } from '@/lib/agent-mapping'
 import { AIWorkspaceShell } from '@/components/ai-workspace-shell'
 import { AgentActivityPanel } from '@/components/agent-activity-panel'
 import type { ToolTrace } from '@/lib/orchestrator'
+import { subscribeToChatStream, type ChatStreamData } from '@/lib/sse-client'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
@@ -198,6 +199,9 @@ export default function ChatPage() {
   const [historyLoaded, setHistoryLoaded] = useState(false)
   const [workspaceState, setWorkspaceState] = useState<WorkspaceState | null>(null)
   const [panelExpanded, setPanelExpanded] = useState(true)
+  const [streamedEvents, setStreamedEvents] = useState<AgentEvent[]>([])
+  const [streaming, setStreaming] = useState(false)
+  const streamCloseRef = useRef<(() => void) | null>(null)
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -242,53 +246,68 @@ export default function ChatPage() {
     const userMsg: Message = { role: 'user', content: text }
     setMessages((prev) => [...prev, userMsg])
     setLoading(true)
+    setStreaming(true)
+    setStreamedEvents([])
     setWorkspaceState(buildQueuedState(detectIntent(text)))
 
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, language }),
-      })
-      const json = (await res.json()) as ChatResponse
+    const closeStream = subscribeToChatStream(
+      '/api/chat/stream',
+      { message: text, language },
+      {
+        onEvent: (event) => {
+          setStreamedEvents((prev) => [...prev, event])
+        },
+        onStatusChange: (status: CopilotStatus) => {
+          setWorkspaceState((prev) =>
+            prev
+              ? {
+                ...prev,
+                copilotStatus: status,
+              }
+              : prev,
+          )
+        },
+        onComplete: (data: ChatStreamData) => {
+          const { assistant_message, tool_traces, citations, workspace_state } = data
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: assistant_message,
+              citations,
+              id: data.request_id,
+            },
+          ])
 
-      if (json.ok && json.data) {
-        const { assistant_message, tool_traces, citations, workspace_state } = json.data
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: 'assistant',
-            content: assistant_message,
-            citations,
-          },
-        ])
+          if (workspace_state) {
+            setWorkspaceState(workspace_state)
+          } else if (tool_traces && tool_traces.length > 0) {
+            setWorkspaceState(buildWorkspaceState(tool_traces, assistant_message, true))
+          } else {
+            setWorkspaceState(buildCompleteState(assistant_message))
+          }
 
-        if (workspace_state) {
-          setWorkspaceState(workspace_state)
-        } else if (tool_traces && tool_traces.length > 0) {
-          setWorkspaceState(buildWorkspaceState(tool_traces, assistant_message, true))
-        } else {
-          setWorkspaceState(buildCompleteState(assistant_message))
-        }
-      } else {
-        const fallback = json.error?.message ?? 'Something went wrong. Please try again.'
-        setMessages((prev) => [
-          ...prev,
-          { role: 'assistant', content: fallback },
-        ])
-        setWorkspaceState(buildCompleteState(fallback))
-      }
-    } catch {
-      const fallback = 'Network error. Please check your connection and try again.'
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: fallback },
-      ])
-      setWorkspaceState(buildCompleteState(fallback))
-    } finally {
-      setLoading(false)
-      inputRef.current?.focus()
-    }
+          setLoading(false)
+          setStreaming(false)
+          streamCloseRef.current = null
+          inputRef.current?.focus()
+        },
+        onError: (error) => {
+          const fallback = error.message ?? 'Something went wrong. Please try again.'
+          setMessages((prev) => [
+            ...prev,
+            { role: 'assistant', content: fallback },
+          ])
+          setWorkspaceState(buildCompleteState(fallback))
+          setLoading(false)
+          setStreaming(false)
+          streamCloseRef.current = null
+          inputRef.current?.focus()
+        },
+      },
+    )
+
+    streamCloseRef.current = closeStream
   }
 
   // Auto-grow textarea
@@ -378,6 +397,21 @@ export default function ChatPage() {
           ))}
 
           {loading && <TypingIndicator />}
+
+          {streaming && streamedEvents.length > 0 && (
+            <div className="flex justify-start">
+              <div className="max-w-[80%] rounded-2xl bg-white px-4 py-3 text-xs text-gray-500 shadow-sm ring-1 ring-gray-100">
+                <p className="font-medium text-indigo-700">Analyst activity</p>
+                <ul className="mt-1 space-y-0.5">
+                  {streamedEvents.slice(-5).map((ev, i) => (
+                    <li key={`${('id' in ev ? ev.id : i) ?? i}-${i}`}>
+                      {'agent' in ev ? ev.agent : 'Copilot'}: {ev.type.replace(/_/g, ' ')}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
           <div ref={bottomRef} />
         </div>
       </main>
