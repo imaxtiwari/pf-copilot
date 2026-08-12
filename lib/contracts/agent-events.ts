@@ -115,3 +115,17 @@ export type AgentEvent =
     | FindingCreatedEvent
     | AgentCompletedEvent
     | CopilotStatusEvent;
+
+// ── lightweight event payload used by the orchestrator callback ───────────────
+
+export type OrchestratorAgentEvent = {
+    type: 'AgentStarted' | 'ToolCalled' | 'ToolCompleted' | 'FindingCreated' | 'AgentCompleted';
+    agent: AgentName;
+    timestamp: Date;
+    tool?: string;
+    args?: unknown;
+    success?: boolean;
+    error?: string;
+    finding?: string;
+    evidence?: Evidence[];
+};

@@ -6,6 +6,7 @@ import * as schema from '@/db/schema'
 import { ok, err } from '@/lib/contracts/error-envelope'
 import { resolveOrCreateUserId, COOKIE_NAME, cookieOptions } from '@/lib/auth/dev-user'
 import { runOrchestrator } from '@/lib/orchestrator'
+import { buildWorkspaceState } from '@/lib/agent-mapping'
 import type { SupportedLanguage } from '@/lib/rag/explain-fund'
 import logger from '@/lib/logger'
 import { randomUUID } from 'node:crypto'
@@ -83,6 +84,11 @@ export async function POST(req: NextRequest) {
 
   try {
     const result = await runOrchestrator(userId, message, language as SupportedLanguage | undefined)
+    const workspaceState = buildWorkspaceState(
+      result.tool_traces,
+      result.assistant_message,
+      true,
+    )
     const response = NextResponse.json(
       ok({
         assistant_message: result.assistant_message,
@@ -91,6 +97,7 @@ export async function POST(req: NextRequest) {
         model_version: result.model_version,
         refusal_reason: result.refusal_reason,
         request_id: result.request_id,
+        workspace_state: workspaceState,
       }),
       { status: 200 },
     )

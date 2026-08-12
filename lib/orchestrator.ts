@@ -15,6 +15,8 @@ import { explainStockTool } from '@/lib/tools/explain-stock'
 import { compareFundsTool } from '@/lib/tools/compare-funds'
 import { ToolArgSchemas } from '@/lib/tools/arg-schemas'
 import type { Citation, RefusalReason } from '@/lib/contracts/refusal-types'
+import type { OrchestratorAgentEvent, Evidence } from '@/lib/contracts/agent-events'
+import { mapToolNameToAgentName } from '@/lib/agent-mapping'
 import logger from '@/lib/logger'
 import { randomUUID } from 'node:crypto'
 
@@ -42,6 +44,11 @@ export type OrchestratorResult = {
   model_version: string
   refusal_reason: RefusalReason | null
   request_id: string
+}
+
+export type OrchestratorOptions = {
+  language?: SupportedLanguage
+  onEvent?: (event: OrchestratorAgentEvent) => void
 }
 
 // ── tool dispatcher ───────────────────────────────────────────────────────────
@@ -101,6 +108,25 @@ export async function runOrchestrator(
   message: string,
   language?: SupportedLanguage,
 ): Promise<OrchestratorResult> {
+  return runOrchestratorWithOptions(userId, message, { language })
+}
+
+export async function runOrchestratorWithEvents(
+  userId: string,
+  message: string,
+  language: SupportedLanguage | undefined,
+  onEvent: (event: OrchestratorAgentEvent) => void,
+): Promise<OrchestratorResult> {
+  return runOrchestratorWithOptions(userId, message, { language, onEvent })
+}
+
+async function runOrchestratorWithOptions(
+  userId: string,
+  message: string,
+  options: OrchestratorOptions,
+): Promise<OrchestratorResult> {
+  const { language, onEvent } = options
+  const emit = (event: OrchestratorAgentEvent) => onEvent?.(event)
   const startedAt = Date.now()
 
   // 1. Persist user message
@@ -214,14 +240,34 @@ export async function runOrchestrator(
         parsedArgs = {}
       }
 
+      const agent = mapToolNameToAgentName(tc.function.name)
+      emit({ type: 'AgentStarted', agent, timestamp: new Date() })
+      emit({ type: 'ToolCalled', agent, tool: tc.function.name, args: parsedArgs, timestamp: new Date() })
+
       const result = await dispatchTool(tc.function.name, parsedArgs, userId, resolvedLanguage)
 
       traces.push({ tool: tc.function.name, args: parsedArgs, result })
+
+      const success = !(
+        result &&
+        typeof result === 'object' &&
+        'error' in result &&
+        result.error !== undefined &&
+        result.error !== null
+      )
+      emit({ type: 'ToolCompleted', agent, tool: tc.function.name, success, timestamp: new Date() })
 
       // Collect citations and refusal metadata from strict-RAG tools
       if (tc.function.name === 'explain_fund' || tc.function.name === 'explain_stock' || tc.function.name === 'compare_funds') {
         collectToolMetadata(result, { citations, refusalReason })
       }
+
+      const finding = extractFinding(tc.function.name, result)
+      if (finding) {
+        emit({ type: 'FindingCreated', agent, finding: finding.finding, evidence: finding.evidence, timestamp: new Date() })
+      }
+
+      emit({ type: 'AgentCompleted', agent, timestamp: new Date() })
 
       messages.push({
         role: 'tool',
@@ -251,4 +297,92 @@ export async function runOrchestrator(
     refusal_reason: refusalReason ?? 'contract_violation',
     request_id: requestId,
   }
+}
+
+function extractFinding(toolName: string, result: unknown): { finding: string; evidence: Evidence[] } | null {
+  if (!result || typeof result !== 'object') return null
+  const r = result as Record<string, unknown>
+
+  switch (toolName) {
+    case 'get_portfolio': {
+      const holdings = Array.isArray(r.holdings) ? r.holdings : []
+      const total = typeof r.total_value === 'number' ? r.total_value : 0
+      return {
+        finding: `Portfolio loaded with ${holdings.length} holding${holdings.length === 1 ? '' : 's'}`,
+        evidence: [
+          { label: 'Holdings', value: String(holdings.length) },
+          { label: 'Total value', value: `₹${formatCompact(total)}` },
+        ],
+      }
+    }
+    case 'compute_personal_inflation': {
+      const rate = typeof r.inflation_rate === 'number' ? r.inflation_rate : null
+      const confidence = r.confidence ? String(r.confidence) : undefined
+      return {
+        finding: rate !== null ? `Personal inflation computed at ${rate}%` : 'Personal inflation computed',
+        evidence: [
+          ...(rate !== null ? [{ label: 'Personal inflation', value: `${rate}%` }] : []),
+          ...(confidence ? [{ label: 'Confidence', value: confidence }] : []),
+        ],
+      }
+    }
+    case 'compute_real_returns': {
+      const scheme = typeof r.scheme_name === 'string' ? r.scheme_name : undefined
+      const coverage = typeof r.coverage_ratio === 'number' ? `${Math.round(r.coverage_ratio * 100)}%` : undefined
+      return {
+        finding: scheme ? `Real returns analysed for ${scheme}` : 'Real returns analysed',
+        evidence: [
+          ...(scheme ? [{ label: 'Scheme', value: scheme }] : []),
+          ...(coverage ? [{ label: 'Coverage', value: coverage }] : []),
+        ],
+      }
+    }
+    case 'explain_fund': {
+      const scheme = typeof r.scheme_name === 'string' ? r.scheme_name : undefined
+      const answer = typeof r.answer === 'string' ? r.answer : undefined
+      return {
+        finding: scheme ? `Fund research complete for ${scheme}` : 'Fund research complete',
+        evidence: [
+          ...(scheme ? [{ label: 'Scheme', value: scheme }] : []),
+          ...(answer ? [{ label: 'Answer', value: answer }] : []),
+        ],
+      }
+    }
+    case 'compare_funds': {
+      const comparison = typeof r.comparison === 'string' ? r.comparison : undefined
+      return {
+        finding: comparison ?? 'Fund comparison complete',
+        evidence: [
+          ...(comparison ? [{ label: 'Comparison', value: comparison }] : []),
+        ],
+      }
+    }
+    case 'explain_stock': {
+      const company = typeof r.company_name === 'string' ? r.company_name : undefined
+      const answer = typeof r.answer === 'string' ? r.answer : undefined
+      return {
+        finding: company ? `Stock research complete for ${company}` : 'Stock research complete',
+        evidence: [
+          ...(company ? [{ label: 'Company', value: company }] : []),
+          ...(answer ? [{ label: 'Answer', value: answer }] : []),
+        ],
+      }
+    }
+    case 'lookup_chat_history': {
+      const count = Array.isArray(r.messages) ? r.messages.length : 0
+      return {
+        finding: `Recalled ${count} prior chat turn${count === 1 ? '' : 's'}`,
+        evidence: [{ label: 'Turns recalled', value: String(count) }],
+      }
+    }
+    default:
+      return null
+  }
+}
+
+function formatCompact(n: number): string {
+  if (n >= 1_00_00_000) return `${(n / 1_00_00_000).toFixed(1)}Cr`
+  if (n >= 1_00_000) return `${(n / 1_00_000).toFixed(1)}L`
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`
+  return String(Math.round(n))
 }

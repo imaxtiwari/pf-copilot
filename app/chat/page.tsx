@@ -16,6 +16,16 @@ type Citation = {
   factsheet_date: string
 }
 
+export type ChatApiData = {
+  assistant_message: string
+  tool_traces: ToolTrace[]
+  citations: Citation[]
+  model_version: string
+  refusal_reason: string | null
+  request_id: string
+  workspace_state?: WorkspaceState
+}
+
 export type SupportedLanguage = 'en' | 'hi-en'
 
 type Message = {
@@ -28,14 +38,7 @@ type Message = {
 
 type ChatResponse = {
   ok: boolean
-  data?: {
-    assistant_message: string
-    tool_traces: ToolTrace[]
-    citations: Citation[]
-    model_version: string
-    refusal_reason: string | null
-    request_id: string
-  }
+  data?: ChatApiData
   error?: { message: string }
 }
 
@@ -250,7 +253,7 @@ export default function ChatPage() {
       const json = (await res.json()) as ChatResponse
 
       if (json.ok && json.data) {
-        const { assistant_message, tool_traces, citations } = json.data
+        const { assistant_message, tool_traces, citations, workspace_state } = json.data
         setMessages((prev) => [
           ...prev,
           {
@@ -260,7 +263,9 @@ export default function ChatPage() {
           },
         ])
 
-        if (tool_traces && tool_traces.length > 0) {
+        if (workspace_state) {
+          setWorkspaceState(workspace_state)
+        } else if (tool_traces && tool_traces.length > 0) {
           setWorkspaceState(buildWorkspaceState(tool_traces, assistant_message, true))
         } else {
           setWorkspaceState(buildCompleteState(assistant_message))
