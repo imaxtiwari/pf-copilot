@@ -36,7 +36,7 @@ export function AIWorkspaceShell({ children, panel }: AIWorkspaceShellProps) {
             </button>
 
             {/* Mobile bottom sheet */}
-            <div className="fixed inset-x-0 bottom-0 z-50 max-h-[60vh] md:hidden">
+            <div className="fixed inset-x-0 bottom-0 z-50 max-h-[60vh] md:hidden" data-testid="mobile-bottom-sheet">
                 <div className="rounded-t-xl border-t border-slate-200 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.08)] dark:border-slate-700 dark:bg-slate-900">
                     {panel}
                 </div>

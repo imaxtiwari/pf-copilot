@@ -113,10 +113,23 @@ test.describe('Happy path: onboard → upload CAS → real returns → chat', ()
     // Send via Enter key
     await page.keyboard.press('Enter')
 
-    // Typing indicator appears then answer arrives
-    await expect(page.locator('text=/holdings|total value|portfolio|funds/i').last()).toBeVisible({
-      timeout: 30_000,
-    })
+    // Agent panel appears during loading and shows Portfolio Analyst
+    const panel = page.locator('[data-testid="mobile-bottom-sheet"] [data-agent-card="Portfolio Analyst"], aside [data-agent-card="Portfolio Analyst"]')
+    await expect(panel.first()).toBeVisible({ timeout: 30_000 })
+
+    // Copilot status moves from analysing to complete
+    const statusLabel = page.locator('aside [aria-label^="Copilot status:"], [data-testid="mobile-bottom-sheet"] [aria-label^="Copilot status:"]').first()
+    await expect(statusLabel).toHaveAttribute('aria-label', /Copilot status: (Analysing|Complete)/)
+    await expect(statusLabel).toHaveAttribute('aria-label', 'Copilot status: Complete', { timeout: 30_000 })
+
+    // Evidence chip with holdings or a portfolio count appears
+    const evidence = page.locator('aside [data-testid="agent-evidence"], [data-testid="mobile-bottom-sheet"] [data-testid="agent-evidence"]').first()
+    await expect(evidence).toBeVisible({ timeout: 30_000 })
+
+    // Assistant reply is rendered
+    const assistantReply = page.locator('.whitespace-pre-wrap').last()
+    await expect(assistantReply).toBeVisible({ timeout: 30_000 })
+    await expect(assistantReply).toContainText(/holdings|total value|portfolio|funds|scheme|investment/i, { timeout: 30_000 })
   })
 })
 

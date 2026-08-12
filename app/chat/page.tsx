@@ -2,6 +2,12 @@
 
 import { useState, useEffect, useRef, FormEvent } from 'react'
 
+import type { WorkspaceState } from '@/lib/contracts/agent-events'
+import { buildWorkspaceState } from '@/lib/agent-mapping'
+import { AIWorkspaceShell } from '@/components/ai-workspace-shell'
+import { AgentActivityPanel } from '@/components/agent-activity-panel'
+import type { ToolTrace } from '@/lib/orchestrator'
+
 // ── types ─────────────────────────────────────────────────────────────────────
 
 type Citation = {
@@ -19,6 +25,21 @@ type Message = {
   citations?: Citation[]
   ts?: string
 }
+
+type ChatResponse = {
+  ok: boolean
+  data?: {
+    assistant_message: string
+    tool_traces: ToolTrace[]
+    citations: Citation[]
+    model_version: string
+    refusal_reason: string | null
+    request_id: string
+  }
+  error?: { message: string }
+}
+
+const INTENT_KEYWORDS = ['portfolio', 'inflation', 'fund', 'stock', 'compare']
 
 // ── sub-components ─────────────────────────────────────────────────────────────
 
@@ -81,6 +102,89 @@ function detectDevanagari(text: string): boolean {
   return /[\u0900-\u097F]/.test(text)
 }
 
+function detectIntent(text: string): string | null {
+  const lower = text.toLowerCase()
+  for (const keyword of INTENT_KEYWORDS) {
+    if (lower.includes(keyword)) return keyword
+  }
+  return null
+}
+
+function buildQueuedState(intent: string | null): WorkspaceState {
+  const agents: WorkspaceState['agents'] = [
+    { name: 'Portfolio Analyst', status: 'queued', currentTask: 'Queued for portfolio analysis', evidence: [], nextStep: 'Will activate if needed' },
+    { name: 'Inflation Analyst', status: 'queued', currentTask: 'Queued for inflation analysis', evidence: [], nextStep: 'Will activate if needed' },
+    { name: 'Performance Analyst', status: 'queued', currentTask: 'Queued for return analysis', evidence: [], nextStep: 'Will activate if needed' },
+    { name: 'Fund Research Agent', status: 'queued', currentTask: 'Queued for fund research', evidence: [], nextStep: 'Will activate if needed' },
+    { name: 'Risk Analyst', status: 'queued', currentTask: 'Queued for risk review', evidence: [], nextStep: 'Will activate if needed' },
+    { name: 'Copilot', status: 'working', currentTask: 'Understanding your question and routing to analysts', evidence: [], nextStep: 'Deliver final answer' },
+  ]
+
+  // Mark relevant agents as queued based on the detected intent.  If no intent
+  // is detected, everything remains queued so the panel still shows activity.
+  const relevant = new Set<string>()
+  if (intent === 'portfolio') {
+    relevant.add('Portfolio Analyst')
+    relevant.add('Performance Analyst')
+  } else if (intent === 'inflation') {
+    relevant.add('Inflation Analyst')
+    relevant.add('Performance Analyst')
+  } else if (intent === 'fund') {
+    relevant.add('Fund Research Agent')
+  } else if (intent === 'stock') {
+    relevant.add('Risk Analyst')
+  } else if (intent === 'compare') {
+    relevant.add('Fund Research Agent')
+    relevant.add('Risk Analyst')
+  }
+
+  const updatedAgents = agents.map((agent) => {
+    if (agent.name === 'Copilot') return agent
+    if (relevant.size > 0 && !relevant.has(agent.name)) {
+      return { ...agent, status: 'idle' as const, currentTask: 'Standing by' }
+    }
+    return agent
+  })
+
+  return {
+    copilotStatus: 'analysing',
+    agents: updatedAgents,
+    activity: [
+      {
+        id: 'copilot-queued',
+        timestamp: new Date(),
+        agent: 'Copilot',
+        message: `Analysing your question${intent ? ` about ${intent}` : ''}`,
+      },
+    ],
+    summary: 'Your financial team · Preparing analysis',
+  }
+}
+
+function buildCompleteState(assistantMessage: string): WorkspaceState {
+  return {
+    copilotStatus: 'complete',
+    agents: [
+      { name: 'Portfolio Analyst', status: 'idle', currentTask: 'Standing by', evidence: [], nextStep: 'Will activate if needed' },
+      { name: 'Inflation Analyst', status: 'idle', currentTask: 'Standing by', evidence: [], nextStep: 'Will activate if needed' },
+      { name: 'Performance Analyst', status: 'idle', currentTask: 'Standing by', evidence: [], nextStep: 'Will activate if needed' },
+      { name: 'Fund Research Agent', status: 'idle', currentTask: 'Standing by', evidence: [], nextStep: 'Will activate if needed' },
+      { name: 'Risk Analyst', status: 'idle', currentTask: 'Standing by', evidence: [], nextStep: 'Will activate if needed' },
+      { name: 'Copilot', status: 'complete', currentTask: 'Synthesis complete', evidence: [{ label: 'Response length', value: `${assistantMessage.length} chars` }], nextStep: 'Deliver final answer' },
+    ],
+    activity: [
+      {
+        id: 'copilot-complete',
+        timestamp: new Date(),
+        agent: 'Copilot',
+        message: 'Copilot synthesised the final response',
+        evidence: [{ label: 'Response length', value: `${assistantMessage.length} chars` }],
+      },
+    ],
+    summary: 'Your financial team · Analysis complete',
+  }
+}
+
 // ── main page ─────────────────────────────────────────────────────────────────
 
 export default function ChatPage() {
@@ -89,6 +193,9 @@ export default function ChatPage() {
   const [language, setLanguage] = useState<SupportedLanguage>('en')
   const [loading, setLoading] = useState(false)
   const [historyLoaded, setHistoryLoaded] = useState(false)
+  const [workspaceState, setWorkspaceState] = useState<WorkspaceState | null>(null)
+  const [panelExpanded, setPanelExpanded] = useState(true)
+
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -132,6 +239,7 @@ export default function ChatPage() {
     const userMsg: Message = { role: 'user', content: text }
     setMessages((prev) => [...prev, userMsg])
     setLoading(true)
+    setWorkspaceState(buildQueuedState(detectIntent(text)))
 
     try {
       const res = await fetch('/api/chat', {
@@ -139,35 +247,39 @@ export default function ChatPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text, language }),
       })
-      const json = (await res.json()) as {
-        ok: boolean
-        data?: { assistant_message: string; citations: Citation[] }
-        error?: { message: string }
-      }
+      const json = (await res.json()) as ChatResponse
 
       if (json.ok && json.data) {
+        const { assistant_message, tool_traces, citations } = json.data
         setMessages((prev) => [
           ...prev,
           {
             role: 'assistant',
-            content: json.data!.assistant_message,
-            citations: json.data!.citations,
+            content: assistant_message,
+            citations,
           },
         ])
+
+        if (tool_traces && tool_traces.length > 0) {
+          setWorkspaceState(buildWorkspaceState(tool_traces, assistant_message, true))
+        } else {
+          setWorkspaceState(buildCompleteState(assistant_message))
+        }
       } else {
+        const fallback = json.error?.message ?? 'Something went wrong. Please try again.'
         setMessages((prev) => [
           ...prev,
-          {
-            role: 'assistant',
-            content: json.error?.message ?? 'Something went wrong. Please try again.',
-          },
+          { role: 'assistant', content: fallback },
         ])
+        setWorkspaceState(buildCompleteState(fallback))
       }
     } catch {
+      const fallback = 'Network error. Please check your connection and try again.'
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: 'Network error. Please check your connection and try again.' },
+        { role: 'assistant', content: fallback },
       ])
+      setWorkspaceState(buildCompleteState(fallback))
     } finally {
       setLoading(false)
       inputRef.current?.focus()
@@ -189,8 +301,8 @@ export default function ChatPage() {
     }
   }
 
-  return (
-    <div className="flex h-screen flex-col bg-gray-50">
+  const chatThread = (
+    <>
       {/* Header */}
       <header className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 shadow-sm">
         <div>
@@ -247,11 +359,11 @@ export default function ChatPage() {
               </h2>
               <p className="max-w-sm text-sm text-gray-500">
                 Try: &ldquo;What does my portfolio look like?&rdquo;,
-                &ldquo;What&apos;s my real return on Parag Parikh Flexi?&rdquo;, or
+                &ldquo;What's my real return on Parag Parikh Flexi?&rdquo;, or
                 &ldquo;Explain the expense ratio of HDFC Top 100.&rdquo;
               </p>
               <p className="mt-1 rounded bg-yellow-50 px-3 py-1.5 text-xs text-yellow-800">
-                I explain. I don&apos;t advise. Always verify with your financial advisor.
+                I explain. I don't advise. Always verify with your financial advisor.
               </p>
             </div>
           )}
@@ -301,6 +413,28 @@ export default function ChatPage() {
           Educational only · Not financial advice · Verify with your advisor
         </p>
       </footer>
-    </div>
+    </>
+  )
+
+  return (
+    <AIWorkspaceShell
+      panel={
+        workspaceState ? (
+          <AgentActivityPanel
+            state={workspaceState}
+            expanded={panelExpanded}
+            onToggleExpand={() => setPanelExpanded((p) => !p)}
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center rounded-xl border border-slate-200 bg-slate-50 p-6 text-center dark:border-slate-700 dark:bg-slate-950">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Start a conversation to see the AI workspace in action.
+            </p>
+          </div>
+        )
+      }
+    >
+      {chatThread}
+    </AIWorkspaceShell>
   )
 }
