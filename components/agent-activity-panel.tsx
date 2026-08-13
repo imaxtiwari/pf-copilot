@@ -21,6 +21,10 @@ export function AgentActivityPanel({
         .filter((a) => a.status === "working")
         .slice(0, 3);
 
+    const prefersReducedMotion =
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
     return (
         <div className="flex h-full flex-col rounded-xl border border-slate-200 bg-slate-50 shadow-sm dark:border-slate-700 dark:bg-slate-950">
             <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4 dark:border-slate-700">
@@ -49,7 +53,11 @@ export function AgentActivityPanel({
 
             <div className="flex-1 space-y-3 overflow-y-auto p-4">
                 {!expanded && workingAgents.length > 0 && (
-                    <div className="text-sm text-slate-700 dark:text-slate-200">
+                    <div
+                        className="text-sm text-slate-700 dark:text-slate-200"
+                        aria-live="polite"
+                        aria-label={`Working now: ${workingAgents.map((a) => a.name).join(", ")}`}
+                    >
                         <span className="font-medium">Working now:</span>{" "}
                         {workingAgents.map((a) => a.name).join(", ")}
                     </div>
@@ -72,6 +80,14 @@ export function AgentActivityPanel({
                     </div>
                 )}
             </div>
+
+            {state.agents.length === 0 && (
+                <div className="flex flex-1 items-center justify-center p-6 text-center">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                        Your AI team is standing by. Send a message to start the analysis.
+                    </p>
+                </div>
+            )}
         </div>
     );
 }

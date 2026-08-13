@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import type { AgentState } from "@/lib/contracts/agent-events";
 import { AgentAvatar } from "@/components/agent-avatar";
@@ -44,7 +44,16 @@ type AgentCardProps = {
 
 export function AgentCard({ agent, defaultExpanded = false }: AgentCardProps) {
     const [expanded, setExpanded] = useState(defaultExpanded);
+    const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
     const statusStyle = STATUS_STYLES[agent.status];
+
+    useEffect(() => {
+        const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+        setPrefersReducedMotion(mq.matches);
+        const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+        mq.addEventListener("change", handler);
+        return () => mq.removeEventListener("change", handler);
+    }, []);
 
     return (
         <div
@@ -95,7 +104,7 @@ export function AgentCard({ agent, defaultExpanded = false }: AgentCardProps) {
             </button>
 
             <div
-                className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                className={`grid ${prefersReducedMotion ? "" : "transition-[grid-template-rows] duration-300 ease-in-out"} ${expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
                     }`}
             >
                 <div className="overflow-hidden">

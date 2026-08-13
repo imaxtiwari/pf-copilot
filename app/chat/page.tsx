@@ -465,10 +465,16 @@ export default function ChatPage() {
             onToggleExpand={() => setPanelExpanded((p) => !p)}
           />
         ) : (
-          <div className="flex h-full items-center justify-center rounded-xl border border-slate-200 bg-slate-50 p-6 text-center dark:border-slate-700 dark:bg-slate-950">
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Start a conversation to see the AI workspace in action.
-            </p>
+          <div className="flex h-full flex-col items-center justify-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-6 text-center dark:border-slate-700 dark:bg-slate-950">
+            <div className="text-3xl">🤖</div>
+            <div>
+              <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                Your AI team is standing by
+              </h2>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Send a message to start the analysis.
+              </p>
+            </div>
           </div>
         )
       }

@@ -16,10 +16,15 @@ type ActivityFeedProps = {
 
 export function ActivityFeed({ items }: ActivityFeedProps) {
     const bottomRef = useRef<HTMLDivElement>(null);
+    const prefersReducedMotion =
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [items]);
+        bottomRef.current?.scrollIntoView({
+            behavior: prefersReducedMotion ? "auto" : "smooth",
+        });
+    }, [items, prefersReducedMotion]);
 
     if (items.length === 0) {
         return (
@@ -30,8 +35,12 @@ export function ActivityFeed({ items }: ActivityFeedProps) {
     }
 
     return (
-        <div className="max-h-80 overflow-y-auto rounded-md border border-slate-200 bg-white p-2 dark:border-slate-700 dark:bg-slate-900">
-            <ul className="space-y-3" aria-live="polite" aria-label="Agent activity feed">
+        <div
+            className="max-h-80 overflow-y-auto rounded-md border border-slate-200 bg-white p-2 dark:border-slate-700 dark:bg-slate-900"
+            aria-live="polite"
+            aria-label="Agent activity feed"
+        >
+            <ul className="space-y-3">
                 {items.map((item) => (
                     <li key={item.id} className="flex gap-2">
                         <AgentAvatar name={item.agent} size="sm" />
