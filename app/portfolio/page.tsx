@@ -15,6 +15,8 @@ import { getLatestInsight } from '@/lib/portfolio/insights'
 import { parseNominalReturn1y } from '@/lib/inflation/parse-return'
 import { describeAgeBand, ageBasedEquityBand } from '@/lib/portfolio/allocation'
 import { getAllocationForUser } from '@/lib/portfolio/get-allocation'
+import { buildPortfolioWorkspaceState } from '@/lib/portfolio/workspace-state'
+import { AgentActivityPanel } from '@/components/agent-activity-panel'
 import type { UserProfileInput } from '@/lib/inflation/compute'
 import type { InflationConfidence } from '@/lib/validation/schemas'
 
@@ -228,8 +230,33 @@ export default async function PortfolioPage() {
       .reduce((sum, b) => sum + b.weight, 0)
     : 0
 
+  const workspaceState = buildPortfolioWorkspaceState({
+    holdings: holdingRows.map((h) => ({
+      schemeName: h.schemeName,
+      schemeCode: h.schemeCode,
+      marketValue: Number(h.marketValue),
+    })),
+    totalValue: result.portfolio.total_value,
+    inflationRate,
+    inflationConfidence,
+    realReturn: result.portfolio.weighted_real_return_1y,
+    coverageRatio:
+      result.per_holding.length > 0
+        ? result.per_holding.filter((h) => h.nominal_return_1y !== null).length /
+        result.per_holding.length
+        : 0,
+    equityWeight,
+    buckets: allocation.ok ? allocation.data.buckets.map((b) => ({ bucket: b.bucket, weight: b.weight })) : [],
+    insight: insight ? { title: insight.title, template: insight.template } : null,
+  })
+
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
+      {/* Compact AI Workspace summary */}
+      <div className="mb-6" data-testid="portfolio-workspace-panel">
+        <AgentActivityPanel state={workspaceState} expanded={false} />
+      </div>
+
       {/* Header row */}
       <div className="mb-6 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
         <div>
