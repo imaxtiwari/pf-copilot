@@ -1,0 +1,1626 @@
+◇ injected env (15) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+--- Initializing Database for Niti Gupta ---
+Pipeline Started: dcf3b265-9c06-42c4-86f3-f0a5e03828a4
+--- Running Phase 1 (Onboarding -> Kiran Risk Profile -> Vikram Interview) ---
+[2026-06-18 00:40:26.928 +0530] [32mINFO[39m (98841): [36mDHRUV: Starting pipeline run[39m
+    [35mclientId[39m: "f7785747-5fa6-476c-9f46-5857103e8f74"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:40:26.931 +0530] [32mINFO[39m (98841): [36mDHRUV: runPhase1 started[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:40:26.936 +0530] [32mINFO[39m (98841): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mfrom[39m: "ONBOARDING"
+    [35mto[39m: "KIRAN_RISK_PROFILE"
+[2026-06-18 00:40:26.936 +0530] [32mINFO[39m (98841): [36mKIRAN: buildClientRiskProfile invoked[39m
+    [35mclientId[39m: "f7785747-5fa6-476c-9f46-5857103e8f74"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:40:27.981 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1043
+    [35mtokensUsed[39m: 16
+    [35mattempt[39m: 1
+[2026-06-18 00:40:28.010 +0530] [32mINFO[39m (98841): [36mWebResearchTool: cache hit — skipping Tavily API call[39m
+    [35magentId[39m: "KIRAN"
+    [35mquery[39m: "behavioral finance portfolio asset allocation risk factors for 59 years old dependants parents"
+    [35mcacheHits[39m: 3
+[2026-06-18 00:40:40.343 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1560
+    [35mtokensUsed[39m: 34
+    [35mattempt[39m: 1
+[2026-06-18 00:40:40.369 +0530] [32mINFO[39m (98841): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mfrom[39m: "KIRAN_RISK_PROFILE"
+    [35mto[39m: "VIKRAM_INTERVIEW"
+[2026-06-18 00:40:40.369 +0530] [32mINFO[39m (98841): [36mVIKRAM: conductClientInterview invoked[39m
+    [35mclientId[39m: "f7785747-5fa6-476c-9f46-5857103e8f74"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:41:03.073 +0530] [32mINFO[39m (98841): [36mVIKRAM: generated interview questions[39m
+    [35mquestionsCount[39m: 25
+--- Running Phase 2 (Goal Assessment -> Portfolio Build -> Voting) ---
+[2026-06-18 00:41:03.099 +0530] [32mINFO[39m (98841): [36mDHRUV: runPhase1 completed successfully[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:41:03.100 +0530] [32mINFO[39m (98841): [36mDHRUV: runPhase2 started[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:41:03.452 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 344
+    [35mtokensUsed[39m: 6
+    [35mattempt[39m: 1
+[2026-06-18 00:41:04.122 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1014
+    [35mtokensUsed[39m: 9
+    [35mattempt[39m: 1
+[2026-06-18 00:41:04.135 +0530] [32mINFO[39m (98841): [36mDHRUV: Knowledge Commons primed for pipeline run[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mariaKnowledgeCount[39m: 3
+    [35mkiranKnowledgeCount[39m: 3
+[2026-06-18 00:41:04.143 +0530] [32mINFO[39m (98841): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mfrom[39m: "VIKRAM_INTERVIEW"
+    [35mto[39m: "VIKRAM_GOAL_ASSESSMENT"
+[2026-06-18 00:41:04.145 +0530] [32mINFO[39m (98841): [36mVIKRAM: assessGoals invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:41:38.210 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "3fae9101-0de2-4ef9-8404-fbbcaf649752"
+    [35msender[39m: "VIKRAM"
+    [35mtype[39m: "STRATEGY_PROPOSAL"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:41:38.210 +0530] [32mINFO[39m (98841): [36mARIA: critiqueGoalPlan invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:43:04.647 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1068
+    [35mtokensUsed[39m: 65
+    [35mattempt[39m: 1
+[2026-06-18 00:43:05.760 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "fac5ff2f-4bef-4ab7-9ebc-42341abf3ac9"
+    [35msender[39m: "ARIA"
+    [35mtype[39m: "CRITIQUE"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:43:05.760 +0530] [32mINFO[39m (98841): [36mDHRUV: Vikram goal plan has CRITICAL faults. Triggering Vikram goal revision.[39m
+[2026-06-18 00:43:05.761 +0530] [32mINFO[39m (98841): [36mVIKRAM: assessGoals invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:43:25.717 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "10371d19-8bca-4c2c-a67b-998394d86ae8"
+    [35msender[39m: "VIKRAM"
+    [35mtype[39m: "STRATEGY_PROPOSAL"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:43:25.718 +0530] [32mINFO[39m (98841): [36mARIA: critiqueGoalPlan invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:44:11.487 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1047
+    [35mtokensUsed[39m: 50
+    [35mattempt[39m: 1
+[2026-06-18 00:44:12.404 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "679f5c36-f577-4eb6-ba69-f82fd1d5167d"
+    [35msender[39m: "ARIA"
+    [35mtype[39m: "CRITIQUE"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:44:12.404 +0530] [32mINFO[39m (98841): [36mDHRUV: Vikram goal plan has CRITICAL faults. Triggering Vikram goal revision.[39m
+[2026-06-18 00:44:12.404 +0530] [32mINFO[39m (98841): [36mVIKRAM: assessGoals invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:44:32.681 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "7abfd3e1-fe88-49c0-84aa-cf52fbfe9063"
+    [35msender[39m: "VIKRAM"
+    [35mtype[39m: "STRATEGY_PROPOSAL"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:44:32.681 +0530] [32mINFO[39m (98841): [36mARIA: critiqueGoalPlan invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:45:12.440 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 971
+    [35mtokensUsed[39m: 55
+    [35mattempt[39m: 1
+[2026-06-18 00:45:13.963 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "300d5359-5f2f-4262-9e06-6b59de7b8c1b"
+    [35msender[39m: "ARIA"
+    [35mtype[39m: "CRITIQUE"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:45:13.982 +0530] [32mINFO[39m (98841): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mfrom[39m: "VIKRAM_GOAL_ASSESSMENT"
+    [35mto[39m: "SOMA_FUND_UNIVERSE"
+[2026-06-18 00:45:13.984 +0530] [32mINFO[39m (98841): [36mSOMA: getEligibleFundUniverse invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mcriteria[39m: {
+      "max_expense_ratio_active": 1.5,
+      "max_expense_ratio_index": 0.5,
+      "min_aum_equity_cr": 500,
+      "min_aum_debt_cr": 1000,
+      "min_track_record_years": 3
+    }
+[2026-06-18 00:45:14.053 +0530] [33mWARN[39m (98841): [36mSOMA: getEligibleFundUniverse filtered result is fewer than 10 funds. Relaxing min_aum filters by 50% and retrying once.[39m
+    [35mcount[39m: 0
+    [35mminAumEquity[39m: 500
+    [35mminAumDebt[39m: 1000
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:45:14.089 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "d2f7ab88-6961-41e1-9b7a-021cd6e7ed8b"
+    [35msender[39m: "SOMA"
+    [35mtype[39m: "FUND_REPORT"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:45:14.093 +0530] [32mINFO[39m (98841): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mfrom[39m: "SOMA_FUND_UNIVERSE"
+    [35mto[39m: "VIKRAM_STRATEGY"
+[2026-06-18 00:45:14.093 +0530] [32mINFO[39m (98841): [36mVIKRAM: selectStrategyFramework invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:45:14.439 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 346
+    [35mtokensUsed[39m: 4
+    [35mattempt[39m: 1
+[2026-06-18 00:45:14.453 +0530] [32mINFO[39m (98841): [36mVIKRAM: strategy framework recall hit[39m
+[2026-06-18 00:45:14.834 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 381
+    [35mtokensUsed[39m: 16
+    [35mattempt[39m: 1
+[2026-06-18 00:45:14.845 +0530] [32mINFO[39m (98841): [36mWebResearchTool: cache hit — skipping Tavily API call[39m
+    [35magentId[39m: "VIKRAM"
+    [35mquery[39m: "goal based asset allocation strategy frameworks core satellite bucket liability matching barbell SEBI guidelines"
+    [35mcacheHits[39m: 3
+[2026-06-18 00:45:35.491 +0530] [33mWARN[39m (98841): [36mORACLE flagged message[39m
+    [35mmessage_id[39m: "4f9aa4e9-b60a-4aae-9f83-207c0072cafb"
+    [35msender[39m: "VIKRAM"
+    [35mflags[39m: [
+      "SOURCE_MISSING — factual claims detected without source citation."
+    ]
+[2026-06-18 00:45:35.511 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "4f9aa4e9-b60a-4aae-9f83-207c0072cafb"
+    [35msender[39m: "VIKRAM"
+    [35mtype[39m: "STRATEGY_PROPOSAL"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:45:35.529 +0530] [32mINFO[39m (98841): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mfrom[39m: "VIKRAM_STRATEGY"
+    [35mto[39m: "KIRAN_HEDGE_MAP"
+[2026-06-18 00:45:35.530 +0530] [32mINFO[39m (98841): [36mKIRAN: buildHedgeMap invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:45:35.880 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 348
+    [35mtokensUsed[39m: 13
+    [35mattempt[39m: 1
+[2026-06-18 00:45:35.904 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "3a4826cd-22d2-4392-9a82-a2509d8f7175"
+    [35msender[39m: "KIRAN"
+    [35mtype[39m: "RISK_ALERT"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:45:35.909 +0530] [32mINFO[39m (98841): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mfrom[39m: "KIRAN_HEDGE_MAP"
+    [35mto[39m: "PRIYA_BUILD"
+[2026-06-18 00:45:35.911 +0530] [32mINFO[39m (98841): [36mPRIYA: buildPortfolio invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:45:35.911 +0530] [32mINFO[39m (98841): [36mPRIYA: Designing allocations via LLM[39m
+[2026-06-18 00:45:38.912 +0530] [32mINFO[39m (98841): [36mPRIYA: Running holding overlap analysis[39m
+[2026-06-18 00:45:38.912 +0530] [32mINFO[39m (98841): [36mPRIYA: Executing backtesting engine[39m
+[2026-06-18 00:45:38.913 +0530] [32mINFO[39m (98841): [36mPRIYA-BACKTEST: Starting backtest[39m
+    [35mbacktestId[39m: "cac15040-481e-4850-9003-f609c852a925"
+    [35mallocationsCount[39m: 0
+[2026-06-18 00:45:38.924 +0530] [33mWARN[39m (98841): [36mPRIYA-BACKTEST: Data completeness is below 70%[39m
+    [35mdataCompletenessPct[39m: 0.8333333333333334
+[2026-06-18 00:45:38.924 +0530] [32mINFO[39m (98841): [36mPRIYA-BACKTEST: Sparse data detected. Returning default simulated statistics.[39m
+[2026-06-18 00:45:38.924 +0530] [32mINFO[39m (98841): [36mPRIYA: Calculating confidence score[39m
+[2026-06-18 00:45:38.935 +0530] [32mINFO[39m (98841): [36mPRIYA: Saved portfolio draft to database[39m
+    [35mdraftId[39m: "a59e099d-91d1-4b42-92db-5b31ce153477"
+[2026-06-18 00:45:38.935 +0530] [32mINFO[39m (98841): [36mPRIYA: Publishing portfolio draft to Deliberation Room[39m
+[2026-06-18 00:45:38.938 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "896a04d2-5990-4dc7-bc67-661ebc9c412d"
+    [35msender[39m: "PRIYA"
+    [35mtype[39m: "PORTFOLIO_DRAFT"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:45:38.941 +0530] [32mINFO[39m (98841): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mfrom[39m: "PRIYA_BUILD"
+    [35mto[39m: "DELIBERATION"
+[2026-06-18 00:45:38.941 +0530] [32mINFO[39m (98841): [36mKIRAN: buildHedgeMap invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:45:39.527 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 585
+    [35mtokensUsed[39m: 13
+    [35mattempt[39m: 1
+[2026-06-18 00:45:39.547 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "45c16121-5bd3-452e-8ae0-78bcbdb9327f"
+    [35msender[39m: "KIRAN"
+    [35mtype[39m: "RISK_ALERT"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:45:39.547 +0530] [32mINFO[39m (98841): [36mKIRAN: runStressTest invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:45:51.322 +0530] [32mINFO[39m (98841): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mfrom[39m: "DELIBERATION"
+    [35mto[39m: "COMMITTEE_VOTE"
+[2026-06-18 00:45:51.324 +0530] [32mINFO[39m (98841): [36mDHRUV: runCommitteeSession voting session started[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:45:51.324 +0530] [32mINFO[39m (98841): [36mARIA: critiquePortfolioDraft invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:45:51.325 +0530] [32mINFO[39m (98841): [36mKIRAN: buildHedgeMap invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:45:51.689 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 364
+    [35mtokensUsed[39m: 13
+    [35mattempt[39m: 1
+[2026-06-18 00:45:51.726 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "33bd622c-0781-405a-b545-207a88fa9f14"
+    [35msender[39m: "KIRAN"
+    [35mtype[39m: "RISK_ALERT"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:45:51.768 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 443
+    [35mtokensUsed[39m: 6
+    [35mattempt[39m: 1
+[2026-06-18 00:46:30.489 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1035
+    [35mtokensUsed[39m: 55
+    [35mattempt[39m: 1
+[2026-06-18 00:46:31.526 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "cfaed671-8af4-46f7-ba27-648d30360fc3"
+    [35msender[39m: "ARIA"
+    [35mtype[39m: "CRITIQUE"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:46:31.527 +0530] [32mINFO[39m (98841): [36mVIKRAM: evaluatePortfolioAlignment invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mdraftId[39m: "a59e099d-91d1-4b42-92db-5b31ce153477"
+[2026-06-18 00:46:40.668 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "b7b81c06-b075-4b73-9076-df3dcf50fead"
+    [35msender[39m: "VIKRAM"
+    [35mtype[39m: "VOTE"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:46:40.700 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "ea8d5eef-f5b7-438c-ac28-5ec2f85ac109"
+    [35msender[39m: "DHRUV"
+    [35mtype[39m: "VOTE"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:46:40.704 +0530] [32mINFO[39m (98841): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mfrom[39m: "COMMITTEE_VOTE"
+    [35mto[39m: "REVISION"
+[2026-06-18 00:46:40.706 +0530] [32mINFO[39m (98841): [36mARIA: critiquePortfolioDraft invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:46:41.274 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 568
+    [35mtokensUsed[39m: 6
+    [35mattempt[39m: 1
+[2026-06-18 00:47:21.248 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1078
+    [35mtokensUsed[39m: 55
+    [35mattempt[39m: 1
+[2026-06-18 00:47:22.448 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "63731ff6-ed23-4c10-b243-2818ead3d873"
+    [35msender[39m: "ARIA"
+    [35mtype[39m: "CRITIQUE"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:47:22.449 +0530] [32mINFO[39m (98841): [36mPRIYA: revise invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mpreviousDraftId[39m: "a59e099d-91d1-4b42-92db-5b31ce153477"
+[2026-06-18 00:47:27.355 +0530] [32mINFO[39m (98841): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "123456"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:47:27.867 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 500
+    [35mtokensUsed[39m: 29
+    [35mattempt[39m: 1
+[2026-06-18 00:47:27.880 +0530] [32mINFO[39m (98841): [36mWebResearchTool: cache hit — skipping Tavily API call[39m
+    [35magentId[39m: "PRIYA"
+    [35mquery[39m: "\"Reliance Fixed Horizon Fund - XXIV - Series 10 - Direct Plan - Dividend Payout Option\" top holdings portfolio allocation sector distribution"
+    [35mcacheHits[39m: 3
+[2026-06-18 00:47:29.205 +0530] [32mINFO[39m (98841): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "654321"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:47:29.208 +0530] [32mINFO[39m (98841): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "789012"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:47:29.213 +0530] [32mINFO[39m (98841): [36mPRIYA-BACKTEST: Starting backtest[39m
+    [35mbacktestId[39m: "900ece8e-db4b-4d30-969a-b8fcce1d93d8"
+    [35mallocationsCount[39m: 3
+[2026-06-18 00:47:29.229 +0530] [33mWARN[39m (98841): [36mPRIYA-BACKTEST: Data completeness is below 70%[39m
+    [35mdataCompletenessPct[39m: 0.8333333333333334
+[2026-06-18 00:47:29.230 +0530] [32mINFO[39m (98841): [36mPRIYA-BACKTEST: Sparse data detected. Returning default simulated statistics.[39m
+[2026-06-18 00:47:29.237 +0530] [32mINFO[39m (98841): [36mPRIYA: Saved portfolio draft to database[39m
+    [35mdraftId[39m: "a3c27306-eb2c-4f93-bcc6-f6322171d1de"
+[2026-06-18 00:47:29.240 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "d1277871-d51b-4d05-b6ff-019cca0658b3"
+    [35msender[39m: "PRIYA"
+    [35mtype[39m: "PORTFOLIO_DRAFT"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:47:29.240 +0530] [32mINFO[39m (98841): [36mKIRAN: buildHedgeMap invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:47:40.751 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1050
+    [35mtokensUsed[39m: 13
+    [35mattempt[39m: 1
+[2026-06-18 00:47:40.780 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "a0676c9e-ea1f-48c0-8ae6-86d5159a339a"
+    [35msender[39m: "KIRAN"
+    [35mtype[39m: "RISK_ALERT"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:47:40.780 +0530] [32mINFO[39m (98841): [36mKIRAN: runStressTest invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:47:52.555 +0530] [32mINFO[39m (98841): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mfrom[39m: "REVISION"
+    [35mto[39m: "COMMITTEE_VOTE"
+[2026-06-18 00:47:52.556 +0530] [32mINFO[39m (98841): [36mDHRUV: runCommitteeSession voting session started[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:47:52.556 +0530] [32mINFO[39m (98841): [36mARIA: critiquePortfolioDraft invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:47:52.556 +0530] [32mINFO[39m (98841): [36mKIRAN: buildHedgeMap invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:47:52.858 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 302
+    [35mtokensUsed[39m: 6
+    [35mattempt[39m: 1
+[2026-06-18 00:48:04.694 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 985
+    [35mtokensUsed[39m: 13
+    [35mattempt[39m: 1
+[2026-06-18 00:48:04.725 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "71b94724-2171-459e-b1f8-0ccc4d7f5248"
+    [35msender[39m: "KIRAN"
+    [35mtype[39m: "RISK_ALERT"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:48:21.613 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1009
+    [35mtokensUsed[39m: 52
+    [35mattempt[39m: 1
+[2026-06-18 00:48:23.091 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "6effb22c-83b1-4c2a-87c9-c549964725c2"
+    [35msender[39m: "ARIA"
+    [35mtype[39m: "CRITIQUE"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:48:23.092 +0530] [32mINFO[39m (98841): [36mVIKRAM: evaluatePortfolioAlignment invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mdraftId[39m: "a3c27306-eb2c-4f93-bcc6-f6322171d1de"
+[2026-06-18 00:48:23.105 +0530] [33mWARN[39m (98841): [36mVIKRAM: schemeCode not found in agent_funds database table. Inferring type from fund_name.[39m
+    [35mschemeCode[39m: "654321"
+    [35mfundName[39m: "ICICI Prudential Liquid Fund"
+    [35minferredType[39m: "debt"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:48:23.105 +0530] [33mWARN[39m (98841): [36mVIKRAM: schemeCode not found in agent_funds database table. Inferring type from fund_name.[39m
+    [35mschemeCode[39m: "789012"
+    [35mfundName[39m: "SBI Banking & PSU Debt Fund"
+    [35minferredType[39m: "debt"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:48:36.190 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "2b6ea43c-cfc2-4a5a-adb4-85b427e16ccc"
+    [35msender[39m: "VIKRAM"
+    [35mtype[39m: "VOTE"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:48:36.216 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "1598720f-df11-4fdd-b7bf-a146b79633c3"
+    [35msender[39m: "DHRUV"
+    [35mtype[39m: "VOTE"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:48:36.224 +0530] [32mINFO[39m (98841): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mfrom[39m: "COMMITTEE_VOTE"
+    [35mto[39m: "REVISION"
+[2026-06-18 00:48:36.228 +0530] [32mINFO[39m (98841): [36mARIA: critiquePortfolioDraft invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:48:36.578 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 350
+    [35mtokensUsed[39m: 6
+    [35mattempt[39m: 1
+[2026-06-18 00:49:10.615 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1161
+    [35mtokensUsed[39m: 52
+    [35mattempt[39m: 1
+[2026-06-18 00:49:12.594 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "c50fbc9a-ced8-42c4-b16c-851f4860e76a"
+    [35msender[39m: "ARIA"
+    [35mtype[39m: "CRITIQUE"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:49:12.594 +0530] [32mINFO[39m (98841): [36mPRIYA: revise invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mpreviousDraftId[39m: "a3c27306-eb2c-4f93-bcc6-f6322171d1de"
+[2026-06-18 00:49:22.968 +0530] [32mINFO[39m (98841): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "123456"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:49:23.296 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 305
+    [35mtokensUsed[39m: 29
+    [35mattempt[39m: 1
+[2026-06-18 00:49:23.313 +0530] [32mINFO[39m (98841): [36mWebResearchTool: cache hit — skipping Tavily API call[39m
+    [35magentId[39m: "PRIYA"
+    [35mquery[39m: "\"Reliance Fixed Horizon Fund - XXIV - Series 10 - Direct Plan - Dividend Payout Option\" top holdings portfolio allocation sector distribution"
+    [35mcacheHits[39m: 3
+[2026-06-18 00:49:24.717 +0530] [32mINFO[39m (98841): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "654321"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:49:24.720 +0530] [32mINFO[39m (98841): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "789012"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:49:24.721 +0530] [32mINFO[39m (98841): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "890123"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:49:24.723 +0530] [32mINFO[39m (98841): [36mPRIYA-BACKTEST: Starting backtest[39m
+    [35mbacktestId[39m: "fc95012a-b297-47ee-9a6b-b51cfb5cf100"
+    [35mallocationsCount[39m: 4
+[2026-06-18 00:49:24.736 +0530] [33mWARN[39m (98841): [36mPRIYA-BACKTEST: Data completeness is below 70%[39m
+    [35mdataCompletenessPct[39m: 0.8333333333333334
+[2026-06-18 00:49:24.736 +0530] [32mINFO[39m (98841): [36mPRIYA-BACKTEST: Sparse data detected. Returning default simulated statistics.[39m
+[2026-06-18 00:49:24.739 +0530] [32mINFO[39m (98841): [36mPRIYA: Saved portfolio draft to database[39m
+    [35mdraftId[39m: "70d3fb5a-91c6-4c0c-a058-82859306cd3e"
+[2026-06-18 00:49:24.749 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "5e9e4c08-7c72-4915-ae29-a25833975e10"
+    [35msender[39m: "PRIYA"
+    [35mtype[39m: "PORTFOLIO_DRAFT"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:49:24.749 +0530] [32mINFO[39m (98841): [36mKIRAN: buildHedgeMap invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:49:46.696 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 998
+    [35mtokensUsed[39m: 13
+    [35mattempt[39m: 1
+[2026-06-18 00:49:46.732 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "80444f26-d781-4b83-a78f-d324ce749bfc"
+    [35msender[39m: "KIRAN"
+    [35mtype[39m: "RISK_ALERT"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:49:46.732 +0530] [32mINFO[39m (98841): [36mKIRAN: runStressTest invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:49:58.304 +0530] [32mINFO[39m (98841): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mfrom[39m: "REVISION"
+    [35mto[39m: "COMMITTEE_VOTE"
+[2026-06-18 00:49:58.305 +0530] [32mINFO[39m (98841): [36mDHRUV: runCommitteeSession voting session started[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:49:58.306 +0530] [32mINFO[39m (98841): [36mARIA: critiquePortfolioDraft invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:49:58.306 +0530] [32mINFO[39m (98841): [36mKIRAN: buildHedgeMap invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:49:58.678 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 372
+    [35mtokensUsed[39m: 6
+    [35mattempt[39m: 1
+[2026-06-18 00:50:17.292 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 459
+    [35mtokensUsed[39m: 13
+    [35mattempt[39m: 1
+[2026-06-18 00:50:17.328 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "603176fb-0212-4b39-b69c-d6a696943122"
+    [35msender[39m: "KIRAN"
+    [35mtype[39m: "RISK_ALERT"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:50:17.626 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1103
+    [35mtokensUsed[39m: 52
+    [35mattempt[39m: 1
+[2026-06-18 00:50:19.080 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "2779bcde-44c1-4486-bfde-afb3e055ecae"
+    [35msender[39m: "ARIA"
+    [35mtype[39m: "CRITIQUE"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:50:19.081 +0530] [32mINFO[39m (98841): [36mVIKRAM: evaluatePortfolioAlignment invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mdraftId[39m: "70d3fb5a-91c6-4c0c-a058-82859306cd3e"
+[2026-06-18 00:50:19.083 +0530] [33mWARN[39m (98841): [36mVIKRAM: schemeCode not found in agent_funds database table. Inferring type from fund_name.[39m
+    [35mschemeCode[39m: "654321"
+    [35mfundName[39m: "ICICI Prudential Liquid Fund"
+    [35minferredType[39m: "debt"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:50:19.083 +0530] [33mWARN[39m (98841): [36mVIKRAM: schemeCode not found in agent_funds database table. Inferring type from fund_name.[39m
+    [35mschemeCode[39m: "789012"
+    [35mfundName[39m: "SBI Banking & PSU Debt Fund"
+    [35minferredType[39m: "debt"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:50:19.083 +0530] [33mWARN[39m (98841): [36mVIKRAM: schemeCode not found in agent_funds database table. Inferring type from fund_name.[39m
+    [35mschemeCode[39m: "890123"
+    [35mfundName[39m: "Aditya Birla Sun Life Corporate Bond Fund"
+    [35minferredType[39m: "debt"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:50:35.076 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "9f5f97e8-9e13-4074-9214-0fd76ef48481"
+    [35msender[39m: "VIKRAM"
+    [35mtype[39m: "VOTE"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:50:35.094 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "7ca777b1-d912-4629-9ad3-fa97326f2527"
+    [35msender[39m: "DHRUV"
+    [35mtype[39m: "VOTE"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:50:35.097 +0530] [32mINFO[39m (98841): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mfrom[39m: "COMMITTEE_VOTE"
+    [35mto[39m: "REVISION"
+[2026-06-18 00:50:35.098 +0530] [32mINFO[39m (98841): [36mARIA: critiquePortfolioDraft invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:50:35.416 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 317
+    [35mtokensUsed[39m: 6
+    [35mattempt[39m: 1
+[2026-06-18 00:51:04.372 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1151
+    [35mtokensUsed[39m: 52
+    [35mattempt[39m: 1
+[2026-06-18 00:51:05.289 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "40d29628-90bc-4014-916d-a1af2c312c79"
+    [35msender[39m: "ARIA"
+    [35mtype[39m: "CRITIQUE"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:51:05.289 +0530] [32mINFO[39m (98841): [36mPRIYA: revise invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mpreviousDraftId[39m: "70d3fb5a-91c6-4c0c-a058-82859306cd3e"
+[2026-06-18 00:51:13.768 +0530] [32mINFO[39m (98841): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "123456"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:51:14.121 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 324
+    [35mtokensUsed[39m: 29
+    [35mattempt[39m: 1
+[2026-06-18 00:51:14.136 +0530] [32mINFO[39m (98841): [36mWebResearchTool: cache hit — skipping Tavily API call[39m
+    [35magentId[39m: "PRIYA"
+    [35mquery[39m: "\"Reliance Fixed Horizon Fund - XXIV - Series 10 - Direct Plan - Dividend Payout Option\" top holdings portfolio allocation sector distribution"
+    [35mcacheHits[39m: 3
+[2026-06-18 00:51:15.409 +0530] [32mINFO[39m (98841): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "654321"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:51:15.416 +0530] [32mINFO[39m (98841): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "789012"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:51:15.419 +0530] [32mINFO[39m (98841): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "105220"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:51:15.422 +0530] [32mINFO[39m (98841): [36mPRIYA-BACKTEST: Starting backtest[39m
+    [35mbacktestId[39m: "f6e93859-2327-4d2f-b8f5-f32b262ad312"
+    [35mallocationsCount[39m: 4
+[2026-06-18 00:51:15.448 +0530] [33mWARN[39m (98841): [36mPRIYA-BACKTEST: Data completeness is below 70%[39m
+    [35mdataCompletenessPct[39m: 0.8333333333333334
+[2026-06-18 00:51:15.448 +0530] [32mINFO[39m (98841): [36mPRIYA-BACKTEST: Sparse data detected. Returning default simulated statistics.[39m
+[2026-06-18 00:51:15.460 +0530] [32mINFO[39m (98841): [36mPRIYA: Saved portfolio draft to database[39m
+    [35mdraftId[39m: "0e9c650e-02b9-4e60-8c93-de04d12c0d59"
+[2026-06-18 00:51:15.471 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "2502d44b-1fcf-4a5e-94c8-428c60f75887"
+    [35msender[39m: "PRIYA"
+    [35mtype[39m: "PORTFOLIO_DRAFT"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:51:15.471 +0530] [32mINFO[39m (98841): [36mKIRAN: buildHedgeMap invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:51:33.566 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1164
+    [35mtokensUsed[39m: 13
+    [35mattempt[39m: 1
+[2026-06-18 00:51:33.598 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "beda50fe-f70f-4b80-a941-1147b946c063"
+    [35msender[39m: "KIRAN"
+    [35mtype[39m: "RISK_ALERT"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:51:33.598 +0530] [32mINFO[39m (98841): [36mKIRAN: runStressTest invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:51:44.493 +0530] [32mINFO[39m (98841): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mfrom[39m: "REVISION"
+    [35mto[39m: "COMMITTEE_VOTE"
+[2026-06-18 00:51:44.494 +0530] [32mINFO[39m (98841): [36mDHRUV: runCommitteeSession voting session started[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:51:44.494 +0530] [32mINFO[39m (98841): [36mARIA: critiquePortfolioDraft invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:51:44.494 +0530] [32mINFO[39m (98841): [36mKIRAN: buildHedgeMap invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:51:44.772 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 278
+    [35mtokensUsed[39m: 6
+    [35mattempt[39m: 1
+[2026-06-18 00:52:00.660 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1224
+    [35mtokensUsed[39m: 13
+    [35mattempt[39m: 1
+[2026-06-18 00:52:00.697 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "6bd38d17-b754-4575-99b7-6d7cc5c828cc"
+    [35msender[39m: "KIRAN"
+    [35mtype[39m: "RISK_ALERT"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:52:14.195 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 918
+    [35mtokensUsed[39m: 52
+    [35mattempt[39m: 1
+[2026-06-18 00:52:15.427 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "d3b39562-1717-4004-a559-9f4d1824f49d"
+    [35msender[39m: "ARIA"
+    [35mtype[39m: "CRITIQUE"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:52:15.427 +0530] [32mINFO[39m (98841): [36mVIKRAM: evaluatePortfolioAlignment invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mdraftId[39m: "0e9c650e-02b9-4e60-8c93-de04d12c0d59"
+[2026-06-18 00:52:15.437 +0530] [33mWARN[39m (98841): [36mVIKRAM: schemeCode not found in agent_funds database table. Inferring type from fund_name.[39m
+    [35mschemeCode[39m: "654321"
+    [35mfundName[39m: "ICICI Prudential Liquid Fund"
+    [35minferredType[39m: "debt"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:52:15.437 +0530] [33mWARN[39m (98841): [36mVIKRAM: schemeCode not found in agent_funds database table. Inferring type from fund_name.[39m
+    [35mschemeCode[39m: "789012"
+    [35mfundName[39m: "SBI Banking & PSU Debt Fund"
+    [35minferredType[39m: "debt"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:52:15.437 +0530] [33mWARN[39m (98841): [36mVIKRAM: schemeCode not found in agent_funds database table. Inferring type from fund_name.[39m
+    [35mschemeCode[39m: "105220"
+    [35mfundName[39m: "Nippon India ETF Gold BeES"
+    [35minferredType[39m: "gold"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:52:23.406 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "0b2f67c1-808b-4661-a913-8a040810a8c1"
+    [35msender[39m: "VIKRAM"
+    [35mtype[39m: "VOTE"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:52:23.420 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "25792203-062d-486a-a730-b2b8074f69aa"
+    [35msender[39m: "DHRUV"
+    [35mtype[39m: "VOTE"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:52:23.426 +0530] [32mINFO[39m (98841): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mfrom[39m: "COMMITTEE_VOTE"
+    [35mto[39m: "REVISION"
+[2026-06-18 00:52:23.429 +0530] [32mINFO[39m (98841): [36mARIA: critiquePortfolioDraft invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:52:23.760 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 331
+    [35mtokensUsed[39m: 6
+    [35mattempt[39m: 1
+[2026-06-18 00:52:54.772 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1266
+    [35mtokensUsed[39m: 62
+    [35mattempt[39m: 1
+[2026-06-18 00:52:56.367 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "c7ac3dfb-34af-4b46-99f5-e8f6112f9a9c"
+    [35msender[39m: "ARIA"
+    [35mtype[39m: "CRITIQUE"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:52:56.367 +0530] [32mINFO[39m (98841): [36mPRIYA: revise invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mpreviousDraftId[39m: "0e9c650e-02b9-4e60-8c93-de04d12c0d59"
+[2026-06-18 00:53:02.722 +0530] [32mINFO[39m (98841): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "123456"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:53:03.043 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 298
+    [35mtokensUsed[39m: 29
+    [35mattempt[39m: 1
+[2026-06-18 00:53:03.056 +0530] [32mINFO[39m (98841): [36mWebResearchTool: cache hit — skipping Tavily API call[39m
+    [35magentId[39m: "PRIYA"
+    [35mquery[39m: "\"Reliance Fixed Horizon Fund - XXIV - Series 10 - Direct Plan - Dividend Payout Option\" top holdings portfolio allocation sector distribution"
+    [35mcacheHits[39m: 3
+[2026-06-18 00:53:04.466 +0530] [32mINFO[39m (98841): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "654321"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:53:04.469 +0530] [32mINFO[39m (98841): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "789012"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:53:04.470 +0530] [32mINFO[39m (98841): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "105220"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:53:04.473 +0530] [32mINFO[39m (98841): [36mPRIYA-BACKTEST: Starting backtest[39m
+    [35mbacktestId[39m: "71d92bed-3b2c-40d5-8bd6-de330bca4c1e"
+    [35mallocationsCount[39m: 4
+[2026-06-18 00:53:04.493 +0530] [33mWARN[39m (98841): [36mPRIYA-BACKTEST: Data completeness is below 70%[39m
+    [35mdataCompletenessPct[39m: 0.8333333333333334
+[2026-06-18 00:53:04.493 +0530] [32mINFO[39m (98841): [36mPRIYA-BACKTEST: Sparse data detected. Returning default simulated statistics.[39m
+[2026-06-18 00:53:04.500 +0530] [32mINFO[39m (98841): [36mPRIYA: Saved portfolio draft to database[39m
+    [35mdraftId[39m: "a8d4430b-d897-4baa-a7ce-6b136b828565"
+[2026-06-18 00:53:04.505 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "8d193170-6983-489b-95ff-37bfc9cc941b"
+    [35msender[39m: "PRIYA"
+    [35mtype[39m: "PORTFOLIO_DRAFT"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:53:04.505 +0530] [32mINFO[39m (98841): [36mKIRAN: buildHedgeMap invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:53:23.972 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 976
+    [35mtokensUsed[39m: 13
+    [35mattempt[39m: 1
+[2026-06-18 00:53:24.008 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "3444257c-b3e3-471e-9d0f-9ea3f26f5c6f"
+    [35msender[39m: "KIRAN"
+    [35mtype[39m: "RISK_ALERT"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:53:24.008 +0530] [32mINFO[39m (98841): [36mKIRAN: runStressTest invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:54:34.821 +0530] [32mINFO[39m (98841): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mfrom[39m: "REVISION"
+    [35mto[39m: "COMMITTEE_VOTE"
+[2026-06-18 00:54:34.822 +0530] [32mINFO[39m (98841): [36mDHRUV: runCommitteeSession voting session started[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:54:34.822 +0530] [32mINFO[39m (98841): [36mARIA: critiquePortfolioDraft invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:54:34.822 +0530] [32mINFO[39m (98841): [36mKIRAN: buildHedgeMap invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:54:35.144 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 322
+    [35mtokensUsed[39m: 6
+    [35mattempt[39m: 1
+[2026-06-18 00:54:53.346 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1055
+    [35mtokensUsed[39m: 13
+    [35mattempt[39m: 1
+[2026-06-18 00:54:53.382 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "b659142e-4d6c-43fb-80c8-f37ace5849f0"
+    [35msender[39m: "KIRAN"
+    [35mtype[39m: "RISK_ALERT"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:55:08.927 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 967
+    [35mtokensUsed[39m: 56
+    [35mattempt[39m: 1
+[2026-06-18 00:55:10.551 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "bbaa7368-0d0e-4693-b5ea-f49caca1e281"
+    [35msender[39m: "ARIA"
+    [35mtype[39m: "CRITIQUE"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:55:10.552 +0530] [32mINFO[39m (98841): [36mVIKRAM: evaluatePortfolioAlignment invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mdraftId[39m: "a8d4430b-d897-4baa-a7ce-6b136b828565"
+[2026-06-18 00:55:10.567 +0530] [33mWARN[39m (98841): [36mVIKRAM: schemeCode not found in agent_funds database table. Inferring type from fund_name.[39m
+    [35mschemeCode[39m: "654321"
+    [35mfundName[39m: "ICICI Prudential Ultra Short Term Fund"
+    [35minferredType[39m: "equity"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:55:10.567 +0530] [33mWARN[39m (98841): [36mVIKRAM: schemeCode not found in agent_funds database table. Inferring type from fund_name.[39m
+    [35mschemeCode[39m: "789012"
+    [35mfundName[39m: "SBI Magnum Ultra Short Duration Fund"
+    [35minferredType[39m: "debt"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:55:10.567 +0530] [33mWARN[39m (98841): [36mVIKRAM: schemeCode not found in agent_funds database table. Inferring type from fund_name.[39m
+    [35mschemeCode[39m: "105220"
+    [35mfundName[39m: "Nippon India ETF Gold BeES"
+    [35minferredType[39m: "gold"
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:55:19.331 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "aeecedbf-aa45-4eb4-9c06-0587faef7fd4"
+    [35msender[39m: "VIKRAM"
+    [35mtype[39m: "VOTE"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:55:19.348 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "9b448dd4-a56b-4623-98d3-07a5e9a4cf67"
+    [35msender[39m: "DHRUV"
+    [35mtype[39m: "VOTE"
+    [35mrecipient[39m: "ALL"
+[2026-06-18 00:55:19.353 +0530] [32mINFO[39m (98841): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mfrom[39m: "COMMITTEE_VOTE"
+    [35mto[39m: "DEADLOCKED"
+[2026-06-18 00:55:19.355 +0530] [33mWARN[39m (98841): [36mDHRUV: PIPELINE DEADLOCK triggered[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+[2026-06-18 00:55:30.181 +0530] [32mINFO[39m (98841): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "a970fe19-555e-49ec-89f6-9299477de69e"
+    [35msender[39m: "DHRUV"
+    [35mtype[39m: "DIRECTIVE"
+    [35mrecipient[39m: "ALL"
+--- Pipeline Completed ---
+[2026-06-18 00:55:30.202 +0530] [32mINFO[39m (98841): [36mMENTOR: runPostPipelineAnalysis invoked[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35moutcome[39m: "DEADLOCKED"
+[2026-06-18 00:55:30.203 +0530] [33mWARN[39m (98841): [36mDHRUV: runPhase2 completed with deadlock[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+Final Status: DEADLOCKED
+
+===== DELIBERATION MESSAGES =====
+
+[VIKRAM] -> [STRATEGY_PROPOSAL]
+{
+  "rationale": "VIKRAM: Goals assessment complete. Verdict: IMPOSSIBLE. Conflicts: 1. Revised plan generated: true.",
+  "risk_level": "MODERATE",
+  "strategy_name": "GOAL_ASSESSMENT",
+  "target_allocation": {
+    "debt": 30,
+    "gold": 10,
+    "equity": 60
+  },
+  "expected_return_band": [
+    10,
+    14
+  ]
+}
+---
+[ARIA] -> [CRITIQUE]
+{
+  "severity": "CRITICAL",
+  "critique_points": [
+    "The achievability verdict of 'IMPOSSIBLE' is overly deterministic and does not account for potential income augmentation or expense optimization. While the current financial situation is strained, labeling the goal as impossible may discourage the client from pursuing actionable steps to improve their situation.",
+    "The revised plan assumes a 7% annual return from a conservative hybrid or debt fund, which may not be realistic given current market conditions and interest rate trends. Overestimating returns could lead to premature depletion of the corpus.",
+    "The plan highlights a conflict where the required SIP of ₹10,000/month exceeds the free cash flow of ₹5,000/month. This creates a mathematical inconsistency in the proposed strategy.",
+    "The plan does not explicitly address the potential for leveraging government healthcare schemes or charitable organizations to reduce medical expenses, which could significantly ease the financial burden."
+  ],
+  "target_message_id": "7b9a970d-dff1-4a53-b9f5-548fff2e13d6",
+  "recommended_action": "The plan has critical flaws in its methodology and goal alignment, particularly in overestimating returns and proposing an unfeasible SIP. While the revised plan provides a structured approach, it requires significant adjustments to ensure feasibility and alignment with the client's financial reality."
+}
+---
+[VIKRAM] -> [STRATEGY_PROPOSAL]
+{
+  "rationale": "VIKRAM: Goals assessment complete. Verdict: IMPOSSIBLE. Conflicts: 1. Revised plan generated: true.",
+  "risk_level": "MODERATE",
+  "strategy_name": "GOAL_ASSESSMENT",
+  "target_allocation": {
+    "debt": 30,
+    "gold": 10,
+    "equity": 60
+  },
+  "expected_return_band": [
+    10,
+    14
+  ]
+}
+---
+[ARIA] -> [CRITIQUE]
+{
+  "severity": "CRITICAL",
+  "critique_points": [
+    "The required CAGR of -65.13% is mathematically nonsensical. A negative CAGR implies a shrinking corpus, which contradicts the stated goal of maintaining or growing the corpus to meet medical expenses. This indicates a flaw in the calculation methodology or its interpretation.",
+    "The achievability verdict of 'IMPOSSIBLE' conflicts with the revised plan, which suggests the goal can be met by utilizing the existing corpus. This creates confusion about whether the goal is truly unachievable or if the plan is viable.",
+    "The stated SIP requirement of ₹10,000/month exceeds the free cash flow of ₹5,000/month, making the plan infeasible without additional income or expense reduction.",
+    "The revised plan does not account for inflation beyond the stated 6% rate, which may underestimate future medical costs, especially for cancer treatment, which often experiences higher-than-average inflation.",
+    "The plan assumes the client can increase income through freelance work or upskilling without assessing the feasibility of these options given the client’s current circumstances and time constraints."
+  ],
+  "target_message_id": "4885a53f-810e-4ac2-812b-e806282a644b",
+  "recommended_action": "The goal plan has critical flaws in methodology, goal alignment, and feasibility assumptions. Immediate recalibration is required to ensure the plan is actionable and aligned with the client’s financial reality."
+}
+---
+[VIKRAM] -> [STRATEGY_PROPOSAL]
+{
+  "rationale": "VIKRAM: Goals assessment complete. Verdict: IMPOSSIBLE. Conflicts: 1. Revised plan generated: true.",
+  "risk_level": "MODERATE",
+  "strategy_name": "GOAL_ASSESSMENT",
+  "target_allocation": {
+    "debt": 30,
+    "gold": 10,
+    "equity": 60
+  },
+  "expected_return_band": [
+    10,
+    14
+  ]
+}
+---
+[ARIA] -> [CRITIQUE]
+{
+  "severity": "CRITICAL",
+  "critique_points": [
+    "The required CAGR of -87.84% is mathematically nonsensical. A negative CAGR implies a shrinking corpus, which contradicts the stated goal of sustaining ₹45,000/month for three years. This indicates a flaw in the calculation framework or input assumptions.",
+    "The plan assumes the client can achieve a 20–30% annual income growth through upskilling or freelancing. However, no evidence is provided to support the feasibility of this assumption, especially given the immediate financial stress and time constraints.",
+    "The plan highlights a conflict where the required SIP of ₹10,000/month exceeds the free cash flow of ₹5,000/month. This creates a mismatch between the proposed strategy and the client’s cash flow reality.",
+    "The plan does not account for potential increases in medical expenses due to inflation or unforeseen complications, which could deplete the corpus faster than anticipated."
+  ],
+  "target_message_id": "524e64bf-6127-4534-9eee-98c83ca4268b",
+  "recommended_action": "The plan has critical flaws in methodology and goal alignment, making it unsuitable for implementation without significant revisions. Immediate recalculations and adjustments are required to ensure feasibility and alignment with the client’s financial reality."
+}
+---
+[SOMA] -> [FUND_REPORT]
+{
+  "message": "Fund universe screening completed.",
+  "source_url": "https://amfiindia.com",
+  "retrieved_at": "2026-06-17T19:15:14.086Z",
+  "total_eligible": 0,
+  "total_screened": 14212,
+  "filters_applied": [
+    {
+      "filter": "max_expense_ratio_active",
+      "threshold": "<=1.5%"
+    },
+    {
+      "filter": "max_expense_ratio_index",
+      "threshold": "<=0.5%"
+    },
+    {
+      "filter": "min_aum_equity_cr",
+      "threshold": ">=250 Cr"
+    },
+    {
+      "filter": "min_aum_debt_cr",
+      "threshold": ">=500 Cr"
+    },
+    {
+      "filter": "min_track_record_years",
+      "threshold": ">=3 years"
+    }
+  ]
+}
+---
+[VIKRAM] -> [STRATEGY_PROPOSAL]
+{
+  "rationale": "VIKRAM selected strategy: This strategy aligns assets with specific liabilities, ensuring that the investment corpus is sufficient to meet fixed obligations like medical expenses.. Guidances: Equity 10-20%, Debt 70-85%.",
+  "risk_level": "CONSERVATIVE",
+  "strategy_name": "Liability-Matching Strategy, Core-Satellite Approach, Goals-Based Investing",
+  "target_allocation": {
+    "debt": 77.5,
+    "gold": 7.5,
+    "equity": 15
+  },
+  "expected_return_band": [
+    11,
+    14.5
+  ]
+}
+---
+[KIRAN] -> [RISK_ALERT]
+{
+  "severity": "LOW",
+  "data_source": "https://rbi.org.in",
+  "risk_category": "PORTFOLIO_HEDGE_MAP",
+  "affected_funds": [],
+  "risk_description": "Hedge Map built. Overall coverage is 85%."
+}
+---
+[PRIYA] -> [PORTFOLIO_DRAFT]
+{
+  "version": 1,
+  "cagr_pct": 12.5,
+  "allocations": [],
+  "portfolio_id": "a59e099d-91d1-4b42-92db-5b31ce153477",
+  "revision_number": 0,
+  "confidence_score": 60
+}
+---
+[KIRAN] -> [RISK_ALERT]
+{
+  "severity": "LOW",
+  "data_source": "https://rbi.org.in",
+  "risk_category": "PORTFOLIO_HEDGE_MAP",
+  "affected_funds": [],
+  "risk_description": "Hedge Map built. Overall coverage is 85%."
+}
+---
+[KIRAN] -> [RISK_ALERT]
+{
+  "severity": "LOW",
+  "data_source": "https://rbi.org.in",
+  "risk_category": "PORTFOLIO_HEDGE_MAP",
+  "affected_funds": [],
+  "risk_description": "Hedge Map built. Overall coverage is 85%."
+}
+---
+[ARIA] -> [CRITIQUE]
+{
+  "severity": "CRITICAL",
+  "critique_points": [
+    "The portfolio's stated goal is to fund medical expenses over the next three years with a conservative risk profile. However, the portfolio lacks any fund allocations, making it impossible to assess whether the asset allocation aligns with the client's goal of capital preservation and liquidity. Additionally, the confidence score indicates that goal achievability is marked as 'IMPOSSIBLE,' which is a critical red flag.",
+    "The portfolio draft lacks any fund allocations, making it impossible to evaluate the methodology used for fund selection, diversification, or risk management. Additionally, the backtest summary shows a portfolio CAGR of 12.5%, which is inconsistent with a conservative risk profile and a short time horizon of three years.",
+    "The portfolio does not currently include any fund allocations, making it impossible to assess sector, theme, or stock concentration risks. However, the absence of international exposure in the asset allocation guidance (0-5%) could lead to over-concentration in domestic markets, which may not be ideal even for conservative investors.",
+    "The portfolio draft does not provide sufficient details to confirm compliance with SEBI guidelines, particularly regarding fund selection criteria such as expense ratios, AUM thresholds, and track record requirements. While universe filters are mentioned, their application to the final portfolio is not demonstrated.",
+    "The stress-testing scenarios in the backtest summary show no estimated portfolio returns, drawdowns, or recovery timelines for any of the tested scenarios. This undermines the reliability of the stress-testing process and raises concerns about the portfolio's resilience under adverse market conditions."
+  ],
+  "target_message_id": "a59e099d-91d1-4b42-92db-5b31ce153477",
+  "recommended_action": "The portfolio draft has critical flaws in goal alignment and methodology, as well as major issues in concentration and compliance. These must be addressed before the portfolio can be considered viable. Minor improvements in stress-testing reliability are also recommended."
+}
+---
+[VIKRAM] -> [VOTE]
+{
+  "vote": "REJECT",
+  "motion": "Evaluate portfolio alignment for draft a59e099d-91d1-4b42-92db-5b31ce153477",
+  "reasoning": "The portfolio allocations deviate from the strategic asset allocation guidance and do not fully reflect the selected strategy frameworks. Specifically, the equity, debt, and gold allocations are not within the prescribed ranges, and the bucket structure does not align with the liability-matching strategy or the core-satellite approach.",
+  "conditions": [
+    "Equity allocation is outside the specified range of 10% - 20%.",
+    "Debt allocation is outside the specified range of 70% - 85%.",
+    "Gold allocation is outside the specified range of 5% - 10%.",
+    "The bucket structure does not reflect a diversified allocation across asset classes as required by the core-satellite approach.",
+    "The liability-matching strategy is not evident in the allocation for the 3-year horizon bucket."
+  ]
+}
+---
+[DHRUV] -> [VOTE]
+{
+  "votes": [
+    {
+      "vote": "REJECT",
+      "voter": "ARIA"
+    },
+    {
+      "vote": "APPROVE",
+      "voter": "KIRAN"
+    },
+    {
+      "vote": "REJECT",
+      "voter": "VIKRAM"
+    }
+  ],
+  "reason": "Rejected automatically due to CRITICAL critique faults from ARIA.",
+  "outcome": "REJECTED"
+}
+---
+[ARIA] -> [CRITIQUE]
+{
+  "severity": "CRITICAL",
+  "critique_points": [
+    "The portfolio's stated goal is to fund medical expenses over the next three years with a conservative risk profile. However, the portfolio lacks any fund allocations, making it impossible to evaluate whether the asset allocation aligns with the client's goal of capital preservation and liquidity. Additionally, the confidence score explicitly states that the goal achievability verdict is 'IMPOSSIBLE,' which is a critical flaw.",
+    "The portfolio draft includes a backtest summary but does not provide any fund-level data or allocations, making the backtest results irrelevant. Without fund-level granularity, the portfolio's historical performance metrics (e.g., CAGR, Sharpe ratio) cannot be validated or tied to the client's goals.",
+    "The portfolio lacks diversification guidance at the fund level. While the strategy framework suggests ranges for equity, debt, gold, and international exposure, the absence of fund allocations makes it impossible to assess whether the portfolio is overly concentrated in any single asset class or sector.",
+    "The portfolio draft does not explicitly confirm adherence to SEBI guidelines, such as minimum AUM thresholds for funds or expense ratio limits. While universe filters are mentioned, the absence of fund allocations makes it impossible to verify compliance.",
+    "The stress-testing scenarios provided in the backtest summary show zero impact across all tested conditions (e.g., bull run, bear market, rate hike). This suggests either a lack of input data or a flawed stress-testing methodology."
+  ],
+  "target_message_id": "a59e099d-91d1-4b42-92db-5b31ce153477",
+  "recommended_action": "The portfolio draft has critical flaws in goal alignment and methodology, as well as major issues in concentration and compliance. These must be addressed before the portfolio can be considered viable. Minor improvements in stress-testing reliability are also recommended."
+}
+---
+[PRIYA] -> [PORTFOLIO_DRAFT]
+{
+  "version": 1,
+  "cagr_pct": 12.5,
+  "allocations": [
+    {
+      "pct": 50,
+      "code": "123456",
+      "fund": "HDFC Short Term Debt Fund"
+    },
+    {
+      "pct": 30,
+      "code": "654321",
+      "fund": "ICICI Prudential Liquid Fund"
+    },
+    {
+      "pct": 20,
+      "code": "789012",
+      "fund": "SBI Banking & PSU Debt Fund"
+    }
+  ],
+  "portfolio_id": "a3c27306-eb2c-4f93-bcc6-f6322171d1de",
+  "revision_number": 1,
+  "confidence_score": 60
+}
+---
+[KIRAN] -> [RISK_ALERT]
+{
+  "severity": "LOW",
+  "data_source": "https://rbi.org.in",
+  "risk_category": "PORTFOLIO_HEDGE_MAP",
+  "affected_funds": [
+    "Reliance Fixed Horizon Fund - XXIV - Series 10 - Direct Plan - Dividend Payout Option",
+    "Fund Code 654321",
+    "Fund Code 789012"
+  ],
+  "risk_description": "Hedge Map built. Overall coverage is 85%."
+}
+---
+[KIRAN] -> [RISK_ALERT]
+{
+  "severity": "LOW",
+  "data_source": "https://rbi.org.in",
+  "risk_category": "PORTFOLIO_HEDGE_MAP",
+  "affected_funds": [
+    "Reliance Fixed Horizon Fund - XXIV - Series 10 - Direct Plan - Dividend Payout Option",
+    "Fund Code 654321",
+    "Fund Code 789012"
+  ],
+  "risk_description": "Hedge Map built. Overall coverage is 85%."
+}
+---
+[ARIA] -> [CRITIQUE]
+{
+  "severity": "CRITICAL",
+  "critique_points": [
+    "The portfolio's allocation is heavily skewed towards debt instruments, which aligns with the client's conservative risk profile. However, the inclusion of SBI Banking & PSU Debt Fund (20%) introduces moderate credit risk, which may not be suitable for a conservative investor with a short time horizon of 3 years. Additionally, the portfolio does not explicitly address inflation risk, which could erode the real value of returns over the investment period.",
+    "The backtest summary relies on proxy funds for all three selected funds due to insufficient historical data. This introduces a significant risk of misrepresentation, as the proxies (Nifty 50 index) do not accurately reflect the risk-return characteristics of the actual funds, especially for debt-oriented funds.",
+    "The portfolio is overly concentrated in debt instruments (100%), with no allocation to inflation-hedging assets like gold or international funds. This lack of diversification increases vulnerability to inflation and currency risks, especially given the client's 3-year time horizon.",
+    "The stress-testing scenarios in the backtest summary show unrealistic or incomplete results, such as zero impact in certain scenarios. This undermines the reliability of the stress-testing methodology and raises concerns about the portfolio's resilience under adverse conditions."
+  ],
+  "target_message_id": "a3c27306-eb2c-4f93-bcc6-f6322171d1de",
+  "recommended_action": "The portfolio has critical flaws in goal alignment and methodology, as well as major issues in concentration. These must be addressed before the portfolio can be considered viable. Minor improvements in stress-testing reliability are also recommended."
+}
+---
+[VIKRAM] -> [VOTE]
+{
+  "vote": "REJECT",
+  "motion": "Evaluate portfolio alignment for draft a3c27306-eb2c-4f93-bcc6-f6322171d1de",
+  "reasoning": "The portfolio's actual allocations significantly deviate from the strategic asset allocation guidance, particularly in the equity and debt ranges. Additionally, the selected strategy frameworks are not adequately reflected in the portfolio's bucket structure, as there is no evidence of liability-matching or core-satellite diversification within the single custom bucket.",
+  "conditions": [
+    "Equity allocation of 50.00% exceeds the strategic guidance range of 10% - 20%.",
+    "Debt allocation of 50.00% is below the strategic guidance range of 70% - 85%.",
+    "Gold allocation is missing, violating the strategic guidance range of 5% - 10%.",
+    "International allocation is missing, violating the strategic guidance range of 0% - 5%.",
+    "The bucket structure does not reflect liability-matching principles, as there is only one custom bucket with a 3-year horizon.",
+    "The core-satellite approach is not evident, as there is no distinction between core and satellite components in the portfolio."
+  ]
+}
+---
+[DHRUV] -> [VOTE]
+{
+  "votes": [
+    {
+      "vote": "REJECT",
+      "voter": "ARIA"
+    },
+    {
+      "vote": "APPROVE",
+      "voter": "KIRAN"
+    },
+    {
+      "vote": "REJECT",
+      "voter": "VIKRAM"
+    }
+  ],
+  "reason": "Rejected automatically due to CRITICAL critique faults from ARIA.",
+  "outcome": "REJECTED"
+}
+---
+[ARIA] -> [CRITIQUE]
+{
+  "severity": "CRITICAL",
+  "critique_points": [
+    "The portfolio's allocation is heavily skewed towards debt instruments, which aligns with the client's conservative risk profile. However, the inclusion of a hedge instrument referencing equity market downturns (e.g., Nifty 50 Put Options) is inconsistent with the stated goal of capital preservation and liquidity for medical expenses over a 3-year horizon. This introduces unnecessary complexity and potential misalignment with the client's needs.",
+    "The backtest summary relies on proxy funds (e.g., Nifty 50 index) for all three selected funds due to insufficient historical data. This undermines the reliability of the backtest results, as the proxies may not accurately reflect the risk-return characteristics of the actual funds.",
+    "The portfolio is overly concentrated in debt instruments from a limited number of AMCs (HDFC, ICICI, SBI). This lack of diversification increases counterparty risk and reduces resilience to AMC-specific issues.",
+    "The stress-testing scenarios provided in the backtest summary show zero impact across all tested conditions (e.g., bull run, bear market, rate hike). This suggests either a lack of input data or a flawed stress-testing methodology."
+  ],
+  "target_message_id": "a3c27306-eb2c-4f93-bcc6-f6322171d1de",
+  "recommended_action": "The portfolio has critical flaws in goal alignment and methodology, as well as major issues in concentration. These must be addressed before the portfolio can be considered viable. Minor improvements in stress-testing reliability are also recommended."
+}
+---
+[PRIYA] -> [PORTFOLIO_DRAFT]
+{
+  "version": 1,
+  "cagr_pct": 12.5,
+  "allocations": [
+    {
+      "pct": 40,
+      "code": "123456",
+      "fund": "HDFC Short Term Debt Fund"
+    },
+    {
+      "pct": 30,
+      "code": "654321",
+      "fund": "ICICI Prudential Liquid Fund"
+    },
+    {
+      "pct": 20,
+      "code": "789012",
+      "fund": "SBI Banking & PSU Debt Fund"
+    },
+    {
+      "pct": 10,
+      "code": "890123",
+      "fund": "Aditya Birla Sun Life Corporate Bond Fund"
+    }
+  ],
+  "portfolio_id": "70d3fb5a-91c6-4c0c-a058-82859306cd3e",
+  "revision_number": 2,
+  "confidence_score": 60
+}
+---
+[KIRAN] -> [RISK_ALERT]
+{
+  "severity": "LOW",
+  "data_source": "https://rbi.org.in",
+  "risk_category": "PORTFOLIO_HEDGE_MAP",
+  "affected_funds": [
+    "Reliance Fixed Horizon Fund - XXIV - Series 10 - Direct Plan - Dividend Payout Option",
+    "Fund Code 654321",
+    "Fund Code 789012",
+    "Fund Code 890123"
+  ],
+  "risk_description": "Hedge Map built. Overall coverage is 85%."
+}
+---
+[KIRAN] -> [RISK_ALERT]
+{
+  "severity": "LOW",
+  "data_source": "https://rbi.org.in",
+  "risk_category": "PORTFOLIO_HEDGE_MAP",
+  "affected_funds": [
+    "Reliance Fixed Horizon Fund - XXIV - Series 10 - Direct Plan - Dividend Payout Option",
+    "Fund Code 654321",
+    "Fund Code 789012",
+    "Fund Code 890123"
+  ],
+  "risk_description": "Hedge Map built. Overall coverage is 85%."
+}
+---
+[ARIA] -> [CRITIQUE]
+{
+  "severity": "CRITICAL",
+  "critique_points": [
+    "The portfolio's allocation is heavily skewed towards debt instruments, which aligns with the client's conservative risk profile. However, the inclusion of a corporate bond fund (Aditya Birla Sun Life Corporate Bond Fund) introduces credit risk that may not be suitable for a conservative investor with a short time horizon of 3 years. Additionally, the portfolio does not explicitly address inflation risk, which could erode purchasing power over the investment horizon.",
+    "The portfolio is overly concentrated in debt instruments from a limited set of fund categories (short-term debt, liquid, banking & PSU debt, and corporate bonds). This lack of diversification increases vulnerability to sector-specific risks, such as interest rate changes or credit events.",
+    "The backtest summary relies on proxy funds for all selected instruments due to insufficient historical data. This introduces a significant risk of misrepresentation, as the proxies may not accurately reflect the performance or risk characteristics of the actual funds.",
+    "The stress-testing scenarios provided in the backtest summary show zero impact across all tested conditions (e.g., bull run, bear market, rate hike). This suggests either a lack of input data or a flawed stress-testing methodology."
+  ],
+  "target_message_id": "70d3fb5a-91c6-4c0c-a058-82859306cd3e",
+  "recommended_action": "The portfolio has critical flaws in goal alignment and methodology, as well as major issues in concentration. These must be addressed before the portfolio can be considered viable. Minor improvements in stress-testing reliability are also recommended."
+}
+---
+[VIKRAM] -> [VOTE]
+{
+  "vote": "REJECT",
+  "motion": "Evaluate portfolio alignment for draft 70d3fb5a-91c6-4c0c-a058-82859306cd3e",
+  "reasoning": "The portfolio's actual allocations deviate significantly from the strategic asset allocation guidance, particularly in the equity and gold categories. Additionally, the selected strategy frameworks are not adequately reflected in the portfolio's bucket structure, as the allocation is concentrated entirely in a single custom bucket with a short horizon, which does not align with the principles of liability-matching, core-satellite, or goals-based investing.",
+  "conditions": [
+    "Equity allocation (40.00%) exceeds the strategic guidance range of 10% - 20%.",
+    "Gold allocation (0.00%) is below the strategic guidance range of 5% - 10%.",
+    "International allocation (0.00%) is within the guidance range but not explicitly addressed in the portfolio structure.",
+    "The bucket structure lacks diversification and does not reflect the liability-matching strategy, as all assets are allocated to a single custom bucket with a 3-year horizon.",
+    "The core-satellite approach is not evident, as there is no distinction between core stable investments and satellite tactical allocations.",
+    "Goals-based investing is not implemented, as the portfolio does not segment assets based on specific financial goals or time horizons."
+  ]
+}
+---
+[DHRUV] -> [VOTE]
+{
+  "votes": [
+    {
+      "vote": "REJECT",
+      "voter": "ARIA"
+    },
+    {
+      "vote": "APPROVE",
+      "voter": "KIRAN"
+    },
+    {
+      "vote": "REJECT",
+      "voter": "VIKRAM"
+    }
+  ],
+  "reason": "Rejected automatically due to CRITICAL critique faults from ARIA.",
+  "outcome": "REJECTED"
+}
+---
+[ARIA] -> [CRITIQUE]
+{
+  "severity": "CRITICAL",
+  "critique_points": [
+    "The portfolio's allocation is heavily skewed towards debt instruments, which aligns with the client's conservative risk profile. However, the inclusion of a 10% allocation to Aditya Birla Sun Life Corporate Bond Fund may not be fully justified given the client's short time horizon (3 years) and need for high liquidity to meet medical expenses. Corporate bond funds, while relatively safe, can carry credit risk and may not provide the same level of liquidity as liquid or ultra-short-term funds.",
+    "The backtest summary indicates that proxy funds were used for all selected funds due to insufficient historical data. This introduces a significant risk of misrepresentation, as the performance of the proxy (Nifty 50 index) may not accurately reflect the risk-return characteristics of the actual funds. This undermines the reliability of the backtest results.",
+    "The portfolio is overly concentrated in debt instruments from a limited set of fund categories (short-term debt, liquid, banking & PSU debt, and corporate bonds). While this aligns with the conservative risk profile, it exposes the portfolio to sector-specific risks, such as interest rate changes or credit events, without sufficient diversification into other asset classes like gold or international equities.",
+    "The stress-testing scenarios in the backtest summary show zero impact across all tested conditions (e.g., bull run, bear market, rate hike). This suggests either a lack of input data or a flawed stress-testing methodology, which undermines the portfolio's resilience assessment."
+  ],
+  "target_message_id": "70d3fb5a-91c6-4c0c-a058-82859306cd3e",
+  "recommended_action": "The portfolio has critical flaws in methodology and goal alignment, as well as major issues in concentration. These must be addressed before the portfolio can be considered viable. Minor improvements in stress-testing reliability are also recommended."
+}
+---
+[PRIYA] -> [PORTFOLIO_DRAFT]
+{
+  "version": 1,
+  "cagr_pct": 12.5,
+  "allocations": [
+    {
+      "pct": 40,
+      "code": "123456",
+      "fund": "HDFC Short Term Debt Fund"
+    },
+    {
+      "pct": 40,
+      "code": "654321",
+      "fund": "ICICI Prudential Liquid Fund"
+    },
+    {
+      "pct": 15,
+      "code": "789012",
+      "fund": "SBI Banking & PSU Debt Fund"
+    },
+    {
+      "pct": 5,
+      "code": "105220",
+      "fund": "Nippon India ETF Gold BeES"
+    }
+  ],
+  "portfolio_id": "0e9c650e-02b9-4e60-8c93-de04d12c0d59",
+  "revision_number": 3,
+  "confidence_score": 60
+}
+---
+[KIRAN] -> [RISK_ALERT]
+{
+  "severity": "LOW",
+  "data_source": "https://rbi.org.in",
+  "risk_category": "PORTFOLIO_HEDGE_MAP",
+  "affected_funds": [
+    "Reliance Fixed Horizon Fund - XXIV - Series 10 - Direct Plan - Dividend Payout Option",
+    "Fund Code 654321",
+    "Fund Code 789012",
+    "Fund Code 105220"
+  ],
+  "risk_description": "Hedge Map built. Overall coverage is 85%."
+}
+---
+[KIRAN] -> [RISK_ALERT]
+{
+  "severity": "LOW",
+  "data_source": "https://rbi.org.in",
+  "risk_category": "PORTFOLIO_HEDGE_MAP",
+  "affected_funds": [
+    "Reliance Fixed Horizon Fund - XXIV - Series 10 - Direct Plan - Dividend Payout Option",
+    "Fund Code 654321",
+    "Fund Code 789012",
+    "Fund Code 105220"
+  ],
+  "risk_description": "Hedge Map built. Overall coverage is 85%."
+}
+---
+[ARIA] -> [CRITIQUE]
+{
+  "severity": "CRITICAL",
+  "critique_points": [
+    "The portfolio's allocation is heavily weighted towards debt instruments (95%) with a small allocation to gold (5%). While this aligns with the client's conservative risk profile, the time horizon of 3 years and the need for monthly medical expenses require a higher focus on liquidity. The inclusion of the SBI Banking & PSU Debt Fund (15%) may introduce moderate duration risk, which is not ideal for a short-term conservative goal.",
+    "The portfolio is overly concentrated in debt instruments from a limited number of AMCs (HDFC, ICICI, SBI). This lack of diversification increases counterparty risk and reduces the portfolio's resilience to AMC-specific issues.",
+    "The portfolio relies on proxy funds for backtesting due to insufficient historical data for the selected funds. This introduces a potential mismatch between the actual performance of the selected funds and the backtest results, undermining the reliability of the analysis.",
+    "The stress-testing scenarios in the backtest summary show zero impact across all tested conditions (e.g., bull run, bear market, rate hike). This suggests either a lack of input data or a flawed stress-testing methodology, which undermines the portfolio's resilience assessment."
+  ],
+  "target_message_id": "0e9c650e-02b9-4e60-8c93-de04d12c0d59",
+  "recommended_action": "The portfolio has critical flaws in goal alignment and methodology, as well as major issues in concentration. These must be addressed before the portfolio can be considered viable. Minor improvements in stress-testing reliability are also recommended."
+}
+---
+[VIKRAM] -> [VOTE]
+{
+  "vote": "REJECT",
+  "motion": "Evaluate portfolio alignment for draft 0e9c650e-02b9-4e60-8c93-de04d12c0d59",
+  "reasoning": "The portfolio's actual allocations deviate significantly from the strategic asset allocation guidance, particularly in the equity and debt categories. Additionally, the selected strategy frameworks are not adequately reflected in the portfolio's bucket structure, as the current allocation is concentrated entirely in a single custom bucket with a short-term horizon, which does not align with the principles of Liability-Matching, Core-Satellite, or Goals-Based Investing.",
+  "conditions": [
+    "Equity allocation is 40.00%, which exceeds the strategic guidance range of 10% - 20%.",
+    "Debt allocation is 55.00%, which is below the strategic guidance range of 70% - 85%.",
+    "The bucket structure lacks diversification and does not reflect the multi-horizon approach required by the selected strategy frameworks."
+  ]
+}
+---
+[DHRUV] -> [VOTE]
+{
+  "votes": [
+    {
+      "vote": "REJECT",
+      "voter": "ARIA"
+    },
+    {
+      "vote": "APPROVE",
+      "voter": "KIRAN"
+    },
+    {
+      "vote": "REJECT",
+      "voter": "VIKRAM"
+    }
+  ],
+  "reason": "Rejected automatically due to CRITICAL critique faults from ARIA.",
+  "outcome": "REJECTED"
+}
+---
+[ARIA] -> [CRITIQUE]
+{
+  "severity": "MAJOR",
+  "critique_points": [
+    "The portfolio's allocation is heavily weighted towards debt instruments (95%) with a minor allocation to gold (5%). While this aligns with the client's conservative risk profile, the time horizon of 3 years and the need for liquidity to meet medical expenses suggest that a higher allocation to liquid funds or ultra-short-term debt funds may be more appropriate. The inclusion of SBI Banking & PSU Debt Fund, which has moderate duration risk, could expose the portfolio to interest rate volatility, which is not ideal for a short-term conservative goal.",
+    "The portfolio is overly concentrated in debt instruments from three funds (HDFC Short Term Debt Fund, ICICI Prudential Liquid Fund, and SBI Banking & PSU Debt Fund), which collectively account for 95% of the allocation. This lack of diversification increases the risk of adverse impacts from fund-specific issues, such as credit events or fund management changes.",
+    "The backtest summary relies on proxy funds for all four selected funds due to insufficient historical data. This undermines the reliability of the backtest results, as the proxies may not accurately reflect the risk-return characteristics of the actual funds. Additionally, the stress-testing scenarios show zero impact for certain conditions, indicating potential flaws in the methodology.",
+    "The hedge instruments section includes equity-focused risk scenarios and hedges, which are irrelevant given the portfolio's lack of equity exposure. This creates unnecessary complexity and may confuse the client."
+  ],
+  "target_message_id": "0e9c650e-02b9-4e60-8c93-de04d12c0d59",
+  "recommended_action": "The portfolio has significant issues in goal alignment, concentration, and methodology. These must be addressed to ensure the portfolio meets the client's conservative risk profile and short-term liquidity needs. Minor adjustments to the hedge instruments section are also recommended to improve clarity and relevance."
+}
+---
+[PRIYA] -> [PORTFOLIO_DRAFT]
+{
+  "version": 1,
+  "cagr_pct": 12.5,
+  "allocations": [
+    {
+      "pct": 40,
+      "code": "123456",
+      "fund": "HDFC Liquid Fund"
+    },
+    {
+      "pct": 40,
+      "code": "654321",
+      "fund": "ICICI Prudential Ultra Short Term Fund"
+    },
+    {
+      "pct": 15,
+      "code": "789012",
+      "fund": "SBI Magnum Ultra Short Duration Fund"
+    },
+    {
+      "pct": 5,
+      "code": "105220",
+      "fund": "Nippon India ETF Gold BeES"
+    }
+  ],
+  "portfolio_id": "a8d4430b-d897-4baa-a7ce-6b136b828565",
+  "revision_number": 4,
+  "confidence_score": 70
+}
+---
+[KIRAN] -> [RISK_ALERT]
+{
+  "severity": "LOW",
+  "data_source": "https://rbi.org.in",
+  "risk_category": "PORTFOLIO_HEDGE_MAP",
+  "affected_funds": [
+    "Reliance Fixed Horizon Fund - XXIV - Series 10 - Direct Plan - Dividend Payout Option",
+    "Fund Code 654321",
+    "Fund Code 789012",
+    "Fund Code 105220"
+  ],
+  "risk_description": "Hedge Map built. Overall coverage is 85%."
+}
+---
+[KIRAN] -> [RISK_ALERT]
+{
+  "severity": "LOW",
+  "data_source": "https://rbi.org.in",
+  "risk_category": "PORTFOLIO_HEDGE_MAP",
+  "affected_funds": [
+    "Reliance Fixed Horizon Fund - XXIV - Series 10 - Direct Plan - Dividend Payout Option",
+    "Fund Code 654321",
+    "Fund Code 789012",
+    "Fund Code 105220"
+  ],
+  "risk_description": "Hedge Map built. Overall coverage is 85%."
+}
+---
+[ARIA] -> [CRITIQUE]
+{
+  "severity": "CRITICAL",
+  "critique_points": [
+    "The portfolio's allocation includes a 5% exposure to gold via Nippon India ETF Gold BeES. While gold can act as a hedge against inflation, it is not aligned with the client's stated conservative risk profile and short-term (3-year) time horizon. Gold's price volatility could introduce unnecessary risk, which is inconsistent with the client's primary goal of capital preservation for medical expenses.",
+    "The portfolio is heavily concentrated in ultra-short-term debt funds, with 95% of the allocation split across HDFC Liquid Fund, ICICI Prudential Ultra Short Term Fund, and SBI Magnum Ultra Short Duration Fund. This creates a lack of diversification within the debt category, as all funds are exposed to similar interest rate and credit risks.",
+    "The portfolio's backtest relies on proxy funds (e.g., Nifty 50 index) for all selected funds due to insufficient historical data. This introduces a significant methodological flaw, as the performance of the proxies may not accurately reflect the risk-return characteristics of the actual funds.",
+    "The hedge instruments section includes equity-focused risk scenarios and hedges, which are irrelevant given the portfolio's lack of equity exposure. This creates unnecessary complexity and may confuse the client."
+  ],
+  "target_message_id": "a8d4430b-d897-4baa-a7ce-6b136b828565",
+  "recommended_action": "The portfolio has critical flaws in methodology and goal alignment, as well as major issues in concentration. These must be addressed before the portfolio can be considered viable. Minor improvements in the hedge strategy are also recommended to reduce unnecessary complexity."
+}
+---
+[VIKRAM] -> [VOTE]
+{
+  "vote": "REJECT",
+  "motion": "Evaluate portfolio alignment for draft a8d4430b-d897-4baa-a7ce-6b136b828565",
+  "reasoning": "The portfolio's actual allocations significantly deviate from the strategic asset allocation guidance, particularly in the equity and debt categories. Additionally, the selected strategy frameworks are not properly reflected in the portfolio's bucket structure, as the allocation is concentrated entirely in one bucket with a short-term horizon, which is inconsistent with the principles of Liability-Matching, Core-Satellite, and Goals-Based Investing.",
+  "conditions": [
+    "Equity allocation is 80.00%, which exceeds the strategic guidance range of 10% - 20%.",
+    "Debt allocation is 15.00%, which is below the strategic guidance range of 70% - 85%.",
+    "The bucket structure has a single custom bucket with a 3-year horizon and 100% allocation, which does not align with the multi-bucket approach required for Liability-Matching and Goals-Based Investing."
+  ]
+}
+---
+[DHRUV] -> [VOTE]
+{
+  "votes": [
+    {
+      "vote": "REJECT",
+      "voter": "ARIA"
+    },
+    {
+      "vote": "APPROVE",
+      "voter": "KIRAN"
+    },
+    {
+      "vote": "REJECT",
+      "voter": "VIKRAM"
+    }
+  ],
+  "reason": "Rejected automatically due to CRITICAL critique faults from ARIA.",
+  "outcome": "REJECTED"
+}
+---
+[DHRUV] -> [DIRECTIVE]
+{
+  "compromise": "Reallocate the portfolio to address ARIA's concerns about concentration and inflation risk while maintaining KIRAN's hedge coverage target and aligning with VIKRAM's strategy rules. Proposed allocation: 35% HDFC Liquid Fund, 35% ICICI Prudential Ultra Short Term Fund, 20% SBI Magnum Ultra Short Duration Fund, and 10% Nippon India ETF Gold BeES. This reduces over-concentration in debt instruments, increases inflation hedging, and aligns with a conservative risk profile and short-term liquidity needs.",
+  "directive_type": "RESOLVE_DEADLOCK",
+  "fallback_portfolio_id": "a8d4430b-d897-4baa-a7ce-6b136b828565"
+}
+---
+[2026-06-18 00:56:11.633 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1311
+    [35mtokensUsed[39m: 24
+    [35mattempt[39m: 1
+[2026-06-18 00:56:11.649 +0530] [32mINFO[39m (98841): [36mKnowledgeCommons: learning contributed[39m
+    [35magentId[39m: "ARIA"
+    [35mtags[39m: [
+      "goal_alignment",
+      "methodology",
+      "early_critique",
+      "mentor_analysis",
+      "deadlocked"
+    ]
+[2026-06-18 00:56:12.129 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 480
+    [35mtokensUsed[39m: 20
+    [35mattempt[39m: 1
+[2026-06-18 00:56:12.142 +0530] [32mINFO[39m (98841): [36mKnowledgeCommons: learning contributed[39m
+    [35magentId[39m: "ARIA"
+    [35mtags[39m: [
+      "actionable_feedback",
+      "resolution_guidance",
+      "mentor_analysis",
+      "deadlocked"
+    ]
+[2026-06-18 00:56:12.485 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 343
+    [35mtokensUsed[39m: 25
+    [35mattempt[39m: 1
+[2026-06-18 00:56:12.501 +0530] [32mINFO[39m (98841): [36mKnowledgeCommons: learning contributed[39m
+    [35magentId[39m: "KIRAN"
+    [35mtags[39m: [
+      "holistic_evaluation",
+      "goal_alignment",
+      "mentor_analysis",
+      "deadlocked"
+    ]
+[2026-06-18 00:56:12.842 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 341
+    [35mtokensUsed[39m: 21
+    [35mattempt[39m: 1
+[2026-06-18 00:56:12.859 +0530] [32mINFO[39m (98841): [36mKnowledgeCommons: learning contributed[39m
+    [35magentId[39m: "KIRAN"
+    [35mtags[39m: [
+      "deliberation",
+      "collaboration",
+      "mentor_analysis",
+      "deadlocked"
+    ]
+[2026-06-18 00:56:13.207 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 347
+    [35mtokensUsed[39m: 20
+    [35mattempt[39m: 1
+[2026-06-18 00:56:13.218 +0530] [32mINFO[39m (98841): [36mKnowledgeCommons: learning contributed[39m
+    [35magentId[39m: "VIKRAM"
+    [35mtags[39m: [
+      "strategic_alignment",
+      "detailed_feedback",
+      "mentor_analysis",
+      "deadlocked"
+    ]
+[2026-06-18 00:56:13.560 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 342
+    [35mtokensUsed[39m: 23
+    [35mattempt[39m: 1
+[2026-06-18 00:56:13.566 +0530] [32mINFO[39m (98841): [36mKnowledgeCommons: learning contributed[39m
+    [35magentId[39m: "VIKRAM"
+    [35mtags[39m: [
+      "collaboration",
+      "goal_alignment",
+      "mentor_analysis",
+      "deadlocked"
+    ]
+[2026-06-18 00:56:13.905 +0530] [32mINFO[39m (98841): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 339
+    [35mtokensUsed[39m: 21
+    [35mattempt[39m: 1
+[2026-06-18 00:56:13.916 +0530] [32mINFO[39m (98841): [36mKnowledgeCommons: learning contributed[39m
+    [35magentId[39m: "DHRUV"
+    [35mtags[39m: [
+      "conflict_resolution",
+      "structured_deliberation",
+      "mentor_analysis",
+      "deadlocked"
+    ]
+[2026-06-18 00:56:13.916 +0530] [32mINFO[39m (98841): [36mMENTOR: completed post-pipeline analysis successfully[39m
+    [35mpipelineRunId[39m: "dcf3b265-9c06-42c4-86f3-f0a5e03828a4"
+    [35mlearningsCount[39m: 7

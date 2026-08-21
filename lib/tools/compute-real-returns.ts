@@ -59,7 +59,7 @@ export async function computeRealReturns(
   const schemeName = returnsChunks[0]?.schemeName ?? holding?.schemeName ?? null
   const factsheetReturnsData =
     returnsChunks.length > 0
-      ? returnsChunks.map((c) => `[${c.factsheetDate}]:\n${c.chunkText}`).join('\n\n---\n\n')
+      ? returnsChunks.map((c: any) => `[${c.factsheetDate}]:\n${c.chunkText}`).join('\n\n---\n\n')
       : null
 
   const hasData = !!factsheetReturnsData

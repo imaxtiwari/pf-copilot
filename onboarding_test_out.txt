@@ -1,0 +1,24 @@
+--- Test 3.1: Canonical Enum Values ---
+Result 3.1: 200 {
+  ok: true,
+  data: {
+    userId: '6ead61c5-6fd3-45e6-a31a-af893a88b4f5',
+    inflation: {
+      rate: 0.0838,
+      weights: [Object],
+      breakdown: [Array],
+      confidence: 'high'
+    }
+  }
+}
+
+--- Test 3.2: Invalid Enum Values ---
+Result 3.2 (Expected Error): 400 {
+  ok: false,
+  error: {
+    code: 'validation_error',
+    message: 'Invalid onboarding data',
+    details: [ [Object] ],
+    request_id: '07e9689f-f186-4e28-97ad-5e99bfed84a1'
+  }
+}

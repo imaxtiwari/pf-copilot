@@ -6,6 +6,8 @@ import { parseCASText } from './parse-text'
 import { parseCASVision } from './parse-vision'
 import { validateCAS } from '../contracts/cas-validation'
 import { crossCheckSchemes } from './amfi-master'
+import { scoreParseResult, VISION_FALLBACK_THRESHOLD } from './parse-confidence'
+import { auditTrail, AuditActionType } from '../audit/audit-trail'
 import type { CASExtraction } from '../contracts/cas-validation'
 import type { SchemeCheckResult } from './amfi-master'
 import logger from '../logger'
@@ -47,9 +49,26 @@ export async function parseCAS(buffer: Buffer, userId: string): Promise<ParseRes
       const schemeCheck = await crossCheckSchemes(
         validation.extraction.holdings.map((h) => h.scheme_name),
       )
-      return { ok: true, extraction: validation.extraction, source: 'text', schemeCheck, hash }
+      const confidence = scoreParseResult(validation.extraction, schemeCheck)
+      
+      auditTrail.log({
+        pipeline_run_id: hash,
+        agent_id: 'SYSTEM',
+        action_type: AuditActionType.CAS_PARSE_ATTEMPT,
+        payload: {
+          source: 'text',
+          hash,
+          confidence,
+        }
+      })
+
+      if (confidence.score >= VISION_FALLBACK_THRESHOLD) {
+        return { ok: true, extraction: validation.extraction, source: 'text', schemeCheck, hash }
+      }
+      logger.info({ hash, score: confidence.score }, 'cas: text confidence too low, falling back to vision')
+    } else {
+      logger.info({ errors: validation.errors }, 'cas: text extraction failed validation')
     }
-    logger.info({ errors: validation.errors }, 'cas: text extraction failed validation')
   }
 
   // Vision fallback
@@ -61,6 +80,19 @@ export async function parseCAS(buffer: Buffer, userId: string): Promise<ParseRes
       const schemeCheck = await crossCheckSchemes(
         validation.extraction.holdings.map((h) => h.scheme_name),
       )
+      const confidence = scoreParseResult(validation.extraction, schemeCheck)
+      
+      auditTrail.log({
+        pipeline_run_id: hash,
+        agent_id: 'SYSTEM',
+        action_type: AuditActionType.CAS_PARSE_ATTEMPT,
+        payload: {
+          source: 'vision',
+          hash,
+          confidence,
+        }
+      })
+
       return { ok: true, extraction: validation.extraction, source: 'vision', schemeCheck, hash }
     }
     return { ok: false, errors: validation.errors, source: 'vision', hash }

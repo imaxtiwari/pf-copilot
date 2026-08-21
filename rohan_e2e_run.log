@@ -1,0 +1,1662 @@
+◇ injected env (15) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (0) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+--- Checking Server Health ---
+Client version 1.18.0 is incompatible with server version 1.7.4. Major versions should match and minor version difference must not exceed 1. Set checkCompatibility=false to skip version check.
+--- Initializing Database for Rohan Mehta (E2E) ---
+
+
+=== SCENARIO: Success Path - Aggressive Cash Flow ===
+
+CAS injected: 8 holdings, confidence 95, mode: text
+CAS DUPLICATE TEST: PASS (IDs match)
+Pipeline Started: 877c5893-7a94-4fc7-9cae-96e454db13e4
+--- Running Phase 1 (Onboarding -> Kiran Risk Profile -> Vikram Interview) ---
+[2026-06-20 17:38:43.668 +0530] [32mINFO[39m (38212): [36mDHRUV: Starting pipeline run[39m
+    [35mclientId[39m: "fb160a4b-40a9-4129-9d0d-b79818ad44ef"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:38:43.673 +0530] [32mINFO[39m (38212): [36mDHRUV: runPhase1 started[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:38:43.680 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35mfrom[39m: "ONBOARDING"
+    [35mto[39m: "RIYA_BEHAVIORAL_PROFILING"
+[2026-06-20 17:38:43.760 +0530] [32mINFO[39m (38212): [36mRIYA: Executing behavioral analysis[39m
+    [35muserId[39m: "fb160a4b-40a9-4129-9d0d-b79818ad44ef"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:38:45.013 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1092
+    [35mtokensUsed[39m: 4
+    [35mattempt[39m: 1
+[2026-06-20 17:38:49.973 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 401
+    [35mtokensUsed[39m: 24
+    [35mattempt[39m: 1
+[2026-06-20 17:38:50.028 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35mfrom[39m: "RIYA_BEHAVIORAL_PROFILING"
+    [35mto[39m: "PROFILING_AND_GOAL_ASSESSMENT"
+[2026-06-20 17:38:50.030 +0530] [32mINFO[39m (38212): [36mKIRAN: buildClientRiskProfile invoked[39m
+    [35mclientId[39m: "fb160a4b-40a9-4129-9d0d-b79818ad44ef"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:38:50.375 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 345
+    [35mtokensUsed[39m: 4
+    [35mattempt[39m: 1
+[2026-06-20 17:38:50.768 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 327
+    [35mtokensUsed[39m: 16
+    [35mattempt[39m: 1
+[2026-06-20 17:38:50.819 +0530] [32mINFO[39m (38212): [36mWebResearchTool: cache hit — skipping Tavily API call[39m
+    [35magentId[39m: "KIRAN"
+    [35mquery[39m: "behavioral finance portfolio asset allocation risk factors for 52 years old dependants kids"
+    [35mcacheHits[39m: 3
+[2026-06-20 17:38:50.819 +0530] [33mWARN[39m (38212): [36mWebResearchTool: cache check failed — proceeding with Tavily[39m
+    [35mcacheErr[39m: {}
+[2026-06-20 17:38:55.421 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1034
+    [35mtokensUsed[39m: 74
+    [35mattempt[39m: 1
+[2026-06-20 17:38:57.077 +0530] [33mWARN[39m (38212): [36mORACLE flagged message[39m
+    [35mmessage_id[39m: "16b4c48c-c1ac-49ae-9181-9b44956a9343"
+    [35msender[39m: "KIRAN"
+    [35mflags[39m: [
+      "INTERNAL_CONTRADICTION — Allocation for age 55 sums to 100% (60% stocks, 35% bonds, 5% alternatives), but allocation for age 50 sums to 100% (65% equity, 30% bonds, 5% commodities) while also including subcategories (40% U.S. stocks, 25% international stocks) that sum to 65%, creating no inconsistency.",
+      "INTERNAL_CONTRADICTION — Dates and NAV mismatches are not applicable in this context.",
+      "INTERNAL_CONTRADICTION — No internal contradictions detected."
+    ]
+[2026-06-20 17:38:57.393 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 316
+    [35mtokensUsed[39m: 100
+    [35mattempt[39m: 1
+[2026-06-20 17:38:58.916 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 378
+    [35mtokensUsed[39m: 73
+    [35mattempt[39m: 1
+[2026-06-20 17:38:58.934 +0530] [32mINFO[39m (38212): [36mWebResearchTool: research complete[39m
+    [35magentId[39m: "KIRAN"
+    [35mquery[39m: "behavioral finance portfolio asset allocation risk factors for 52 years old dependants kids"
+    [35mresultsCount[39m: 3
+[2026-06-20 17:39:06.994 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 953
+    [35mtokensUsed[39m: 37
+    [35mattempt[39m: 1
+[2026-06-20 17:39:07.069 +0530] [32mINFO[39m (38212): [36mDHRUV: runPhase1 completed successfully[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+--- Running Phase 2 (Goal Assessment -> Portfolio Build -> Voting) ---
+[2026-06-20 17:39:07.085 +0530] [32mINFO[39m (38212): [36mDHRUV: runPhase2 started[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:39:07.089 +0530] [32mINFO[39m (38212): [36mVIKRAM: assessGoals invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:39:21.788 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "7c1b2438-0e3d-4238-9aca-22ed54f38576"
+    [35msender[39m: "VIKRAM"
+    [35mtype[39m: "STRATEGY_PROPOSAL"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:39:22.118 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 329
+    [35mtokensUsed[39m: 158
+    [35mattempt[39m: 1
+[2026-06-20 17:39:22.159 +0530] [32mINFO[39m (38212): [36mARIA: critiqueGoalPlan invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:39:22.461 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 302
+    [35mtokensUsed[39m: 4
+    [35mattempt[39m: 1
+[2026-06-20 17:39:31.738 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1077
+    [35mtokensUsed[39m: 57
+    [35mattempt[39m: 1
+[2026-06-20 17:39:33.558 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "449e0f10-0f36-4bf2-92fc-5352d9cbd0cd"
+    [35msender[39m: "ARIA"
+    [35mtype[39m: "CRITIQUE"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:39:33.558 +0530] [32mINFO[39m (38212): [36mDHRUV: Vikram goal plan has CRITICAL faults. Triggering Vikram goal revision.[39m
+[2026-06-20 17:39:33.558 +0530] [32mINFO[39m (38212): [36mVIKRAM: assessGoals invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:39:48.001 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "e80f646b-2b42-4091-85c5-9fb3f6ff2224"
+    [35msender[39m: "VIKRAM"
+    [35mtype[39m: "STRATEGY_PROPOSAL"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:39:48.318 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 317
+    [35mtokensUsed[39m: 158
+    [35mattempt[39m: 1
+[2026-06-20 17:39:48.350 +0530] [32mINFO[39m (38212): [36mARIA: critiqueGoalPlan invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:39:48.677 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 327
+    [35mtokensUsed[39m: 4
+    [35mattempt[39m: 1
+[2026-06-20 17:39:58.651 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1164
+    [35mtokensUsed[39m: 63
+    [35mattempt[39m: 1
+[2026-06-20 17:40:00.177 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "e4a433fe-bd54-4b51-b740-d2e0803077c9"
+    [35msender[39m: "ARIA"
+    [35mtype[39m: "CRITIQUE"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:40:00.177 +0530] [32mINFO[39m (38212): [36mDHRUV: Vikram goal plan has CRITICAL faults. Triggering Vikram goal revision.[39m
+[2026-06-20 17:40:00.177 +0530] [32mINFO[39m (38212): [36mVIKRAM: assessGoals invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:40:12.883 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "42468926-b755-4870-a118-faeb58a421c5"
+    [35msender[39m: "VIKRAM"
+    [35mtype[39m: "STRATEGY_PROPOSAL"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:40:13.267 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 384
+    [35mtokensUsed[39m: 158
+    [35mattempt[39m: 1
+[2026-06-20 17:40:13.297 +0530] [32mINFO[39m (38212): [36mARIA: critiqueGoalPlan invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:40:13.607 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 310
+    [35mtokensUsed[39m: 4
+    [35mattempt[39m: 1
+[2026-06-20 17:40:22.422 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 974
+    [35mtokensUsed[39m: 51
+    [35mattempt[39m: 1
+[2026-06-20 17:40:24.477 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "09c118dc-845f-4a04-8937-018da67a298c"
+    [35msender[39m: "ARIA"
+    [35mtype[39m: "CRITIQUE"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:40:24.506 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35mfrom[39m: "PROFILING_AND_GOAL_ASSESSMENT"
+    [35mto[39m: "SOMA_FUND_UNIVERSE"
+[2026-06-20 17:40:24.508 +0530] [32mINFO[39m (38212): [36mSOMA: getEligibleFundUniverse invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35mcriteria[39m: {
+      "max_expense_ratio_active": 1.5,
+      "max_expense_ratio_index": 0.5,
+      "min_aum_equity_cr": 500,
+      "min_aum_debt_cr": 1000,
+      "min_track_record_years": 3,
+      "client_id": "fb160a4b-40a9-4129-9d0d-b79818ad44ef"
+    }
+[2026-06-20 17:40:24.881 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 373
+    [35mtokensUsed[39m: 4
+    [35mattempt[39m: 1
+[2026-06-20 17:40:25.036 +0530] [33mWARN[39m (38212): [36mSOMA: getEligibleFundUniverse filtered result is fewer than 10 funds. Relaxing min_aum filters by 50% and retrying once.[39m
+    [35mcount[39m: 0
+    [35mminAumEquity[39m: 500
+    [35mminAumDebt[39m: 1000
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:40:25.078 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "a257364d-f8f1-4fdc-bf3e-d2a045d990d5"
+    [35msender[39m: "SOMA"
+    [35mtype[39m: "FUND_REPORT"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:40:25.907 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 829
+    [35mtokensUsed[39m: 144
+    [35mattempt[39m: 1
+[2026-06-20 17:40:25.931 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35mfrom[39m: "SOMA_FUND_UNIVERSE"
+    [35mto[39m: "VIKRAM_STRATEGY"
+[2026-06-20 17:40:25.933 +0530] [32mINFO[39m (38212): [36mVIKRAM: selectStrategyFramework invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:40:26.231 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 298
+    [35mtokensUsed[39m: 4
+    [35mattempt[39m: 1
+[2026-06-20 17:40:26.252 +0530] [32mINFO[39m (38212): [36mVIKRAM: strategy framework recall hit[39m
+[2026-06-20 17:40:26.546 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 294
+    [35mtokensUsed[39m: 16
+    [35mattempt[39m: 1
+[2026-06-20 17:40:26.560 +0530] [32mINFO[39m (38212): [36mWebResearchTool: cache hit — skipping Tavily API call[39m
+    [35magentId[39m: "VIKRAM"
+    [35mquery[39m: "goal based asset allocation strategy frameworks core satellite bucket liability matching barbell SEBI guidelines"
+    [35mcacheHits[39m: 3
+[2026-06-20 17:40:26.561 +0530] [33mWARN[39m (38212): [36mWebResearchTool: cache check failed — proceeding with Tavily[39m
+    [35mcacheErr[39m: {}
+[2026-06-20 17:40:31.889 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1104
+    [35mtokensUsed[39m: 70
+    [35mattempt[39m: 1
+[2026-06-20 17:40:34.370 +0530] [33mWARN[39m (38212): [36mORACLE flagged message[39m
+    [35mmessage_id[39m: "f2b88fde-b315-4603-8e88-8e66ea5f2500"
+    [35msender[39m: "VIKRAM"
+    [35mflags[39m: [
+      "INTERNAL_CONTRADICTION — Asset allocation table minimum and maximum percentages for equity and equity-related instruments (80-100%) leave no room for other allocations, contradicting the stated allocations for Debt & Money Market Instruments (0-20%) and ReITS/InVITS (0-20%).",
+      "INTERNAL_CONTRADICTION — NAV calculation error: Total Assets (21,00,000) minus Total Liabilities and Expenses (900,000) equals 12,00,000, but NAV per unit (1200) does not match when divided by Total Units Outstanding (1,000).",
+      "INTERNAL_CONTRADICTION — SEBI Master Circular date (June 27, 2024) is in the future relative to the document's stated date (October 2025).",
+      "HALLUCINATION_RISK — FUND_NAV cited without approved source. Required: mfapi.in or amfiindia.com."
+    ]
+[2026-06-20 17:40:34.696 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 325
+    [35mtokensUsed[39m: 79
+    [35mattempt[39m: 1
+[2026-06-20 17:40:36.294 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 314
+    [35mtokensUsed[39m: 74
+    [35mattempt[39m: 1
+[2026-06-20 17:40:36.312 +0530] [32mINFO[39m (38212): [36mWebResearchTool: research complete[39m
+    [35magentId[39m: "VIKRAM"
+    [35mquery[39m: "goal based asset allocation strategy frameworks core satellite bucket liability matching barbell SEBI guidelines"
+    [35mresultsCount[39m: 3
+[2026-06-20 17:40:46.650 +0530] [33mWARN[39m (38212): [36mORACLE flagged message[39m
+    [35mmessage_id[39m: "b0b599c1-7e69-49b7-b096-7fe236804455"
+    [35msender[39m: "VIKRAM"
+    [35mflags[39m: [
+      "SOURCE_MISSING — factual claims detected without source citation."
+    ]
+[2026-06-20 17:40:46.688 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "b0b599c1-7e69-49b7-b096-7fe236804455"
+    [35msender[39m: "VIKRAM"
+    [35mtype[39m: "STRATEGY_PROPOSAL"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:40:47.047 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 359
+    [35mtokensUsed[39m: 106
+    [35mattempt[39m: 1
+[2026-06-20 17:40:47.095 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35mfrom[39m: "VIKRAM_STRATEGY"
+    [35mto[39m: "KIRAN_HEDGE_MAP"
+[2026-06-20 17:40:47.096 +0530] [32mINFO[39m (38212): [36mKIRAN: buildHedgeMap invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:40:47.392 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 295
+    [35mtokensUsed[39m: 13
+    [35mattempt[39m: 1
+[2026-06-20 17:40:47.423 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "87c591fb-f6ff-4e19-8f5e-2899e6171268"
+    [35msender[39m: "KIRAN"
+    [35mtype[39m: "RISK_ALERT"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:40:47.426 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35mfrom[39m: "KIRAN_HEDGE_MAP"
+    [35mto[39m: "ARIA_PREFLIGHT"
+[2026-06-20 17:40:47.428 +0530] [32mINFO[39m (38212): [36mARIA: runPreflight invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:40:55.847 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1223
+    [35mtokensUsed[39m: 77
+    [35mattempt[39m: 1
+[2026-06-20 17:40:55.873 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35mfrom[39m: "ARIA_PREFLIGHT"
+    [35mto[39m: "PRIYA_BUILD"
+[2026-06-20 17:40:55.874 +0530] [32mINFO[39m (38212): [36mPRIYA: buildPortfolio invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:40:56.201 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 327
+    [35mtokensUsed[39m: 3
+    [35mattempt[39m: 1
+[2026-06-20 17:40:56.217 +0530] [32mINFO[39m (38212): [36mPRIYA: Designing allocations via LLM[39m
+[2026-06-20 17:41:00.977 +0530] [32mINFO[39m (38212): [36mPRIYA: Running holding overlap analysis[39m
+[2026-06-20 17:41:00.977 +0530] [32mINFO[39m (38212): [36mPRIYA: Executing backtesting engine[39m
+[2026-06-20 17:41:00.978 +0530] [32mINFO[39m (38212): [36mPRIYA-BACKTEST: Starting backtest[39m
+    [35mbacktestId[39m: "e1585540-ba25-4e58-a7cd-3769b32ced95"
+    [35mallocationsCount[39m: 0
+[2026-06-20 17:41:00.995 +0530] [33mWARN[39m (38212): [36mPRIYA-BACKTEST: Data completeness is below 70%[39m
+    [35mdataCompletenessPct[39m: 0.8333333333333334
+[2026-06-20 17:41:00.995 +0530] [32mINFO[39m (38212): [36mPRIYA-BACKTEST: Sparse data detected. Returning default simulated statistics.[39m
+[2026-06-20 17:41:00.995 +0530] [32mINFO[39m (38212): [36mPRIYA: Calculating confidence score[39m
+[2026-06-20 17:41:01.011 +0530] [32mINFO[39m (38212): [36mPRIYA: Saved portfolio draft to database[39m
+    [35mdraftId[39m: "fd0783df-d324-4cf9-a5ee-5a141de383d2"
+[2026-06-20 17:41:01.011 +0530] [32mINFO[39m (38212): [36mPRIYA: Publishing portfolio draft to Deliberation Room[39m
+[2026-06-20 17:41:01.017 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "e3e9907c-0ad3-48ca-9245-57f31ee0125c"
+    [35msender[39m: "PRIYA"
+    [35mtype[39m: "PORTFOLIO_DRAFT"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:41:01.359 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 342
+    [35mtokensUsed[39m: 54
+    [35mattempt[39m: 1
+[2026-06-20 17:41:01.396 +0530] [32mINFO[39m (38212): [36mKIRAN: buildHedgeMap invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:41:01.694 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 298
+    [35mtokensUsed[39m: 13
+    [35mattempt[39m: 1
+[2026-06-20 17:41:01.718 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "3c200310-71a0-457e-a949-9e9c9b8e7d0f"
+    [35msender[39m: "KIRAN"
+    [35mtype[39m: "RISK_ALERT"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:41:01.719 +0530] [32mINFO[39m (38212): [36mKIRAN: runStressTest invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:41:13.482 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 323
+    [35mtokensUsed[39m: 120
+    [35mattempt[39m: 1
+[2026-06-20 17:41:13.541 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35mfrom[39m: "PRIYA_BUILD"
+    [35mto[39m: "SEBI_COMPLIANCE"
+[2026-06-20 17:41:13.543 +0530] [32mINFO[39m (38212): [36mSEBI: runComplianceCheck invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:41:19.110 +0530] [32mINFO[39m (38212): [36mSEBI: compliance check completed and saved[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35moverallCompliant[39m: false
+[2026-06-20 17:41:19.117 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35mfrom[39m: "SEBI_COMPLIANCE"
+    [35mto[39m: "REVISION"
+[2026-06-20 17:41:19.123 +0530] [32mINFO[39m (38212): [36mPRIYA: revise invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35mpreviousDraftId[39m: "fd0783df-d324-4cf9-a5ee-5a141de383d2"
+[2026-06-20 17:41:27.276 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "123456"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:41:27.598 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 306
+    [35mtokensUsed[39m: 108
+    [35mattempt[39m: 1
+[2026-06-20 17:41:27.608 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "234567"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:41:27.610 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "345678"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:41:27.611 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "456789"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:41:27.611 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "567890"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:41:27.612 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "678901"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:41:27.613 +0530] [32mINFO[39m (38212): [36mPRIYA-BACKTEST: Starting backtest[39m
+    [35mbacktestId[39m: "d0a3e102-a18d-43da-87e0-6177b1512ad7"
+    [35mallocationsCount[39m: 6
+[2026-06-20 17:41:27.625 +0530] [33mWARN[39m (38212): [36mPRIYA-BACKTEST: Data completeness is below 70%[39m
+    [35mdataCompletenessPct[39m: 0.8333333333333334
+[2026-06-20 17:41:27.625 +0530] [32mINFO[39m (38212): [36mPRIYA-BACKTEST: Sparse data detected. Returning default simulated statistics.[39m
+[2026-06-20 17:41:27.630 +0530] [32mINFO[39m (38212): [36mPRIYA: Saved portfolio draft to database[39m
+    [35mdraftId[39m: "8042081d-4edc-4034-8359-aecb8e7e54f9"
+[2026-06-20 17:41:27.645 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "2d3c07fd-4eb6-4afb-8b9e-ef99eb832bc1"
+    [35msender[39m: "PRIYA"
+    [35mtype[39m: "PORTFOLIO_DRAFT"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:41:27.944 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 298
+    [35mtokensUsed[39m: 127
+    [35mattempt[39m: 1
+[2026-06-20 17:41:27.965 +0530] [32mINFO[39m (38212): [36mKIRAN: buildHedgeMap invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:41:46.739 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1047
+    [35mtokensUsed[39m: 13
+    [35mattempt[39m: 1
+[2026-06-20 17:41:46.804 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "b55e8491-df09-4298-ad38-7421af0d316a"
+    [35msender[39m: "KIRAN"
+    [35mtype[39m: "RISK_ALERT"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:41:46.805 +0530] [32mINFO[39m (38212): [36mKIRAN: runStressTest invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:41:59.017 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1006
+    [35mtokensUsed[39m: 118
+    [35mattempt[39m: 1
+[2026-06-20 17:41:59.057 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35mfrom[39m: "REVISION"
+    [35mto[39m: "SEBI_COMPLIANCE"
+[2026-06-20 17:41:59.058 +0530] [32mINFO[39m (38212): [36mSEBI: runComplianceCheck invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:42:07.034 +0530] [32mINFO[39m (38212): [36mSEBI: compliance check completed and saved[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35moverallCompliant[39m: false
+[2026-06-20 17:42:07.041 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35mfrom[39m: "SEBI_COMPLIANCE"
+    [35mto[39m: "REVISION"
+[2026-06-20 17:42:07.044 +0530] [32mINFO[39m (38212): [36mPRIYA: revise invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35mpreviousDraftId[39m: "8042081d-4edc-4034-8359-aecb8e7e54f9"
+[2026-06-20 17:42:13.894 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "123456"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:42:14.210 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 307
+    [35mtokensUsed[39m: 108
+    [35mattempt[39m: 1
+[2026-06-20 17:42:14.235 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "234567"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:42:14.238 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "345678"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:42:14.239 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "456789"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:42:14.240 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "567890"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:42:14.241 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "678901"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:42:14.242 +0530] [32mINFO[39m (38212): [36mPRIYA-BACKTEST: Starting backtest[39m
+    [35mbacktestId[39m: "95934258-3999-402f-a429-81d42eb30a86"
+    [35mallocationsCount[39m: 6
+[2026-06-20 17:42:14.260 +0530] [33mWARN[39m (38212): [36mPRIYA-BACKTEST: Data completeness is below 70%[39m
+    [35mdataCompletenessPct[39m: 0.8333333333333334
+[2026-06-20 17:42:14.260 +0530] [32mINFO[39m (38212): [36mPRIYA-BACKTEST: Sparse data detected. Returning default simulated statistics.[39m
+[2026-06-20 17:42:14.266 +0530] [32mINFO[39m (38212): [36mPRIYA: Saved portfolio draft to database[39m
+    [35mdraftId[39m: "a62fec59-ebc1-4336-93ff-cb4db097523f"
+[2026-06-20 17:42:14.287 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "f4596a93-8170-4583-b6c1-8c4edcf4e70a"
+    [35msender[39m: "PRIYA"
+    [35mtype[39m: "PORTFOLIO_DRAFT"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:42:14.636 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 349
+    [35mtokensUsed[39m: 127
+    [35mattempt[39m: 1
+[2026-06-20 17:42:14.653 +0530] [32mINFO[39m (38212): [36mKIRAN: buildHedgeMap invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:42:35.774 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1635
+    [35mtokensUsed[39m: 13
+    [35mattempt[39m: 1
+[2026-06-20 17:42:35.828 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "68e88ee9-50be-40e2-996f-aabd71e3293e"
+    [35msender[39m: "KIRAN"
+    [35mtype[39m: "RISK_ALERT"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:42:35.828 +0530] [32mINFO[39m (38212): [36mKIRAN: runStressTest invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:42:46.080 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 966
+    [35mtokensUsed[39m: 121
+    [35mattempt[39m: 1
+[2026-06-20 17:42:46.116 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35mfrom[39m: "REVISION"
+    [35mto[39m: "SEBI_COMPLIANCE"
+[2026-06-20 17:42:46.116 +0530] [32mINFO[39m (38212): [36mSEBI: runComplianceCheck invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:42:53.416 +0530] [32mINFO[39m (38212): [36mSEBI: compliance check completed and saved[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35moverallCompliant[39m: false
+[2026-06-20 17:42:53.419 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35mfrom[39m: "SEBI_COMPLIANCE"
+    [35mto[39m: "REVISION"
+[2026-06-20 17:42:53.421 +0530] [32mINFO[39m (38212): [36mPRIYA: revise invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35mpreviousDraftId[39m: "a62fec59-ebc1-4336-93ff-cb4db097523f"
+[2026-06-20 17:43:01.118 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "123456"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:43:01.533 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 393
+    [35mtokensUsed[39m: 108
+    [35mattempt[39m: 1
+[2026-06-20 17:43:01.566 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "234567"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:43:01.569 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "345678"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:43:01.571 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "456789"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:43:01.573 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "789012"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:43:01.574 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "678901"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:43:01.575 +0530] [32mINFO[39m (38212): [36mPRIYA-BACKTEST: Starting backtest[39m
+    [35mbacktestId[39m: "18816da7-c5d0-4fb5-bc55-ac1f3742afe7"
+    [35mallocationsCount[39m: 6
+[2026-06-20 17:43:01.592 +0530] [33mWARN[39m (38212): [36mPRIYA-BACKTEST: Data completeness is below 70%[39m
+    [35mdataCompletenessPct[39m: 0.8333333333333334
+[2026-06-20 17:43:01.592 +0530] [32mINFO[39m (38212): [36mPRIYA-BACKTEST: Sparse data detected. Returning default simulated statistics.[39m
+[2026-06-20 17:43:01.600 +0530] [32mINFO[39m (38212): [36mPRIYA: Saved portfolio draft to database[39m
+    [35mdraftId[39m: "e4df80bb-b2ce-4ae9-9d70-47b11909d381"
+[2026-06-20 17:43:01.634 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "3c9b2f80-4629-4b5f-9754-f28989d707f8"
+    [35msender[39m: "PRIYA"
+    [35mtype[39m: "PORTFOLIO_DRAFT"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:43:02.006 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 372
+    [35mtokensUsed[39m: 132
+    [35mattempt[39m: 1
+[2026-06-20 17:43:02.029 +0530] [32mINFO[39m (38212): [36mKIRAN: buildHedgeMap invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:43:18.907 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1023
+    [35mtokensUsed[39m: 13
+    [35mattempt[39m: 1
+[2026-06-20 17:43:18.969 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "9d94b146-1084-462f-be5a-3cc2d71119a5"
+    [35msender[39m: "KIRAN"
+    [35mtype[39m: "RISK_ALERT"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:43:18.969 +0530] [32mINFO[39m (38212): [36mKIRAN: runStressTest invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:43:29.742 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1107
+    [35mtokensUsed[39m: 118
+    [35mattempt[39m: 1
+[2026-06-20 17:43:29.770 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35mfrom[39m: "REVISION"
+    [35mto[39m: "SEBI_COMPLIANCE"
+[2026-06-20 17:43:29.771 +0530] [32mINFO[39m (38212): [36mSEBI: runComplianceCheck invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:43:35.304 +0530] [32mINFO[39m (38212): [36mSEBI: compliance check completed and saved[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35moverallCompliant[39m: false
+[2026-06-20 17:43:35.312 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35mfrom[39m: "SEBI_COMPLIANCE"
+    [35mto[39m: "REVISION"
+[2026-06-20 17:43:35.315 +0530] [32mINFO[39m (38212): [36mPRIYA: revise invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35mpreviousDraftId[39m: "e4df80bb-b2ce-4ae9-9d70-47b11909d381"
+[2026-06-20 17:43:44.153 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "123456"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:43:44.525 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 359
+    [35mtokensUsed[39m: 108
+    [35mattempt[39m: 1
+[2026-06-20 17:43:44.557 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "234567"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:43:44.559 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "345678"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:43:44.561 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "456789"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:43:44.562 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "789012"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:43:44.563 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "678901"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:43:44.563 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "890123"
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:43:44.564 +0530] [32mINFO[39m (38212): [36mPRIYA-BACKTEST: Starting backtest[39m
+    [35mbacktestId[39m: "add9d721-6151-49ec-90e7-c5d7f8085277"
+    [35mallocationsCount[39m: 7
+[2026-06-20 17:43:44.578 +0530] [33mWARN[39m (38212): [36mPRIYA-BACKTEST: Data completeness is below 70%[39m
+    [35mdataCompletenessPct[39m: 0.8333333333333334
+[2026-06-20 17:43:44.578 +0530] [32mINFO[39m (38212): [36mPRIYA-BACKTEST: Sparse data detected. Returning default simulated statistics.[39m
+[2026-06-20 17:43:44.585 +0530] [32mINFO[39m (38212): [36mPRIYA: Saved portfolio draft to database[39m
+    [35mdraftId[39m: "8e8f7d09-2291-4b8e-b570-230a34d346c6"
+[2026-06-20 17:43:44.622 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "3314002f-c7e9-4886-bb59-69975d9189e5"
+    [35msender[39m: "PRIYA"
+    [35mtype[39m: "PORTFOLIO_DRAFT"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:43:45.065 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 443
+    [35mtokensUsed[39m: 143
+    [35mattempt[39m: 1
+[2026-06-20 17:43:45.092 +0530] [32mINFO[39m (38212): [36mKIRAN: buildHedgeMap invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:44:06.088 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 998
+    [35mtokensUsed[39m: 13
+    [35mattempt[39m: 1
+[2026-06-20 17:44:06.148 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "439b3a66-aa2d-4cca-b2b3-5c055c6315d7"
+    [35msender[39m: "KIRAN"
+    [35mtype[39m: "RISK_ALERT"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:44:06.149 +0530] [32mINFO[39m (38212): [36mKIRAN: runStressTest invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:44:15.945 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1229
+    [35mtokensUsed[39m: 122
+    [35mattempt[39m: 1
+[2026-06-20 17:44:15.974 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35mfrom[39m: "REVISION"
+    [35mto[39m: "SEBI_COMPLIANCE"
+[2026-06-20 17:44:16.051 +0530] [32mINFO[39m (38212): [36mSEBI: runComplianceCheck invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:44:23.941 +0530] [32mINFO[39m (38212): [36mSEBI: compliance check completed and saved[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35moverallCompliant[39m: false
+[2026-06-20 17:44:23.962 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35mfrom[39m: "SEBI_COMPLIANCE"
+    [35mto[39m: "DEADLOCKED"
+[2026-06-20 17:44:23.966 +0530] [33mWARN[39m (38212): [36mDHRUV: PIPELINE DEADLOCK triggered[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+[2026-06-20 17:44:28.669 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "07d983c9-6b85-4d9b-ae18-fdf5c506349b"
+    [35msender[39m: "DHRUV"
+    [35mtype[39m: "DIRECTIVE"
+    [35mrecipient[39m: "ALL"
+--- Pipeline Completed ---
+[2026-06-20 17:44:28.680 +0530] [32mINFO[39m (38212): [36mMENTOR: runPostPipelineAnalysis invoked[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35moutcome[39m: "DEADLOCKED"
+[2026-06-20 17:44:28.681 +0530] [33mWARN[39m (38212): [36mDHRUV: runPhase2 completed with deadlock[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+Final Status: DEADLOCKED
+Expected successful completion, got DEADLOCKED. (Check if it deadlocked unexpectedly)
+
+
+=== SCENARIO: Mathematical Impossibility - Insufficient Cash Flow ===
+
+CAS injected: 8 holdings, confidence 95, mode: text
+CAS DUPLICATE TEST: PASS (IDs match)
+[2026-06-20 17:44:31.636 +0530] [32mINFO[39m (38212): [36mDHRUV: Starting pipeline run[39m
+    [35mclientId[39m: "5fb4eb91-920f-43d9-a60a-f94b72ff1960"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+Pipeline Started: 716b261f-c64b-4fbb-892a-4575d97107ca
+--- Running Phase 1 (Onboarding -> Kiran Risk Profile -> Vikram Interview) ---
+[2026-06-20 17:44:31.638 +0530] [32mINFO[39m (38212): [36mDHRUV: runPhase1 started[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:44:31.640 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35mfrom[39m: "ONBOARDING"
+    [35mto[39m: "RIYA_BEHAVIORAL_PROFILING"
+[2026-06-20 17:44:31.653 +0530] [32mINFO[39m (38212): [36mRIYA: Executing behavioral analysis[39m
+    [35muserId[39m: "5fb4eb91-920f-43d9-a60a-f94b72ff1960"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:44:32.839 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1045
+    [35mtokensUsed[39m: 4
+    [35mattempt[39m: 1
+[2026-06-20 17:44:35.680 +0530] [32mINFO[39m (38212): [36mMENTOR: logged critique analysis[39m
+    [35manalysis[39m: {
+      "pattern": "ARIA_CRITIQUE_IGNORED",
+      "critiqueCategory": "METHODOLOGY",
+      "revisionCycle": 0,
+      "confidenceDelta": 0
+    }
+[2026-06-20 17:44:35.682 +0530] [32mINFO[39m (38212): [36mMENTOR: logged critique analysis[39m
+    [35manalysis[39m: {
+      "pattern": "ARIA_CRITIQUE_IGNORED",
+      "critiqueCategory": "GOAL_MISMATCH",
+      "revisionCycle": 0,
+      "confidenceDelta": 0
+    }
+[2026-06-20 17:44:36.927 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1244
+    [35mtokensUsed[39m: 26
+    [35mattempt[39m: 1
+[2026-06-20 17:44:36.945 +0530] [32mINFO[39m (38212): [36mKnowledgeCommons: learning contributed[39m
+    [35magentId[39m: "ARIA"
+    [35mtags[39m: [
+      "critique_quality",
+      "actionable_feedback",
+      "mentor_analysis",
+      "deadlocked",
+      "MENTOR:pipeline_learnings:fb160a4b-40a9-4129-9d0d-b79818ad44ef:877c5893-7a94-4fc7-9cae-96e454db13e4"
+    ]
+[2026-06-20 17:44:37.305 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 358
+    [35mtokensUsed[39m: 23
+    [35mattempt[39m: 1
+[2026-06-20 17:44:37.317 +0530] [32mINFO[39m (38212): [36mKnowledgeCommons: learning contributed[39m
+    [35magentId[39m: "KIRAN"
+    [35mtags[39m: [
+      "efficiency",
+      "non-redundancy",
+      "mentor_analysis",
+      "deadlocked",
+      "MENTOR:pipeline_learnings:fb160a4b-40a9-4129-9d0d-b79818ad44ef:877c5893-7a94-4fc7-9cae-96e454db13e4"
+    ]
+[2026-06-20 17:44:37.715 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 397
+    [35mtokensUsed[39m: 27
+    [35mattempt[39m: 1
+[2026-06-20 17:44:37.722 +0530] [32mINFO[39m (38212): [36mKnowledgeCommons: learning contributed[39m
+    [35magentId[39m: "PRIYA"
+    [35mtags[39m: [
+      "responsiveness",
+      "iterative_improvement",
+      "mentor_analysis",
+      "deadlocked",
+      "MENTOR:pipeline_learnings:fb160a4b-40a9-4129-9d0d-b79818ad44ef:877c5893-7a94-4fc7-9cae-96e454db13e4"
+    ]
+[2026-06-20 17:44:37.723 +0530] [32mINFO[39m (38212): [36mMENTOR: completed post-pipeline analysis successfully[39m
+    [35mpipelineRunId[39m: "877c5893-7a94-4fc7-9cae-96e454db13e4"
+    [35mlearningsCount[39m: 3
+[2026-06-20 17:44:39.598 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 457
+    [35mtokensUsed[39m: 24
+    [35mattempt[39m: 1
+[2026-06-20 17:44:39.625 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35mfrom[39m: "RIYA_BEHAVIORAL_PROFILING"
+    [35mto[39m: "PROFILING_AND_GOAL_ASSESSMENT"
+[2026-06-20 17:44:39.626 +0530] [32mINFO[39m (38212): [36mKIRAN: buildClientRiskProfile invoked[39m
+    [35mclientId[39m: "5fb4eb91-920f-43d9-a60a-f94b72ff1960"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:44:39.957 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 331
+    [35mtokensUsed[39m: 4
+    [35mattempt[39m: 1
+[2026-06-20 17:44:40.316 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 352
+    [35mtokensUsed[39m: 16
+    [35mattempt[39m: 1
+[2026-06-20 17:44:40.331 +0530] [32mINFO[39m (38212): [36mWebResearchTool: cache hit — skipping Tavily API call[39m
+    [35magentId[39m: "KIRAN"
+    [35mquery[39m: "behavioral finance portfolio asset allocation risk factors for 52 years old dependants kids"
+    [35mcacheHits[39m: 3
+[2026-06-20 17:44:48.131 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1206
+    [35mtokensUsed[39m: 37
+    [35mattempt[39m: 1
+[2026-06-20 17:44:48.170 +0530] [32mINFO[39m (38212): [36mDHRUV: runPhase1 completed successfully[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+--- Running Phase 2 (Goal Assessment -> Portfolio Build -> Voting) ---
+[2026-06-20 17:44:48.175 +0530] [32mINFO[39m (38212): [36mDHRUV: runPhase2 started[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:44:48.182 +0530] [32mINFO[39m (38212): [36mVIKRAM: assessGoals invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:44:58.167 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "cad24038-04ed-41c0-b454-625f7017aa9d"
+    [35msender[39m: "VIKRAM"
+    [35mtype[39m: "STRATEGY_PROPOSAL"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:44:58.549 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 381
+    [35mtokensUsed[39m: 158
+    [35mattempt[39m: 1
+[2026-06-20 17:44:58.566 +0530] [32mINFO[39m (38212): [36mARIA: critiqueGoalPlan invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:44:59.008 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 442
+    [35mtokensUsed[39m: 4
+    [35mattempt[39m: 1
+[2026-06-20 17:45:07.988 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1047
+    [35mtokensUsed[39m: 71
+    [35mattempt[39m: 1
+[2026-06-20 17:45:09.004 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "7f0c625d-0ca1-4a34-9fcb-8e43a5f1834c"
+    [35msender[39m: "ARIA"
+    [35mtype[39m: "CRITIQUE"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:45:09.004 +0530] [32mINFO[39m (38212): [36mDHRUV: Vikram goal plan has CRITICAL faults. Triggering Vikram goal revision.[39m
+[2026-06-20 17:45:09.004 +0530] [32mINFO[39m (38212): [36mVIKRAM: assessGoals invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:45:21.416 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "2180d5aa-353e-4df7-97af-8023e08a8826"
+    [35msender[39m: "VIKRAM"
+    [35mtype[39m: "STRATEGY_PROPOSAL"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:45:21.993 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 576
+    [35mtokensUsed[39m: 157
+    [35mattempt[39m: 1
+[2026-06-20 17:45:22.013 +0530] [32mINFO[39m (38212): [36mARIA: critiqueGoalPlan invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:45:22.483 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 470
+    [35mtokensUsed[39m: 4
+    [35mattempt[39m: 1
+[2026-06-20 17:45:31.395 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 988
+    [35mtokensUsed[39m: 52
+    [35mattempt[39m: 1
+[2026-06-20 17:45:33.094 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "59590900-2cb1-4501-9460-02f0abbeed25"
+    [35msender[39m: "ARIA"
+    [35mtype[39m: "CRITIQUE"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:45:33.095 +0530] [32mINFO[39m (38212): [36mDHRUV: Vikram goal plan has CRITICAL faults. Triggering Vikram goal revision.[39m
+[2026-06-20 17:45:33.096 +0530] [32mINFO[39m (38212): [36mVIKRAM: assessGoals invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:45:43.008 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "7ffa7967-07c4-494e-a55b-f10783b1b920"
+    [35msender[39m: "VIKRAM"
+    [35mtype[39m: "STRATEGY_PROPOSAL"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:45:43.497 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 489
+    [35mtokensUsed[39m: 156
+    [35mattempt[39m: 1
+[2026-06-20 17:45:43.522 +0530] [32mINFO[39m (38212): [36mARIA: critiqueGoalPlan invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:45:43.965 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 443
+    [35mtokensUsed[39m: 4
+    [35mattempt[39m: 1
+[2026-06-20 17:45:53.137 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1137
+    [35mtokensUsed[39m: 49
+    [35mattempt[39m: 1
+[2026-06-20 17:45:54.197 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "78f58154-8010-4ec8-a84e-2873b216b177"
+    [35msender[39m: "ARIA"
+    [35mtype[39m: "CRITIQUE"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:45:54.212 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35mfrom[39m: "PROFILING_AND_GOAL_ASSESSMENT"
+    [35mto[39m: "SOMA_FUND_UNIVERSE"
+[2026-06-20 17:45:54.213 +0530] [32mINFO[39m (38212): [36mSOMA: getEligibleFundUniverse invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35mcriteria[39m: {
+      "max_expense_ratio_active": 1.5,
+      "max_expense_ratio_index": 0.5,
+      "min_aum_equity_cr": 500,
+      "min_aum_debt_cr": 1000,
+      "min_track_record_years": 3,
+      "client_id": "5fb4eb91-920f-43d9-a60a-f94b72ff1960"
+    }
+[2026-06-20 17:45:54.541 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 328
+    [35mtokensUsed[39m: 4
+    [35mattempt[39m: 1
+[2026-06-20 17:45:54.631 +0530] [33mWARN[39m (38212): [36mSOMA: getEligibleFundUniverse filtered result is fewer than 10 funds. Relaxing min_aum filters by 50% and retrying once.[39m
+    [35mcount[39m: 0
+    [35mminAumEquity[39m: 500
+    [35mminAumDebt[39m: 1000
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:45:54.667 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "cae763d1-1672-4386-9a9a-dfda45e80484"
+    [35msender[39m: "SOMA"
+    [35mtype[39m: "FUND_REPORT"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:45:55.040 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 373
+    [35mtokensUsed[39m: 141
+    [35mattempt[39m: 1
+[2026-06-20 17:45:55.056 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35mfrom[39m: "SOMA_FUND_UNIVERSE"
+    [35mto[39m: "VIKRAM_STRATEGY"
+[2026-06-20 17:45:55.057 +0530] [32mINFO[39m (38212): [36mVIKRAM: selectStrategyFramework invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:45:55.410 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 353
+    [35mtokensUsed[39m: 4
+    [35mattempt[39m: 1
+[2026-06-20 17:45:55.433 +0530] [32mINFO[39m (38212): [36mVIKRAM: strategy framework recall hit[39m
+[2026-06-20 17:45:55.904 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 471
+    [35mtokensUsed[39m: 16
+    [35mattempt[39m: 1
+[2026-06-20 17:45:55.911 +0530] [32mINFO[39m (38212): [36mWebResearchTool: cache hit — skipping Tavily API call[39m
+    [35magentId[39m: "VIKRAM"
+    [35mquery[39m: "goal based asset allocation strategy frameworks core satellite bucket liability matching barbell SEBI guidelines"
+    [35mcacheHits[39m: 3
+[2026-06-20 17:45:55.912 +0530] [33mWARN[39m (38212): [36mWebResearchTool: cache check failed — proceeding with Tavily[39m
+    [35mcacheErr[39m: {}
+[2026-06-20 17:45:59.244 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1183
+    [35mtokensUsed[39m: 70
+    [35mattempt[39m: 1
+[2026-06-20 17:46:01.425 +0530] [33mWARN[39m (38212): [36mORACLE flagged message[39m
+    [35mmessage_id[39m: "7b2c2819-113c-4fd1-b118-3ea17023aad8"
+    [35msender[39m: "VIKRAM"
+    [35mflags[39m: [
+      "INTERNAL_CONTRADICTION — Asset allocation table minimum and maximum percentages for equity and equity-related instruments (80-100%) leave no room for other allocations, contradicting the stated allocations for Debt & Money Market Instruments (0-20%) and ReITS/InVITS (0-20%).",
+      "INTERNAL_CONTRADICTION — NAV calculation error: Total Assets (21,00,000) minus Total Liabilities and Expenses (900,000) equals 20,10,000, not 12,00,000 as stated.",
+      "INTERNAL_CONTRADICTION — Date inconsistency: SEBI Master Circular for Mutual Funds is dated June 27, 2024, but the document is from October 2025, which is after the stated circular date.",
+      "HALLUCINATION_RISK — FUND_NAV cited without approved source. Required: mfapi.in or amfiindia.com."
+    ]
+[2026-06-20 17:46:01.731 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 305
+    [35mtokensUsed[39m: 79
+    [35mattempt[39m: 1
+[2026-06-20 17:46:04.499 +0530] [33mWARN[39m (38212): [36mORACLE flagged message[39m
+    [35mmessage_id[39m: "8411347a-2f4c-4174-9522-e5e2de34ba52"
+    [35msender[39m: "VIKRAM"
+    [35mflags[39m: [
+      "INTERNAL_CONTRADICTION — Date 'Feb 17, 2025' is in the future, which may not align with the publication timeline.",
+      "INTERNAL_CONTRADICTION — Content mentions '6 distinct SAA frameworks,' but only 3 are listed in the table.",
+      "INTERNAL_CONTRADICTION — Snippet mentions '6 min read,' but the content length appears inconsistent with this estimate."
+    ]
+[2026-06-20 17:46:04.980 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 480
+    [35mtokensUsed[39m: 74
+    [35mattempt[39m: 1
+[2026-06-20 17:46:04.999 +0530] [32mINFO[39m (38212): [36mWebResearchTool: research complete[39m
+    [35magentId[39m: "VIKRAM"
+    [35mquery[39m: "goal based asset allocation strategy frameworks core satellite bucket liability matching barbell SEBI guidelines"
+    [35mresultsCount[39m: 3
+[2026-06-20 17:46:11.672 +0530] [33mWARN[39m (38212): [36mORACLE flagged message[39m
+    [35mmessage_id[39m: "e8ef1f0d-2de7-4b4a-81b7-25c50808f456"
+    [35msender[39m: "VIKRAM"
+    [35mflags[39m: [
+      "SOURCE_MISSING — factual claims detected without source citation."
+    ]
+[2026-06-20 17:46:11.698 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "e8ef1f0d-2de7-4b4a-81b7-25c50808f456"
+    [35msender[39m: "VIKRAM"
+    [35mtype[39m: "STRATEGY_PROPOSAL"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:46:12.022 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 323
+    [35mtokensUsed[39m: 110
+    [35mattempt[39m: 1
+[2026-06-20 17:46:12.087 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35mfrom[39m: "VIKRAM_STRATEGY"
+    [35mto[39m: "KIRAN_HEDGE_MAP"
+[2026-06-20 17:46:12.088 +0530] [32mINFO[39m (38212): [36mKIRAN: buildHedgeMap invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:46:12.542 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 454
+    [35mtokensUsed[39m: 13
+    [35mattempt[39m: 1
+[2026-06-20 17:46:12.568 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "0374ec62-e8f8-4b12-80e3-cceab7423cd3"
+    [35msender[39m: "KIRAN"
+    [35mtype[39m: "RISK_ALERT"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:46:12.573 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35mfrom[39m: "KIRAN_HEDGE_MAP"
+    [35mto[39m: "ARIA_PREFLIGHT"
+[2026-06-20 17:46:12.573 +0530] [32mINFO[39m (38212): [36mARIA: runPreflight invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:46:20.090 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 957
+    [35mtokensUsed[39m: 77
+    [35mattempt[39m: 1
+[2026-06-20 17:46:20.114 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35mfrom[39m: "ARIA_PREFLIGHT"
+    [35mto[39m: "PRIYA_BUILD"
+[2026-06-20 17:46:20.115 +0530] [32mINFO[39m (38212): [36mPRIYA: buildPortfolio invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:46:20.463 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 348
+    [35mtokensUsed[39m: 3
+    [35mattempt[39m: 1
+[2026-06-20 17:46:20.478 +0530] [32mINFO[39m (38212): [36mPRIYA: Designing allocations via LLM[39m
+[2026-06-20 17:46:25.815 +0530] [32mINFO[39m (38212): [36mPRIYA: Running holding overlap analysis[39m
+[2026-06-20 17:46:25.815 +0530] [32mINFO[39m (38212): [36mPRIYA: Executing backtesting engine[39m
+[2026-06-20 17:46:25.815 +0530] [32mINFO[39m (38212): [36mPRIYA-BACKTEST: Starting backtest[39m
+    [35mbacktestId[39m: "d1c7ddf5-8f0d-4249-aaea-970f40b4b028"
+    [35mallocationsCount[39m: 0
+[2026-06-20 17:46:25.836 +0530] [33mWARN[39m (38212): [36mPRIYA-BACKTEST: Data completeness is below 70%[39m
+    [35mdataCompletenessPct[39m: 0.8333333333333334
+[2026-06-20 17:46:25.836 +0530] [32mINFO[39m (38212): [36mPRIYA-BACKTEST: Sparse data detected. Returning default simulated statistics.[39m
+[2026-06-20 17:46:25.836 +0530] [32mINFO[39m (38212): [36mPRIYA: Calculating confidence score[39m
+[2026-06-20 17:46:25.845 +0530] [32mINFO[39m (38212): [36mPRIYA: Saved portfolio draft to database[39m
+    [35mdraftId[39m: "5cd8a187-6ea0-486d-9b74-0455550599c1"
+[2026-06-20 17:46:25.845 +0530] [32mINFO[39m (38212): [36mPRIYA: Publishing portfolio draft to Deliberation Room[39m
+[2026-06-20 17:46:25.853 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "5887e1b4-1a24-49d4-8a14-ff9c802c4e18"
+    [35msender[39m: "PRIYA"
+    [35mtype[39m: "PORTFOLIO_DRAFT"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:46:26.221 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 368
+    [35mtokensUsed[39m: 54
+    [35mattempt[39m: 1
+[2026-06-20 17:46:26.249 +0530] [32mINFO[39m (38212): [36mKIRAN: buildHedgeMap invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:46:26.634 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 385
+    [35mtokensUsed[39m: 13
+    [35mattempt[39m: 1
+[2026-06-20 17:46:26.656 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "58eeb635-4216-4b87-b16e-37031cf9abe9"
+    [35msender[39m: "KIRAN"
+    [35mtype[39m: "RISK_ALERT"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:46:26.656 +0530] [32mINFO[39m (38212): [36mKIRAN: runStressTest invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:46:36.648 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 414
+    [35mtokensUsed[39m: 119
+    [35mattempt[39m: 1
+[2026-06-20 17:46:36.689 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35mfrom[39m: "PRIYA_BUILD"
+    [35mto[39m: "SEBI_COMPLIANCE"
+[2026-06-20 17:46:36.690 +0530] [32mINFO[39m (38212): [36mSEBI: runComplianceCheck invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:46:41.362 +0530] [32mINFO[39m (38212): [36mSEBI: compliance check completed and saved[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35moverallCompliant[39m: false
+[2026-06-20 17:46:41.370 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35mfrom[39m: "SEBI_COMPLIANCE"
+    [35mto[39m: "REVISION"
+[2026-06-20 17:46:41.374 +0530] [32mINFO[39m (38212): [36mPRIYA: revise invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35mpreviousDraftId[39m: "5cd8a187-6ea0-486d-9b74-0455550599c1"
+[2026-06-20 17:46:51.599 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "120503"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:46:51.963 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 328
+    [35mtokensUsed[39m: 112
+    [35mattempt[39m: 1
+[2026-06-20 17:46:51.989 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "118834"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:46:52.395 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 402
+    [35mtokensUsed[39m: 116
+    [35mattempt[39m: 1
+[2026-06-20 17:46:52.411 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "105570"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:46:52.414 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "100123"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:46:52.757 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 339
+    [35mtokensUsed[39m: 112
+    [35mattempt[39m: 1
+[2026-06-20 17:46:52.769 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "100456"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:46:52.771 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "100789"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:46:53.152 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 377
+    [35mtokensUsed[39m: 17
+    [35mattempt[39m: 1
+[2026-06-20 17:46:53.182 +0530] [32mINFO[39m (38212): [36mWebResearchTool: cache hit — skipping Tavily API call[39m
+    [35magentId[39m: "PRIYA"
+    [35mquery[39m: "\"Sundaram Corporate Bond Fund Regular Plan- Growth\" top holdings portfolio allocation sector distribution"
+    [35mcacheHits[39m: 3
+[2026-06-20 17:46:53.184 +0530] [33mWARN[39m (38212): [36mWebResearchTool: cache check failed — proceeding with Tavily[39m
+    [35mcacheErr[39m: {}
+[2026-06-20 17:46:59.001 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1085
+    [35mtokensUsed[39m: 61
+    [35mattempt[39m: 1
+[2026-06-20 17:46:59.917 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 898
+    [35mtokensUsed[39m: 49
+    [35mattempt[39m: 1
+[2026-06-20 17:47:02.764 +0530] [33mWARN[39m (38212): [36mORACLE flagged message[39m
+    [35mmessage_id[39m: "fced26d8-e2a7-4caa-9079-895a81dc6ef0"
+    [35msender[39m: "PRIYA"
+    [35mflags[39m: [
+      "INTERNAL_CONTRADICTION — Content lacks numerical data for validation (e.g., NAV, allocations, returns).",
+      "INTERNAL_CONTRADICTION — No clear timeline or date order provided for performance metrics.",
+      "INTERNAL_CONTRADICTION — Asset allocation and credit rating weightage missing, making it impossible to verify totals."
+    ]
+[2026-06-20 17:47:03.812 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1048
+    [35mtokensUsed[39m: 175
+    [35mattempt[39m: 1
+[2026-06-20 17:47:03.826 +0530] [32mINFO[39m (38212): [36mWebResearchTool: research complete[39m
+    [35magentId[39m: "PRIYA"
+    [35mquery[39m: "\"Sundaram Corporate Bond Fund Regular Plan- Growth\" top holdings portfolio allocation sector distribution"
+    [35mresultsCount[39m: 3
+[2026-06-20 17:47:10.099 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 354
+    [35mtokensUsed[39m: 108
+    [35mattempt[39m: 1
+[2026-06-20 17:47:10.112 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "100890"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:47:10.115 +0530] [32mINFO[39m (38212): [36mPRIYA-BACKTEST: Starting backtest[39m
+    [35mbacktestId[39m: "d843dcd2-9382-4e33-80f7-ef65e8e10c75"
+    [35mallocationsCount[39m: 7
+[2026-06-20 17:47:10.143 +0530] [32mINFO[39m (38212): [36mPRIYA: Saved portfolio draft to database[39m
+    [35mdraftId[39m: "1f5adb3a-561a-40da-ac30-a7518f6bd3c0"
+[2026-06-20 17:47:10.159 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "de3da1e8-20c2-4553-a31e-6fe6cb394cff"
+    [35msender[39m: "PRIYA"
+    [35mtype[39m: "PORTFOLIO_DRAFT"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:47:10.509 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 350
+    [35mtokensUsed[39m: 127
+    [35mattempt[39m: 1
+[2026-06-20 17:47:10.525 +0530] [32mINFO[39m (38212): [36mKIRAN: buildHedgeMap invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:47:33.296 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1158
+    [35mtokensUsed[39m: 13
+    [35mattempt[39m: 1
+[2026-06-20 17:47:33.373 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "9035751f-405a-4af8-99a8-d53e9f7fddd1"
+    [35msender[39m: "KIRAN"
+    [35mtype[39m: "RISK_ALERT"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:47:33.373 +0530] [32mINFO[39m (38212): [36mKIRAN: runStressTest invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:47:42.810 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 937
+    [35mtokensUsed[39m: 122
+    [35mattempt[39m: 1
+[2026-06-20 17:47:42.875 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35mfrom[39m: "REVISION"
+    [35mto[39m: "SEBI_COMPLIANCE"
+[2026-06-20 17:47:42.875 +0530] [32mINFO[39m (38212): [36mSEBI: runComplianceCheck invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:47:50.691 +0530] [32mINFO[39m (38212): [36mSEBI: compliance check completed and saved[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35moverallCompliant[39m: false
+[2026-06-20 17:47:50.698 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35mfrom[39m: "SEBI_COMPLIANCE"
+    [35mto[39m: "REVISION"
+[2026-06-20 17:47:50.702 +0530] [32mINFO[39m (38212): [36mPRIYA: revise invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35mpreviousDraftId[39m: "1f5adb3a-561a-40da-ac30-a7518f6bd3c0"
+[2026-06-20 17:47:58.260 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "120503"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:47:58.590 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 319
+    [35mtokensUsed[39m: 112
+    [35mattempt[39m: 1
+[2026-06-20 17:47:58.614 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "118834"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:47:58.976 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 357
+    [35mtokensUsed[39m: 116
+    [35mattempt[39m: 1
+[2026-06-20 17:47:58.989 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "105570"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:47:58.992 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "100123"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:47:59.794 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 797
+    [35mtokensUsed[39m: 112
+    [35mattempt[39m: 1
+[2026-06-20 17:47:59.807 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "100456"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:47:59.811 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "100789"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:48:00.138 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 323
+    [35mtokensUsed[39m: 109
+    [35mattempt[39m: 1
+[2026-06-20 17:48:00.151 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "100890"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:48:00.153 +0530] [32mINFO[39m (38212): [36mPRIYA-BACKTEST: Starting backtest[39m
+    [35mbacktestId[39m: "48d0afe0-efe8-4014-92af-bb7f1af0f3d7"
+    [35mallocationsCount[39m: 7
+[2026-06-20 17:48:00.190 +0530] [32mINFO[39m (38212): [36mPRIYA: Saved portfolio draft to database[39m
+    [35mdraftId[39m: "17dac3e2-630e-4177-a82f-f5a33fc5f91f"
+[2026-06-20 17:48:00.212 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "7a1c00e0-9b0b-42f9-8d3b-213c8a9935b4"
+    [35msender[39m: "PRIYA"
+    [35mtype[39m: "PORTFOLIO_DRAFT"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:48:00.523 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 311
+    [35mtokensUsed[39m: 127
+    [35mattempt[39m: 1
+[2026-06-20 17:48:00.539 +0530] [32mINFO[39m (38212): [36mKIRAN: buildHedgeMap invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:48:21.510 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1032
+    [35mtokensUsed[39m: 13
+    [35mattempt[39m: 1
+[2026-06-20 17:48:21.570 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "b812d983-b03b-4bb4-b9eb-553d62254e2e"
+    [35msender[39m: "KIRAN"
+    [35mtype[39m: "RISK_ALERT"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:48:21.570 +0530] [32mINFO[39m (38212): [36mKIRAN: runStressTest invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:48:32.229 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 997
+    [35mtokensUsed[39m: 121
+    [35mattempt[39m: 1
+[2026-06-20 17:48:32.287 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35mfrom[39m: "REVISION"
+    [35mto[39m: "SEBI_COMPLIANCE"
+[2026-06-20 17:48:32.288 +0530] [32mINFO[39m (38212): [36mSEBI: runComplianceCheck invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:48:38.783 +0530] [32mINFO[39m (38212): [36mSEBI: compliance check completed and saved[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35moverallCompliant[39m: false
+[2026-06-20 17:48:38.790 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35mfrom[39m: "SEBI_COMPLIANCE"
+    [35mto[39m: "REVISION"
+[2026-06-20 17:48:38.793 +0530] [32mINFO[39m (38212): [36mPRIYA: revise invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35mpreviousDraftId[39m: "17dac3e2-630e-4177-a82f-f5a33fc5f91f"
+[2026-06-20 17:48:48.237 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "120503"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:48:48.637 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 388
+    [35mtokensUsed[39m: 112
+    [35mattempt[39m: 1
+[2026-06-20 17:48:48.669 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "118834"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:48:49.113 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 439
+    [35mtokensUsed[39m: 116
+    [35mattempt[39m: 1
+[2026-06-20 17:48:49.125 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "105570"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:48:49.128 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "100124"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:48:49.467 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 336
+    [35mtokensUsed[39m: 15
+    [35mattempt[39m: 1
+[2026-06-20 17:48:49.492 +0530] [32mINFO[39m (38212): [36mWebResearchTool: cache hit — skipping Tavily API call[39m
+    [35magentId[39m: "PRIYA"
+    [35mquery[39m: "\"HDFC Income Fund - Growth Option\" top holdings portfolio allocation sector distribution"
+    [35mcacheHits[39m: 3
+[2026-06-20 17:48:49.493 +0530] [33mWARN[39m (38212): [36mWebResearchTool: cache check failed — proceeding with Tavily[39m
+    [35mcacheErr[39m: {}
+[2026-06-20 17:48:56.327 +0530] [33mWARN[39m (38212): [36mORACLE flagged message[39m
+    [35mmessage_id[39m: "02f73544-221f-4542-9518-0831f71397ad"
+    [35msender[39m: "PRIYA"
+    [35mflags[39m: [
+      "INTERNAL_CONTRADICTION — Asset allocation percentages (55.28% equities, 11.86% debts, 18.66% cash) sum to 85.8%, not 100%.",
+      "INTERNAL_CONTRADICTION — Dates in the 'Discover Mutual Funds' section are in reverse chronological order (MAY 2026 to DEC 2025).",
+      "INTERNAL_CONTRADICTION — Equity market capitalization allocation (0.0% in all categories) contradicts the stated 55.28% equity allocation.",
+      "HALLUCINATION_RISK — FUND_NAV cited without approved source. Required: mfapi.in or amfiindia.com."
+    ]
+[2026-06-20 17:48:57.301 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 974
+    [35mtokensUsed[39m: 133
+    [35mattempt[39m: 1
+[2026-06-20 17:48:59.035 +0530] [33mWARN[39m (38212): [36mORACLE flagged message[39m
+    [35mmessage_id[39m: "6300fc96-8be0-45d9-a9b8-aaaf91b67aff"
+    [35msender[39m: "PRIYA"
+    [35mflags[39m: [
+      "INTERNAL_CONTRADICTION — Total holdings percentages in 'Debt Holding In Portfolio' do not sum to 100%.",
+      "INTERNAL_CONTRADICTION — Type of Holdings lists 'T-Bills' with 0.06% weight, but no corresponding entry in 'Debt Holding In Portfolio'.",
+      "INTERNAL_CONTRADICTION — Portfolio Aggregates show 'Modified Duration(Yrs)' 1Y High as 6.8382, which is inconsistent with the listed value of 6.44.",
+      "HALLUCINATION_RISK — FUND_NAV cited without approved source. Required: mfapi.in or amfiindia.com."
+    ]
+[2026-06-20 17:48:59.494 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 458
+    [35mtokensUsed[39m: 133
+    [35mattempt[39m: 1
+[2026-06-20 17:49:01.374 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 441
+    [35mtokensUsed[39m: 88
+    [35mattempt[39m: 1
+[2026-06-20 17:49:01.387 +0530] [32mINFO[39m (38212): [36mWebResearchTool: research complete[39m
+    [35magentId[39m: "PRIYA"
+    [35mquery[39m: "\"HDFC Income Fund - Growth Option\" top holdings portfolio allocation sector distribution"
+    [35mresultsCount[39m: 3
+[2026-06-20 17:49:05.798 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 362
+    [35mtokensUsed[39m: 118
+    [35mattempt[39m: 1
+[2026-06-20 17:49:05.815 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "100123"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:49:06.138 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 315
+    [35mtokensUsed[39m: 112
+    [35mattempt[39m: 1
+[2026-06-20 17:49:06.155 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "100456"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:49:06.161 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "100789"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:49:06.518 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 351
+    [35mtokensUsed[39m: 109
+    [35mattempt[39m: 1
+[2026-06-20 17:49:06.530 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "100890"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:49:06.534 +0530] [32mINFO[39m (38212): [36mPRIYA-BACKTEST: Starting backtest[39m
+    [35mbacktestId[39m: "84e0b21e-e78b-4061-9684-936393359890"
+    [35mallocationsCount[39m: 8
+[2026-06-20 17:49:06.580 +0530] [32mINFO[39m (38212): [36mPRIYA: Saved portfolio draft to database[39m
+    [35mdraftId[39m: "3df651b2-c8c0-4921-a5d3-e214de4d580e"
+[2026-06-20 17:49:06.602 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "39d63d71-796c-4701-bde4-d7769e8aea26"
+    [35msender[39m: "PRIYA"
+    [35mtype[39m: "PORTFOLIO_DRAFT"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:49:06.920 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 318
+    [35mtokensUsed[39m: 136
+    [35mattempt[39m: 1
+[2026-06-20 17:49:06.936 +0530] [32mINFO[39m (38212): [36mKIRAN: buildHedgeMap invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:49:28.633 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1185
+    [35mtokensUsed[39m: 13
+    [35mattempt[39m: 1
+[2026-06-20 17:49:28.692 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "440d4469-555c-45b1-a4a8-199a776ffe29"
+    [35msender[39m: "KIRAN"
+    [35mtype[39m: "RISK_ALERT"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:49:28.692 +0530] [32mINFO[39m (38212): [36mKIRAN: runStressTest invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:49:37.644 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1073
+    [35mtokensUsed[39m: 120
+    [35mattempt[39m: 1
+[2026-06-20 17:49:37.713 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35mfrom[39m: "REVISION"
+    [35mto[39m: "SEBI_COMPLIANCE"
+[2026-06-20 17:49:37.713 +0530] [32mINFO[39m (38212): [36mSEBI: runComplianceCheck invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:49:42.611 +0530] [32mINFO[39m (38212): [36mSEBI: compliance check completed and saved[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35moverallCompliant[39m: false
+[2026-06-20 17:49:42.617 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35mfrom[39m: "SEBI_COMPLIANCE"
+    [35mto[39m: "REVISION"
+[2026-06-20 17:49:42.621 +0530] [32mINFO[39m (38212): [36mPRIYA: revise invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35mpreviousDraftId[39m: "3df651b2-c8c0-4921-a5d3-e214de4d580e"
+[2026-06-20 17:49:51.826 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "120503"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:49:52.362 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 526
+    [35mtokensUsed[39m: 112
+    [35mattempt[39m: 1
+[2026-06-20 17:49:52.384 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "118834"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:49:52.741 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 353
+    [35mtokensUsed[39m: 116
+    [35mattempt[39m: 1
+[2026-06-20 17:49:52.756 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "105570"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:49:52.759 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "100124"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:49:53.091 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 329
+    [35mtokensUsed[39m: 118
+    [35mattempt[39m: 1
+[2026-06-20 17:49:53.104 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "100123"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:49:53.426 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 318
+    [35mtokensUsed[39m: 112
+    [35mattempt[39m: 1
+[2026-06-20 17:49:53.439 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "100456"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:49:53.442 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "100789"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:49:54.505 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1060
+    [35mtokensUsed[39m: 109
+    [35mattempt[39m: 1
+[2026-06-20 17:49:54.513 +0530] [32mINFO[39m (38212): [36mSOMA: auditComposition invoked[39m
+    [35mschemeCode[39m: "100890"
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:49:54.516 +0530] [32mINFO[39m (38212): [36mPRIYA-BACKTEST: Starting backtest[39m
+    [35mbacktestId[39m: "b0f3c727-5477-4aca-b548-ba13834fbc3d"
+    [35mallocationsCount[39m: 8
+[2026-06-20 17:49:54.559 +0530] [32mINFO[39m (38212): [36mPRIYA: Saved portfolio draft to database[39m
+    [35mdraftId[39m: "333008e7-6f2d-4657-a165-a7e71e93ff5a"
+[2026-06-20 17:49:54.591 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "8d66731c-07f9-4147-81ef-bea978946642"
+    [35msender[39m: "PRIYA"
+    [35mtype[39m: "PORTFOLIO_DRAFT"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:49:54.961 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 370
+    [35mtokensUsed[39m: 136
+    [35mattempt[39m: 1
+[2026-06-20 17:49:54.976 +0530] [32mINFO[39m (38212): [36mKIRAN: buildHedgeMap invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:50:20.931 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1053
+    [35mtokensUsed[39m: 13
+    [35mattempt[39m: 1
+[2026-06-20 17:50:20.988 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "83b200d5-e3a5-4104-9c55-574dd1f5c7f7"
+    [35msender[39m: "KIRAN"
+    [35mtype[39m: "RISK_ALERT"
+    [35mrecipient[39m: "ALL"
+[2026-06-20 17:50:20.989 +0530] [32mINFO[39m (38212): [36mKIRAN: runStressTest invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:50:31.102 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1087
+    [35mtokensUsed[39m: 120
+    [35mattempt[39m: 1
+[2026-06-20 17:50:31.167 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35mfrom[39m: "REVISION"
+    [35mto[39m: "SEBI_COMPLIANCE"
+[2026-06-20 17:50:31.167 +0530] [32mINFO[39m (38212): [36mSEBI: runComplianceCheck invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:50:39.648 +0530] [32mINFO[39m (38212): [36mSEBI: compliance check completed and saved[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35moverallCompliant[39m: false
+[2026-06-20 17:50:39.659 +0530] [32mINFO[39m (38212): [36mPipeline runs status updated in database[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35mfrom[39m: "SEBI_COMPLIANCE"
+    [35mto[39m: "DEADLOCKED"
+[2026-06-20 17:50:39.660 +0530] [33mWARN[39m (38212): [36mDHRUV: PIPELINE DEADLOCK triggered[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+[2026-06-20 17:50:44.786 +0530] [32mINFO[39m (38212): [36mDeliberation message published[39m
+    [35mmessage_id[39m: "a478ded4-3def-4513-8460-41d854ff87a9"
+    [35msender[39m: "DHRUV"
+    [35mtype[39m: "DIRECTIVE"
+    [35mrecipient[39m: "ALL"
+--- Pipeline Completed ---
+[2026-06-20 17:50:44.792 +0530] [32mINFO[39m (38212): [36mMENTOR: runPostPipelineAnalysis invoked[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35moutcome[39m: "DEADLOCKED"
+[2026-06-20 17:50:44.792 +0530] [33mWARN[39m (38212): [36mDHRUV: runPhase2 completed with deadlock[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+Final Status: DEADLOCKED
+Successfully confirmed DEADLOCKED status and deadlock payload.
+Deadlock Directive: Committee vote deadlocked after 5 revision cycles.
+          Highest confidence draft: 333008e7-6f2d-4657-a165-a7e71e93ff5a (score: 80).
+          Resolution: Accept the highest confidence draft with the following
+          risk disclosures attached: Max revisions reached.
+[2026-06-20 17:50:50.436 +0530] [32mINFO[39m (38212): [36mMENTOR: logged critique analysis[39m
+    [35manalysis[39m: {
+      "pattern": "ARIA_CRITIQUE_IGNORED",
+      "critiqueCategory": "METHODOLOGY",
+      "revisionCycle": 0,
+      "confidenceDelta": 0
+    }
+[2026-06-20 17:50:50.437 +0530] [32mINFO[39m (38212): [36mMENTOR: logged critique analysis[39m
+    [35manalysis[39m: {
+      "pattern": "ARIA_CRITIQUE_IGNORED",
+      "critiqueCategory": "GOAL_MISMATCH",
+      "revisionCycle": 0,
+      "confidenceDelta": 0
+    }
+[2026-06-20 17:50:50.437 +0530] [32mINFO[39m (38212): [36mMENTOR: logged critique analysis[39m
+    [35manalysis[39m: {
+      "pattern": "ARIA_CRITIQUE_IGNORED",
+      "critiqueCategory": "OTHER",
+      "revisionCycle": 0,
+      "confidenceDelta": 0
+    }
+[2026-06-20 17:50:51.662 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1224
+    [35mtokensUsed[39m: 21
+    [35mattempt[39m: 1
+[2026-06-20 17:50:51.679 +0530] [32mINFO[39m (38212): [36mKnowledgeCommons: learning contributed[39m
+    [35magentId[39m: "ARIA"
+    [35mtags[39m: [
+      "communication_efficiency",
+      "critique_clarity",
+      "mentor_analysis",
+      "deadlocked",
+      "MENTOR:pipeline_learnings:5fb4eb91-920f-43d9-a60a-f94b72ff1960:716b261f-c64b-4fbb-892a-4575d97107ca"
+    ]
+[2026-06-20 17:50:52.150 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 470
+    [35mtokensUsed[39m: 32
+    [35mattempt[39m: 1
+[2026-06-20 17:50:52.157 +0530] [32mINFO[39m (38212): [36mKnowledgeCommons: learning contributed[39m
+    [35magentId[39m: "KIRAN"
+    [35mtags[39m: [
+      "risk_prioritization",
+      "focus_alignment",
+      "mentor_analysis",
+      "deadlocked",
+      "MENTOR:pipeline_learnings:5fb4eb91-920f-43d9-a60a-f94b72ff1960:716b261f-c64b-4fbb-892a-4575d97107ca"
+    ]
+[2026-06-20 17:50:52.616 +0530] [32mINFO[39m (38212): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 459
+    [35mtokensUsed[39m: 24
+    [35mattempt[39m: 1
+[2026-06-20 17:50:52.623 +0530] [32mINFO[39m (38212): [36mKnowledgeCommons: learning contributed[39m
+    [35magentId[39m: "PRIYA"
+    [35mtags[39m: [
+      "responsiveness",
+      "critique_resolution",
+      "mentor_analysis",
+      "deadlocked",
+      "MENTOR:pipeline_learnings:5fb4eb91-920f-43d9-a60a-f94b72ff1960:716b261f-c64b-4fbb-892a-4575d97107ca"
+    ]
+[2026-06-20 17:50:52.624 +0530] [32mINFO[39m (38212): [36mMENTOR: completed post-pipeline analysis successfully[39m
+    [35mpipelineRunId[39m: "716b261f-c64b-4fbb-892a-4575d97107ca"
+    [35mlearningsCount[39m: 3

@@ -36,9 +36,9 @@ export async function GET() {
     .limit(50)
 
   const messages = rows
-    .filter((r) => r.role === 'user' || r.role === 'assistant')
+    .filter((r: any) => r.role === 'user' || r.role === 'assistant')
     .reverse()
-    .map((r) => ({
+    .map((r: any) => ({
       id: r.id,
       role: r.role as 'user' | 'assistant',
       content: r.content,

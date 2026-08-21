@@ -1,0 +1,93 @@
+
+> pf-copilot@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.29.227:3000
+- Environments: .env.local
+✓ Ready in 685ms
+Client version 1.18.0 is incompatible with server version 1.7.4. Major versions should match and minor version difference must not exceed 1. Set checkCompatibility=false to skip version check.
+[2026-06-20 17:38:38.100 +0530] [32mINFO[39m (38211): [36mQdrant collection agent_memory_aria: ready[39m
+[2026-06-20 17:38:38.113 +0530] [32mINFO[39m (38211): [36mQdrant collection agent_memory_kiran: ready[39m
+[2026-06-20 17:38:38.118 +0530] [32mINFO[39m (38211): [36mQdrant collection agent_memory_soma: ready[39m
+[2026-06-20 17:38:38.142 +0530] [32mINFO[39m (38211): [36mQdrant collection agent_memory_vikram: ready[39m
+[2026-06-20 17:38:38.147 +0530] [32mINFO[39m (38211): [36mQdrant collection agent_memory_priya: ready[39m
+[2026-06-20 17:38:38.185 +0530] [32mINFO[39m (38211): [36mQdrant collection agent_memory_dhruv: ready[39m
+[2026-06-20 17:38:38.191 +0530] [32mINFO[39m (38211): [36mQdrant collection agent_memory_riya: ready[39m
+[2026-06-20 17:38:38.198 +0530] [32mINFO[39m (38211): [36mQdrant collection agent_memory_mentor: ready[39m
+[2026-06-20 17:38:38.201 +0530] [32mINFO[39m (38211): [36mQdrant collection agent_memory_atlas: ready[39m
+[boot] Qdrant collections ready
+[2026-06-20 17:38:38.204 +0530] [32mINFO[39m (38211): [36mQdrant collection knowledge_commons: ready[39m
+
+Client version 1.18.0 is incompatible with server version 1.7.4. Major versions should match and minor version difference must not exceed 1. Set checkCompatibility=false to skip version check.
+[2026-06-20 17:38:41.638 +0530] [32mINFO[39m (38211): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 946
+    [35mtokensUsed[39m: 1
+    [35mattempt[39m: 1
+ GET /api/health 200 in 3.5s (next.js: 401ms, application-code: 3.1s)
+[2026-06-20 17:38:43.134 +0530] [32mINFO[39m (38211): [36mcas ingest: starting[39m
+    [35muserId[39m: "66da32c2-1616-4bf4-94b4-0496c1e08c4f"
+    [35msizeBytes[39m: 4477
+[2026-06-20 17:38:43.292 +0530] [32mINFO[39m (38211): [36mpdf-parse: no NSDL/CDSL marker found — falling back to vision[39m
+[2026-06-20 17:38:43.292 +0530] [32mINFO[39m (38211): [36mcas: falling back to vision extraction[39m
+    [35mhash[39m: "dd6eb9031964dbc562871fad61bdceb04aa95cb1df6d69792849d1be26f36a2f"
+[2026-06-20 17:38:43.526 +0530] [32mINFO[39m (38211): [36mRunning detectDrift analysis[39m
+ POST /api/cas/ingest 200 in 1472ms (next.js: 1008ms, application-code: 464ms)
+[2026-06-20 17:38:43.568 +0530] [32mINFO[39m (38211): [36mcas ingest: complete[39m
+    [35muserId[39m: "66da32c2-1616-4bf4-94b4-0496c1e08c4f"
+    [35mholdingsCount[39m: 8
+    [35msource[39m: "vision"
+    [35munmatched[39m: 4
+[2026-06-20 17:38:43.603 +0530] [32mINFO[39m (38211): [36mcas ingest: starting[39m
+    [35muserId[39m: "e1bea07f-3e72-41d9-8289-ec77ee85128e"
+    [35msizeBytes[39m: 4477
+[2026-06-20 17:38:43.616 +0530] [32mINFO[39m (38211): [36mpdf-parse: no NSDL/CDSL marker found — falling back to vision[39m
+[2026-06-20 17:38:43.616 +0530] [32mINFO[39m (38211): [36mcas: falling back to vision extraction[39m
+    [35mhash[39m: "74b8f8d8598cad45f53c18fb429b98cb81657340354af19815da06574615e889"
+[2026-06-20 17:38:43.654 +0530] [32mINFO[39m (38211): [36mRunning detectDrift analysis[39m
+ POST /api/cas/ingest 200 in 72ms (next.js: 2ms, application-code: 70ms)
+[2026-06-20 17:38:43.665 +0530] [32mINFO[39m (38211): [36mcas ingest: complete[39m
+    [35muserId[39m: "e1bea07f-3e72-41d9-8289-ec77ee85128e"
+    [35mholdingsCount[39m: 8
+    [35msource[39m: "vision"
+    [35munmatched[39m: 4
+[2026-06-20 17:44:31.375 +0530] [32mINFO[39m (38211): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 989
+    [35mtokensUsed[39m: 1
+    [35mattempt[39m: 1
+ GET /api/health 200 in 2.7s (next.js: 30ms, application-code: 2.7s)
+[2026-06-20 17:44:31.472 +0530] [32mINFO[39m (38211): [36mcas ingest: starting[39m
+    [35muserId[39m: "e9b70029-1afc-41dd-ad4a-5e0a36540a16"
+    [35msizeBytes[39m: 4477
+[2026-06-20 17:44:31.499 +0530] [32mINFO[39m (38211): [36mpdf-parse: no NSDL/CDSL marker found — falling back to vision[39m
+[2026-06-20 17:44:31.499 +0530] [32mINFO[39m (38211): [36mcas: falling back to vision extraction[39m
+    [35mhash[39m: "a0bd94be5df85108961eadaa395954d587460f534b3738dd5e288d047ab61e16"
+[2026-06-20 17:44:31.549 +0530] [32mINFO[39m (38211): [36mRunning detectDrift analysis[39m
+ POST /api/cas/ingest 200 in 97ms (next.js: 2ms, application-code: 95ms)
+[2026-06-20 17:44:31.556 +0530] [32mINFO[39m (38211): [36mcas ingest: complete[39m
+    [35muserId[39m: "e9b70029-1afc-41dd-ad4a-5e0a36540a16"
+    [35mholdingsCount[39m: 8
+    [35msource[39m: "vision"
+    [35munmatched[39m: 4
+[2026-06-20 17:44:31.579 +0530] [32mINFO[39m (38211): [36mcas ingest: starting[39m
+    [35muserId[39m: "9e86724f-6a9d-4b10-8253-b388229ff9fb"
+    [35msizeBytes[39m: 4477
+[2026-06-20 17:44:31.592 +0530] [32mINFO[39m (38211): [36mpdf-parse: no NSDL/CDSL marker found — falling back to vision[39m
+[2026-06-20 17:44:31.592 +0530] [32mINFO[39m (38211): [36mcas: falling back to vision extraction[39m
+    [35mhash[39m: "2dc4e5b637cedb3d60eabcbdfb4bb62bee7845b5cc5ce36994e2d7cc6f945602"
+[2026-06-20 17:44:31.631 +0530] [32mINFO[39m (38211): [36mRunning detectDrift analysis[39m
+ POST /api/cas/ingest 200 in 65ms (next.js: 1877µs, application-code: 63ms)
+[2026-06-20 17:44:31.635 +0530] [32mINFO[39m (38211): [36mcas ingest: complete[39m
+    [35muserId[39m: "9e86724f-6a9d-4b10-8253-b388229ff9fb"
+    [35mholdingsCount[39m: 8
+    [35msource[39m: "vision"
+    [35munmatched[39m: 4
+[2026-06-20 17:50:47.566 +0530] [32mINFO[39m (38211): [36membedding created[39m
+    [35mdeployment[39m: "text-embedding-3-small"
+    [35mdurationMs[39m: 1162
+    [35mtokensUsed[39m: 1
+    [35mattempt[39m: 1
+ GET /api/health 200 in 2.8s (next.js: 27ms, application-code: 2.8s)

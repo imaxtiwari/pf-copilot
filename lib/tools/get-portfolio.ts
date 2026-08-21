@@ -27,11 +27,11 @@ const HOLDING_CAP = 30
 async function computeAssetMix(
   allHoldings: (typeof schema.portfolioHoldings.$inferSelect)[],
 ): Promise<Record<string, number>> {
-  const total = allHoldings.reduce((sum, h) => sum + Number(h.marketValue), 0)
+  const total = allHoldings.reduce((sum: number, h: any) => sum + Number(h.marketValue), 0)
   if (total === 0) return {}
 
   // Collect unique scheme codes that have an AMFI entry
-  const schemeCodes = [...new Set(allHoldings.filter((h) => h.schemeCode).map((h) => h.schemeCode!))]
+  const schemeCodes = [...new Set(allHoldings.filter((h: any) => h.schemeCode).map((h: any) => h.schemeCode!))]
 
   const schemeTypes = schemeCodes.length > 0
     ? await db
@@ -43,11 +43,11 @@ async function computeAssetMix(
         .where(inArray(schema.amfiSchemeMaster.schemeCode, schemeCodes))
     : []
 
-  const typeByCode = new Map(schemeTypes.map((s) => [s.schemeCode, s.schemeType]))
+  const typeByCode = new Map(schemeTypes.map((s: any) => [s.schemeCode, s.schemeType]))
 
   const byType: Record<string, number> = {}
   for (const h of allHoldings) {
-    const type = h.schemeCode ? (typeByCode.get(h.schemeCode) ?? 'Unknown') : 'Unknown'
+    const type = (h.schemeCode ? (typeByCode.get(h.schemeCode) ?? 'Unknown') : 'Unknown') as string
     byType[type] = (byType[type] ?? 0) + Number(h.marketValue)
   }
 
@@ -75,15 +75,15 @@ export async function getPortfolio(userId: string): Promise<GetPortfolioResult> 
     tail.length > 0
       ? {
           count: tail.length,
-          total_value: tail.reduce((s, h) => s + Number(h.marketValue), 0),
+          total_value: tail.reduce((s: number, h: any) => s + Number(h.marketValue), 0),
         }
       : null
 
-  const total_value = allHoldings.reduce((s, h) => s + Number(h.marketValue), 0)
+  const total_value = allHoldings.reduce((s: number, h: any) => s + Number(h.marketValue), 0)
   const asset_mix = await computeAssetMix(allHoldings)
 
   return {
-    holdings: top.map((h) => ({
+    holdings: top.map((h: any) => ({
       scheme_name: h.schemeName,
       scheme_code: h.schemeCode,
       market_value: Number(h.marketValue),

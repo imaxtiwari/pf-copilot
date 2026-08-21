@@ -26,11 +26,11 @@ export async function lookupChatHistory(userId: string): Promise<ChatHistoryResu
 
   // Filter to user/assistant only, reverse to chronological
   const turns = rows
-    .filter((r): r is typeof r & { role: 'user' | 'assistant' } =>
+    .filter((r: any): r is any =>
       r.role === 'user' || r.role === 'assistant',
     )
     .reverse()
-    .map((r) => ({
+    .map((r: any) => ({
       role: r.role,
       content: r.content,
       ts: r.ts.toISOString(),

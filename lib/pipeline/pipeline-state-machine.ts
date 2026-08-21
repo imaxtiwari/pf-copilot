@@ -1,0 +1,155 @@
+import { eq } from 'drizzle-orm'
+import { PipelineStage } from '../agents/types/dhruv-types'
+import * as schema from '../../db/schema'
+import { auditTrail, AuditActionType } from '../audit/audit-trail'
+import logger from '../logger'
+
+export const LEGAL_TRANSITIONS: Record<PipelineStage, PipelineStage[]> = {
+  ONBOARDING: ['RIYA_BEHAVIORAL_PROFILING', 'PROFILING_AND_GOAL_ASSESSMENT', 'FAILED'],
+  RIYA_BEHAVIORAL_PROFILING: ['PROFILING_AND_GOAL_ASSESSMENT', 'FAILED'],
+  PROFILING_AND_GOAL_ASSESSMENT: ['SOMA_FUND_UNIVERSE', 'REVISION', 'FAILED'],
+  SOMA_FUND_UNIVERSE: ['VIKRAM_STRATEGY', 'FAILED'],
+  VIKRAM_STRATEGY: ['KIRAN_HEDGE_MAP', 'FAILED'],
+  KIRAN_HEDGE_MAP: ['ARIA_PREFLIGHT', 'FAILED'],
+  ARIA_PREFLIGHT: ['PRIYA_BUILD', 'DEADLOCKED', 'FAILED'],
+  PRIYA_BUILD: ['SEBI_COMPLIANCE', 'DELIBERATION', 'DEADLOCKED', 'FAILED'],
+  SEBI_COMPLIANCE: ['DELIBERATION', 'REVISION', 'DEADLOCKED', 'FAILED'],
+  DELIBERATION: ['COMMITTEE_VOTE', 'DEADLOCKED', 'FAILED'],
+  COMMITTEE_VOTE: ['APPROVED', 'ATLAS_COMPARISON', 'PDF_GENERATION', 'REVISION', 'DEADLOCKED', 'FAILED'],
+  REVISION: ['PRIYA_BUILD', 'PROFILING_AND_GOAL_ASSESSMENT', 'COMMITTEE_VOTE', 'SEBI_COMPLIANCE', 'DEADLOCKED', 'FAILED'],
+  ATLAS_COMPARISON: ['APPROVED', 'PDF_GENERATION', 'FAILED'],
+  PDF_GENERATION: ['APPROVED', 'FAILED'],
+  APPROVED: [],
+  DEADLOCKED: [],
+  FAILED: [],
+}
+
+export class PipelineStateMachine {
+  private db: any
+  private currentStages: Map<string, PipelineStage> = new Map()
+
+  constructor(db: any) {
+    this.db = db
+  }
+
+  getCurrentStage(pipelineRunId: string): PipelineStage {
+    return this.currentStages.get(pipelineRunId) || 'ONBOARDING'
+  }
+
+  async transition(
+    from: PipelineStage,
+    to: PipelineStage,
+    pipelineRunId: string
+  ): Promise<void> {
+    let current: PipelineStage = 'ONBOARDING'
+    try {
+      const [run] = await this.db
+        .select()
+        .from(schema.pipelineRuns)
+        .where(eq(schema.pipelineRuns.runId, pipelineRunId))
+        .limit(1)
+      if (run && run.status) {
+        current = run.status as PipelineStage
+      } else {
+        current = this.currentStages.get(pipelineRunId) || 'ONBOARDING'
+      }
+    } catch (err) {
+      logger.warn({ err, pipelineRunId }, 'StateMachine: Failed to fetch current stage from DB, falling back to memory')
+      current = this.currentStages.get(pipelineRunId) || 'ONBOARDING'
+    }
+
+    if (current !== from) {
+      const errMsg = `Illegal transition attempt for run ${pipelineRunId}: expected current stage to be ${from}, but found ${current}`
+      logger.error(errMsg)
+      throw new Error(errMsg)
+    }
+
+    const allowed = LEGAL_TRANSITIONS[from] || []
+    if (!allowed.includes(to)) {
+      const errMsg = `Illegal stage transition: ${from} cannot transition directly to ${to}`
+      logger.error({ from, to, pipelineRunId }, errMsg)
+      throw new Error(errMsg)
+    }
+
+    this.currentStages.set(pipelineRunId, to)
+
+    // Update in database
+    try {
+      await this.db
+        .update(schema.pipelineRuns)
+        .set({ status: to })
+        .where(eq(schema.pipelineRuns.runId, pipelineRunId))
+      logger.info({ pipelineRunId, from, to }, 'Pipeline runs status updated in database')
+    } catch (err) {
+      logger.error({ err, pipelineRunId }, 'Failed to update pipeline run stage in DB')
+    }
+
+    // Log to audit trail
+    auditTrail.log({
+      pipeline_run_id: pipelineRunId,
+      agent_id: 'SYSTEM',
+      action_type: to === 'APPROVED' ? AuditActionType.PIPELINE_END : AuditActionType.PIPELINE_START,
+      payload: {
+        transition: `${from} -> ${to}`,
+        message: `Pipeline run transitioned from ${from} to ${to}`
+      }
+    })
+  }
+
+  async checkConvergence(pipelineRunId: string): Promise<boolean> {
+    try {
+      const drafts = await this.db.select()
+        .from(schema.portfolioDrafts)
+        .where(eq(schema.portfolioDrafts.pipelineRunId, pipelineRunId))
+      
+      drafts.sort((a: any, b: any) => a.version - b.version)
+      
+      if (drafts.length < 2) return false
+
+      const previous = drafts[drafts.length - 2]
+      const current = drafts[drafts.length - 1]
+
+      const prevConf = parseFloat(previous.confidenceScore)
+      const currConf = parseFloat(current.confidenceScore)
+
+      if (currConf < prevConf) {
+        auditTrail.log({
+          pipeline_run_id: pipelineRunId,
+          agent_id: 'SYSTEM',
+          action_type: AuditActionType.CONFIDENCE_DIVERGING,
+          payload: { type: 'CONFIDENCE_DIVERGING', cycle: current.version, delta: currConf - prevConf }
+        })
+
+        if (current.version >= 3) {
+          logger.warn({ pipelineRunId }, 'Pipeline is thrashing — escalating to DHRUV for early deadlock consideration')
+          return true
+        }
+      }
+      return false
+    } catch (err) {
+      logger.error({ err, pipelineRunId }, 'Failed to check convergence')
+      return false
+    }
+  }
+
+  async forceSetStage(
+    pipelineRunId: string,
+    stage: PipelineStage,
+    callerMustBe: 'DHRUV' = 'DHRUV'
+  ): Promise<void> {
+    await this.db.update(schema.pipelineRuns)
+      .set({ status: stage })
+      .where(eq(schema.pipelineRuns.runId, pipelineRunId));
+
+    auditTrail.log({
+      pipeline_run_id: pipelineRunId,
+      agent_id: 'SYSTEM',
+      action_type: AuditActionType.FORCE_STAGE_SET || 'FORCE_STAGE_SET' as any,
+      payload: {
+        stage,
+        caller: callerMustBe,
+        warning: 'Transition validation bypassed — use only in deadlock recovery'
+      }
+    });
+  }
+}

@@ -1,0 +1,683 @@
+⟐ injected env (15) from .env.local
+{
+  "client_id": "4eb3e850-8bb1-46de-bbe2-096ee75d8b46",
+  "packet_id": "42183225-704a-48eb-836d-4814bfdce899",
+  "valid_until": "2026-09-16T17:00:34.614Z",
+  "generated_at": "2026-06-18T17:00:34.614Z",
+  "full_portfolio": {
+    "status": "DRAFT",
+    "version": 1,
+    "client_id": "4eb3e850-8bb1-46de-bbe2-096ee75d8b46",
+    "goal_buckets": [
+      {
+        "goal_id": "b40ba507-3036-4c17-891b-228dccf613fe",
+        "bucket_id": "be7dbcd7-adac-4427-8ce6-ea6aa0b461c1",
+        "goal_type": "WEALTH_CREATION",
+        "target_date": "2036-06-15T16:56:05.046Z",
+        "risk_profile": "MODERATE",
+        "allocation_pct": 100,
+        "target_corpus_lakh": 250,
+        "time_horizon_years": 10
+      }
+    ],
+    "portfolio_id": "f4102e37-698a-4ec9-9212-0b473293035a",
+    "overlap_flags": [],
+    "pipeline_run_id": "5e8bc0d9-d7fa-4456-85f9-805ce18fdd81",
+    "revision_number": 1,
+    "backtest_summary": {
+      "end_date": "2026-06",
+      "alpha_pct": 20.75756528863215,
+      "start_date": "2013-01",
+      "backtest_id": "1f7d953c-d5cc-4536-8a16-d884d2276a07",
+      "period_years": 13,
+      "sharpe_ratio": 0.8592102604414348,
+      "sortino_ratio": 1.32401653457935,
+      "max_drawdown_pct": -27.35232576854983,
+      "proxy_funds_used": [
+        {
+          "proxy": "151165",
+          "reason": "Fund has less than 5 years of historical data. Substituted with Nifty 50 index proxy.",
+          "original": "120503"
+        },
+        {
+          "proxy": "151165",
+          "reason": "Fund has less than 5 years of historical data. Substituted with Nifty 50 index proxy.",
+          "original": "120182"
+        },
+        {
+          "proxy": "151165",
+          "reason": "Fund has less than 5 years of historical data. Substituted with Nifty 50 index proxy.",
+          "original": "100123"
+        },
+        {
+          "proxy": "151165",
+          "reason": "Fund has less than 5 years of historical data. Substituted with Nifty 50 index proxy.",
+          "original": "120456"
+        },
+        {
+          "proxy": "151165",
+          "reason": "Fund has less than 5 years of historical data. Substituted with Nifty 50 index proxy.",
+          "original": "120789"
+        }
+      ],
+      "scenario_overlay": {
+        "scenarios": [
+          {
+            "description": "Indian equity bull run (+30% over 12 months)",
+            "scenario_name": "Indian equity bull run (+30%)",
+            "most_affected_funds": [],
+            "least_affected_funds": [],
+            "worst_case_drawdown_pct": 0,
+            "recovery_timeline_months": 0,
+            "estimated_portfolio_return_pct": 30
+          },
+          {
+            "description": "Indian equity bear market (-30% over 12 months)",
+            "scenario_name": "Indian equity bear market (-30%)",
+            "most_affected_funds": [
+              "120503",
+              "118834",
+              "120182"
+            ],
+            "least_affected_funds": [
+              "100123",
+              "120456",
+              "120789"
+            ],
+            "worst_case_drawdown_pct": -30,
+            "recovery_timeline_months": 36,
+            "estimated_portfolio_return_pct": -25.5
+          },
+          {
+            "description": "RBI rate hike cycle (policy rate +200bps over 18 months)",
+            "scenario_name": "RBI rate hike cycle (+200bps)",
+            "most_affected_funds": [
+              "120503",
+              "118834",
+              "120182"
+            ],
+            "least_affected_funds": [
+              "100123",
+              "120456",
+              "120789"
+            ],
+            "worst_case_drawdown_pct": 12,
+            "recovery_timeline_months": 24,
+            "estimated_portfolio_return_pct": -4.5
+          },
+          {
+            "description": "INR depreciation (-15% vs USD over 12 months)",
+            "scenario_name": "INR depreciation (-15%)",
+            "most_affected_funds": [
+              "120503",
+              "118834",
+              "100123"
+            ],
+            "least_affected_funds": [
+              "120182",
+              "120456",
+              "120789"
+            ],
+            "worst_case_drawdown_pct": -12,
+            "recovery_timeline_months": 18,
+            "estimated_portfolio_return_pct": -3.5
+          },
+          {
+            "description": "Stagflation (high inflation + low growth for 24 months)",
+            "scenario_name": "Stagflation",
+            "most_affected_funds": [
+              "120503",
+              "118834",
+              "120182"
+            ],
+            "least_affected_funds": [
+              "100123",
+              "120456",
+              "120789"
+            ],
+            "worst_case_drawdown_pct": 20,
+            "recovery_timeline_months": 36,
+            "estimated_portfolio_return_pct": -8.5
+          }
+        ],
+        "tested_at": "2026-06-18T16:59:53.117Z",
+        "portfolio_id": "94671488-a353-466d-bfd4-9641a5e10370"
+      },
+      "benchmark_cagr_pct": 0,
+      "portfolio_cagr_pct": 20.75756528863215,
+      "data_completeness_pct": 135,
+      "max_drawdown_recovery_months": 15
+    },
+    "confidence_score": {
+      "total": 80,
+      "breakdown": {
+        "data_freshness": 20,
+        "backtest_quality": 20,
+        "critique_severity": 0,
+        "goal_achievability": 20,
+        "hedge_completeness": 20
+      },
+      "blocking_reasons": []
+    },
+    "fund_allocations": [
+      {
+        "isin": "INF846K01131",
+        "fund_name": "Axis Bluechip Fund - Growth",
+        "rationale": "Core large-cap equity fund to provide stability and consistent returns aligned with the client's moderate risk profile.",
+        "scheme_code": "120503",
+        "allocation_id": "10b8bd2c-83e9-4a5e-91f5-b1a46c59859c",
+        "allocation_pct": 35,
+        "goal_bucket_id": "be7dbcd7-adac-4427-8ce6-ea6aa0b461c1",
+        "overlap_checked": true,
+        "fund_profile_retrieved_at": "2026-06-18T16:59:12.673Z"
+      },
+      {
+        "isin": "INF769K01BB7",
+        "fund_name": "Mirae Asset Emerging Bluechip Fund - Growth",
+        "rationale": "Mid-cap and large-cap blend fund to capture growth opportunities while maintaining moderate risk.",
+        "scheme_code": "118834",
+        "allocation_id": "040be1ac-2bae-45f3-aa9c-aa1ae1665a34",
+        "allocation_pct": 25,
+        "goal_bucket_id": "be7dbcd7-adac-4427-8ce6-ea6aa0b461c1",
+        "overlap_checked": true,
+        "fund_profile_retrieved_at": "2026-06-18T16:59:12.673Z"
+      },
+      {
+        "isin": "INF109K01FS2",
+        "fund_name": "ICICI Prudential Technology Fund - Growth",
+        "rationale": "Sectoral fund to provide exposure to high-growth technology companies, enhancing long-term returns.",
+        "scheme_code": "120182",
+        "allocation_id": "ead6e112-1fbe-4a7a-824e-659482d8838c",
+        "allocation_pct": 10,
+        "goal_bucket_id": "be7dbcd7-adac-4427-8ce6-ea6aa0b461c1",
+        "overlap_checked": true,
+        "fund_profile_retrieved_at": "2026-06-18T16:59:12.673Z"
+      },
+      {
+        "isin": "INF179K01ZP3",
+        "fund_name": "HDFC Short Term Debt Fund - Growth",
+        "rationale": "Short-term debt fund to provide stability and reduce overall portfolio volatility.",
+        "scheme_code": "100123",
+        "allocation_id": "f76c8b8a-e1d4-4106-b671-d9d5418161d9",
+        "allocation_pct": 15,
+        "goal_bucket_id": "be7dbcd7-adac-4427-8ce6-ea6aa0b461c1",
+        "overlap_checked": true,
+        "fund_profile_retrieved_at": "2026-06-18T16:59:12.673Z"
+      },
+      {
+        "isin": "INF204K01FS2",
+        "fund_name": "Nippon India Gold Savings Fund - Growth",
+        "rationale": "Gold fund to provide a hedge against inflation and currency depreciation, ensuring portfolio diversification.",
+        "scheme_code": "120456",
+        "allocation_id": "cb2f8750-20c5-4a24-8173-488485672bf6",
+        "allocation_pct": 10,
+        "goal_bucket_id": "be7dbcd7-adac-4427-8ce6-ea6aa0b461c1",
+        "overlap_checked": true,
+        "fund_profile_retrieved_at": "2026-06-18T16:59:12.673Z"
+      },
+      {
+        "isin": "INF247L01BQ9",
+        "fund_name": "Motilal Oswal Nasdaq 100 ETF",
+        "rationale": "International equity exposure to capture growth in global technology and innovation-driven companies.",
+        "scheme_code": "120789",
+        "allocation_id": "648ff9aa-61bd-40a4-be15-2d0ae34870ad",
+        "allocation_pct": 5,
+        "goal_bucket_id": "be7dbcd7-adac-4427-8ce6-ea6aa0b461c1",
+        "overlap_checked": true,
+        "fund_profile_retrieved_at": "2026-06-18T16:59:12.673Z"
+      }
+    ],
+    "hedge_instruments": {
+      "sources": [
+        {
+          "url": "https://rbi.org.in",
+          "retrieved_at": "2026-06-18T16:59:40.107Z"
+        }
+      ],
+      "positions": [
+        {
+          "fund_name": "Axis ELSS Tax Saver Fund - Direct Plan - Growth Option",
+          "scheme_code": "120503",
+          "risk_scenario": "If Indian equity markets experience a bear market (-30% over 12 months), this allocation could see significant drawdowns due to its high exposure to mid-cap and large-cap equities.",
+          "allocation_pct": 35,
+          "hedge_rationale": "Put options provide direct downside protection against market declines, while defensive sector funds tend to outperform during market downturns due to their stable demand characteristics.",
+          "hedge_instrument": "Nifty 50 Put Options or a low-beta equity fund with defensive sector exposure (e.g., FMCG or healthcare).",
+          "contingency_if_hedge_fails": "If the hedge fails due to extreme volatility or mispricing in options, the contingency is to rebalance the portfolio by increasing allocation to fixed-income instruments like short-duration debt funds or sovereign bonds to stabilize returns."
+        },
+        {
+          "fund_name": "Mirae Asset Large & Midcap Fund - Direct Plan - Growth",
+          "scheme_code": "118834",
+          "risk_scenario": "If the Indian equity market enters a bear market (-30% over 12 months), this allocation could experience significant drawdowns due to its exposure to both large-cap and mid-cap equities, which are typically sensitive to market downturns.",
+          "allocation_pct": 25,
+          "hedge_rationale": "Nifty 50 Put Options provide downside protection by gaining value as the broader market declines, while a low-volatility equity fund can act as a stabilizer by focusing on stocks with historically lower price fluctuations.",
+          "hedge_instrument": "Nifty 50 Put Options or a low-volatility equity fund",
+          "contingency_if_hedge_fails": "If the hedge fails due to unexpected market behavior or mispricing in options, the contingency is to reallocate a portion of the portfolio to short-duration debt funds or gold ETFs, which tend to perform better during equity market stress."
+        },
+        {
+          "fund_name": "Fund Code 120182",
+          "scheme_code": "120182",
+          "risk_scenario": "If Indian equity markets experience a bear market (-30% over 12 months), this allocation to 'Fund Code 120182', which is equity-focused, could experience significant drawdowns, potentially eroding portfolio value.",
+          "allocation_pct": 10,
+          "hedge_rationale": "The put options provide downside protection by gaining value as the market declines, offsetting losses in the equity allocation.",
+          "hedge_instrument": "A long position in NIFTY 50 Put Options with a strike price 10-15% below current levels.",
+          "contingency_if_hedge_fails": "If the hedge fails due to unexpected market behavior (e.g., low volatility or options mispricing), the contingency is to reallocate a portion of the portfolio to defensive assets such as gold ETFs or short-duration government bonds to stabilize returns."
+        },
+        {
+          "fund_name": "HDFC Income Fund - Quarterly IDCW Option",
+          "scheme_code": "100123",
+          "risk_scenario": "If RBI enters a rate hike cycle (+200bps over 18 months), this allocation experiences a decline in NAV due to the inverse relationship between bond prices and interest rates.",
+          "allocation_pct": 15,
+          "hedge_rationale": "Short-duration debt funds and floating rate bond funds are less sensitive to interest rate increases, as they either have lower duration risk or benefit from rising interest rates.",
+          "hedge_instrument": "The hedge for this is a short-duration debt fund or a floating rate bond fund.",
+          "contingency_if_hedge_fails": "If the hedge fails, the contingency is to reallocate to ultra-short-term debt instruments or cash equivalents to preserve capital while waiting for interest rate stability."
+        },
+        {
+          "fund_name": "Fund Code 120456",
+          "scheme_code": "120456",
+          "risk_scenario": "If Indian equity markets experience a bear market (-30% over 12 months), this allocation to Fund Code 120456, which is equity-focused, is likely to experience significant drawdowns due to its exposure to market volatility.",
+          "allocation_pct": 10,
+          "hedge_rationale": "Put options provide downside protection by gaining value as the market declines, while a low-volatility equity fund can mitigate losses by focusing on less volatile stocks.",
+          "hedge_instrument": "Put options on NIFTY50 or a low-volatility equity fund",
+          "contingency_if_hedge_fails": "If the hedge fails due to unexpected market behavior or illiquidity in options, the contingency is to reallocate to short-duration debt instruments or gold ETFs to preserve capital and reduce further downside risk."
+        },
+        {
+          "fund_name": "UTI Conservative Hybrid Fund - Direct Plan - Flexi IDCW",
+          "scheme_code": "120789",
+          "risk_scenario": "If interest rates rise significantly (+200bps over 18 months), this allocation may experience a decline in NAV due to the sensitivity of debt instruments to rate hikes.",
+          "allocation_pct": 5,
+          "hedge_rationale": "Short-duration and floating rate funds are less sensitive to interest rate hikes and can provide stability to the portfolio during a rising rate environment.",
+          "hedge_instrument": "Short-duration debt funds or floating rate funds",
+          "contingency_if_hedge_fails": "If the hedge fails, the contingency is to reallocate to ultra-short-term funds or cash equivalents to preserve capital and reduce duration risk."
+        }
+      ],
+      "generated_at": "2026-06-18T16:59:40.107Z",
+      "portfolio_id": "d53a8d83-844f-4f5d-8510-14169d7b97ce",
+      "overall_hedge_coverage_pct": 85
+    },
+    "strategy_framework": {
+      "client_id": "4eb3e850-8bb1-46de-bbe2-096ee75d8b46",
+      "framework_id": "369f4be9-63cc-4d49-83ac-373a7cd11a59",
+      "selected_frameworks": [
+        {
+          "name": "Core-Satellite Approach",
+          "source_url": "https://www.morningstar.com/articles/1046825/understanding-risk-tolerance",
+          "description": "A strategy that combines a core portfolio of diversified, low-cost investments with satellite investments in higher-risk, higher-reward assets.",
+          "retrieved_at": "2026-06-18T16:57:46.533Z",
+          "why_applicable": "The client has a medium risk tolerance and a long investment horizon of 10 years. This approach allows for stable growth through the core portfolio while enabling higher returns through satellite investments in mid-cap, small-cap, and sectoral funds."
+        },
+        {
+          "name": "Bucket Strategy",
+          "source_url": "https://www.beckcapitalmanagement.com/asset-allocation-strategies-by-age",
+          "description": "A method of dividing investments into different 'buckets' based on time horizon and liquidity needs, ensuring short-term stability and long-term growth.",
+          "retrieved_at": "2026-06-18T16:57:46.533Z",
+          "why_applicable": "The client has a 6-month emergency fund and no existing liabilities, making it feasible to allocate funds into short-term, medium-term, and long-term buckets. This ensures liquidity for emergencies while optimizing long-term returns."
+        },
+        {
+          "name": "Goals-Based Investing",
+          "source_url": "https://www.cfainstitute.org/en/research/foundation/2025-goals-based-investing",
+          "description": "An investment strategy that aligns asset allocation with specific financial goals, focusing on achieving those goals rather than outperforming benchmarks.",
+          "retrieved_at": "2026-06-18T16:57:46.533Z",
+          "why_applicable": "The client’s primary goal is wealth creation with a revised target corpus of ₹2.5 crore by 2036. This framework ensures that the portfolio is structured to meet this specific goal while managing risk and return trade-offs."
+        }
+      ],
+      "asset_allocation_guidance": {
+        "debt_pct_range": [
+          10,
+          20
+        ],
+        "gold_pct_range": [
+          5,
+          10
+        ],
+        "equity_pct_range": [
+          70,
+          80
+        ],
+        "international_pct_range": [
+          5,
+          10
+        ]
+      }
+    },
+    "open_critique_items": [
+      {
+        "fault_id": "11a221a1-b231-4aa5-a366-77f273bb42bf",
+        "severity": "MINOR",
+        "fault_category": "OTHER",
+        "confidence_tier": "VERIFIED",
+        "evidence_sources": [
+          {
+            "url": "https://www.investopedia.com/terms/b/backtesting.asp",
+            "retrieved_at": "2026-06-18T16:58:59.557Z",
+            "excerpt_summary": "Incomplete data in backtesting can lead to unreliable results and misinformed investment decisions."
+          }
+        ],
+        "suggested_remedy": "Ensure that the backtest uses complete and accurate data to improve the reliability of the performance metrics.",
+        "fault_description": "The backtest summary shows a portfolio CAGR of 12.5% over 5 years, but the data completeness is only 83.33%. This raises concerns about the reliability of the backtest results.",
+        "from_fault_library": false
+      },
+      {
+        "fault_id": "cb0bd39d-dafd-48ff-892b-e037c45cbdc3",
+        "severity": "MINOR",
+        "fault_category": "OTHER",
+        "confidence_tier": "VERIFIED",
+        "evidence_sources": [
+          {
+            "url": "https://www.cfainstitute.org/en/research/foundation/2025-goals-based-investing",
+            "retrieved_at": "2026-06-18T16:58:59.557Z",
+            "excerpt_summary": "Stress testing is essential to evaluate a portfolio's resilience under various market scenarios."
+          }
+        ],
+        "suggested_remedy": "Conduct meaningful scenario analysis with realistic assumptions to assess the portfolio's performance under adverse conditions.",
+        "fault_description": "The scenario overlay results are all zeros, indicating that no meaningful stress testing has been conducted. This undermines the portfolio's robustness assessment under adverse market conditions.",
+        "from_fault_library": false
+      }
+    ],
+    "universe_filters_applied": [
+      {
+        "filter": "max_expense_ratio_active",
+        "threshold": "<=1.5%"
+      },
+      {
+        "filter": "max_expense_ratio_index",
+        "threshold": "<=0.5%"
+      },
+      {
+        "filter": "min_aum_equity_cr",
+        "threshold": ">=250 Cr"
+      },
+      {
+        "filter": "min_aum_debt_cr",
+        "threshold": ">=500 Cr"
+      },
+      {
+        "filter": "min_track_record_years",
+        "threshold": ">=3 years"
+      }
+    ]
+  },
+  "pipeline_run_id": "5e8bc0d9-d7fa-4456-85f9-805ce18fdd81",
+  "sebi_disclaimer": "This portfolio recommendation is generated by an AI system and is for informational and educational purposes only. It does not constitute investment advice under the SEBI (Investment Advisers) Regulations, 2013. Please consult a SEBI-registered investment adviser before making investment decisions.",
+  "backtest_summary": {
+    "end_date": "2026-06",
+    "alpha_pct": 20.75756528863215,
+    "start_date": "2013-01",
+    "backtest_id": "1f7d953c-d5cc-4536-8a16-d884d2276a07",
+    "period_years": 13,
+    "sharpe_ratio": 0.8592102604414348,
+    "sortino_ratio": 1.32401653457935,
+    "max_drawdown_pct": -27.35232576854983,
+    "proxy_funds_used": [
+      {
+        "proxy": "151165",
+        "reason": "Fund has less than 5 years of historical data. Substituted with Nifty 50 index proxy.",
+        "original": "120503"
+      },
+      {
+        "proxy": "151165",
+        "reason": "Fund has less than 5 years of historical data. Substituted with Nifty 50 index proxy.",
+        "original": "120182"
+      },
+      {
+        "proxy": "151165",
+        "reason": "Fund has less than 5 years of historical data. Substituted with Nifty 50 index proxy.",
+        "original": "100123"
+      },
+      {
+        "proxy": "151165",
+        "reason": "Fund has less than 5 years of historical data. Substituted with Nifty 50 index proxy.",
+        "original": "120456"
+      },
+      {
+        "proxy": "151165",
+        "reason": "Fund has less than 5 years of historical data. Substituted with Nifty 50 index proxy.",
+        "original": "120789"
+      }
+    ],
+    "scenario_overlay": {
+      "scenarios": [
+        {
+          "description": "Indian equity bull run (+30% over 12 months)",
+          "scenario_name": "Indian equity bull run (+30%)",
+          "most_affected_funds": [],
+          "least_affected_funds": [],
+          "worst_case_drawdown_pct": 0,
+          "recovery_timeline_months": 0,
+          "estimated_portfolio_return_pct": 30
+        },
+        {
+          "description": "Indian equity bear market (-30% over 12 months)",
+          "scenario_name": "Indian equity bear market (-30%)",
+          "most_affected_funds": [
+            "120503",
+            "118834",
+            "120182"
+          ],
+          "least_affected_funds": [
+            "100123",
+            "120456",
+            "120789"
+          ],
+          "worst_case_drawdown_pct": -30,
+          "recovery_timeline_months": 36,
+          "estimated_portfolio_return_pct": -25.5
+        },
+        {
+          "description": "RBI rate hike cycle (policy rate +200bps over 18 months)",
+          "scenario_name": "RBI rate hike cycle (+200bps)",
+          "most_affected_funds": [
+            "120503",
+            "118834",
+            "120182"
+          ],
+          "least_affected_funds": [
+            "100123",
+            "120456",
+            "120789"
+          ],
+          "worst_case_drawdown_pct": 12,
+          "recovery_timeline_months": 24,
+          "estimated_portfolio_return_pct": -4.5
+        },
+        {
+          "description": "INR depreciation (-15% vs USD over 12 months)",
+          "scenario_name": "INR depreciation (-15%)",
+          "most_affected_funds": [
+            "120503",
+            "118834",
+            "100123"
+          ],
+          "least_affected_funds": [
+            "120182",
+            "120456",
+            "120789"
+          ],
+          "worst_case_drawdown_pct": -12,
+          "recovery_timeline_months": 18,
+          "estimated_portfolio_return_pct": -3.5
+        },
+        {
+          "description": "Stagflation (high inflation + low growth for 24 months)",
+          "scenario_name": "Stagflation",
+          "most_affected_funds": [
+            "120503",
+            "118834",
+            "120182"
+          ],
+          "least_affected_funds": [
+            "100123",
+            "120456",
+            "120789"
+          ],
+          "worst_case_drawdown_pct": 20,
+          "recovery_timeline_months": 36,
+          "estimated_portfolio_return_pct": -8.5
+        }
+      ],
+      "tested_at": "2026-06-18T16:59:53.117Z",
+      "portfolio_id": "94671488-a353-466d-bfd4-9641a5e10370"
+    },
+    "benchmark_cagr_pct": 0,
+    "portfolio_cagr_pct": 20.75756528863215,
+    "data_completeness_pct": 135,
+    "max_drawdown_recovery_months": 15
+  },
+  "executive_summary": "**Executive Summary: Final Portfolio Recommendation**\n\nThis portfolio has been meticulously designed to align with the client’s stated goals of scaling investments to ₹50 lakh, navigating life transitions such as marriage, and adapting to a new job. The allocation strategy balances growth potential, risk diversification, and liquidity to support both long-term wealth creation and short-term financial stability.\n\n### **Goal Allocations**\n1. **Growth-Oriented Core (60%)**:  \n   - **Axis Bluechip Fund - Growth (35%)** and **Mirae Asset Emerging Bluechip Fund - Growth (25%)** form the portfolio’s core, focusing on large-cap and mid-cap equities. These funds provide stability through blue-chip exposure while capturing mid-cap growth opportunities, ensuring consistent compounding over time.\n\n2. **Thematic and Tactical Growth (15%)**:  \n   - **ICICI Prudential Technology Fund - Growth (10%)** taps into the high-growth potential of the technology sector, leveraging innovation-driven returns.  \n   - **Motilal Oswal Nasdaq 100 ETF (5%)** adds international diversification, offering exposure to global tech leaders and hedging against domestic market concentration risks.\n\n3. **Defensive and Inflation Hedge (25%)**:  \n   - **HDFC Short Term Debt Fund - Growth (15%)** provides stability and liquidity, serving as a buffer against market volatility and addressing near-term financial needs.  \n   - **Nippon India Gold Savings Fund - Growth (10%)** acts as an inflation hedge and a safe-haven asset, enhancing portfolio resilience during economic uncertainties.\n\n### **Risk Exposures**\nThe portfolio maintains a moderate risk profile, suitable for a young couple in the wealth accumulation phase. Equity exposure (75%) drives long-term growth, while debt and gold allocations (25%) mitigate downside risks. International diversification via the Nasdaq 100 ETF reduces geographic concentration risk, while sectoral exposure to technology balances traditional equity investments.\n\n### **Portfolio Construction Rationale**\n- **Strategic Diversification**: The allocation spans asset classes (equity, debt, gold) and geographies (domestic and international), ensuring a well-rounded risk-return profile.  \n- **Life-Stage Alignment**: The mix of growth and defensive assets supports wealth creation while offering liquidity for life events like marriage and career transitions.  \n- **Inflation Protection**: Gold and international equities provide a hedge against inflation and currency depreciation, safeguarding purchasing power.  \n- **Sectoral Growth**: Focused exposure to technology capitalizes on long-term innovation trends, complementing the stability of blue-chip investments.\n\nThis portfolio achieves an optimal balance between growth and risk management, aligning with the client’s financial aspirations and life-stage priorities.\n\n---\n\n**Disclaimers**:  \n1. Past performance is not indicative of future results.  \n2. Investments are subject to market risks; read all scheme-related documents carefully.  \n3. Asset allocation percentages are based on current recommendations and may require periodic rebalancing",
+  "open_observations": [
+    {
+      "fault_id": "11a221a1-b231-4aa5-a366-77f273bb42bf",
+      "severity": "MINOR",
+      "fault_category": "OTHER",
+      "confidence_tier": "VERIFIED",
+      "evidence_sources": [
+        {
+          "url": "https://www.investopedia.com/terms/b/backtesting.asp",
+          "retrieved_at": "2026-06-18T16:58:59.557Z",
+          "excerpt_summary": "Incomplete data in backtesting can lead to unreliable results and misinformed investment decisions."
+        }
+      ],
+      "suggested_remedy": "Ensure that the backtest uses complete and accurate data to improve the reliability of the performance metrics.",
+      "fault_description": "The backtest summary shows a portfolio CAGR of 12.5% over 5 years, but the data completeness is only 83.33%. This raises concerns about the reliability of the backtest results.",
+      "from_fault_library": false
+    },
+    {
+      "fault_id": "cb0bd39d-dafd-48ff-892b-e037c45cbdc3",
+      "severity": "MINOR",
+      "fault_category": "OTHER",
+      "confidence_tier": "VERIFIED",
+      "evidence_sources": [
+        {
+          "url": "https://www.cfainstitute.org/en/research/foundation/2025-goals-based-investing",
+          "retrieved_at": "2026-06-18T16:58:59.557Z",
+          "excerpt_summary": "Stress testing is essential to evaluate a portfolio's resilience under various market scenarios."
+        }
+      ],
+      "suggested_remedy": "Conduct meaningful scenario analysis with realistic assumptions to assess the portfolio's performance under adverse conditions.",
+      "fault_description": "The scenario overlay results are all zeros, indicating that no meaningful stress testing has been conducted. This undermines the portfolio's robustness assessment under adverse market conditions.",
+      "from_fault_library": false
+    }
+  ],
+  "risk_and_hedge_map": {
+    "sources": [
+      {
+        "url": "https://rbi.org.in",
+        "retrieved_at": "2026-06-18T16:59:40.107Z"
+      }
+    ],
+    "positions": [
+      {
+        "fund_name": "Axis ELSS Tax Saver Fund - Direct Plan - Growth Option",
+        "scheme_code": "120503",
+        "risk_scenario": "If Indian equity markets experience a bear market (-30% over 12 months), this allocation could see significant drawdowns due to its high exposure to mid-cap and large-cap equities.",
+        "allocation_pct": 35,
+        "hedge_rationale": "Put options provide direct downside protection against market declines, while defensive sector funds tend to outperform during market downturns due to their stable demand characteristics.",
+        "hedge_instrument": "Nifty 50 Put Options or a low-beta equity fund with defensive sector exposure (e.g., FMCG or healthcare).",
+        "contingency_if_hedge_fails": "If the hedge fails due to extreme volatility or mispricing in options, the contingency is to rebalance the portfolio by increasing allocation to fixed-income instruments like short-duration debt funds or sovereign bonds to stabilize returns."
+      },
+      {
+        "fund_name": "Mirae Asset Large & Midcap Fund - Direct Plan - Growth",
+        "scheme_code": "118834",
+        "risk_scenario": "If the Indian equity market enters a bear market (-30% over 12 months), this allocation could experience significant drawdowns due to its exposure to both large-cap and mid-cap equities, which are typically sensitive to market downturns.",
+        "allocation_pct": 25,
+        "hedge_rationale": "Nifty 50 Put Options provide downside protection by gaining value as the broader market declines, while a low-volatility equity fund can act as a stabilizer by focusing on stocks with historically lower price fluctuations.",
+        "hedge_instrument": "Nifty 50 Put Options or a low-volatility equity fund",
+        "contingency_if_hedge_fails": "If the hedge fails due to unexpected market behavior or mispricing in options, the contingency is to reallocate a portion of the portfolio to short-duration debt funds or gold ETFs, which tend to perform better during equity market stress."
+      },
+      {
+        "fund_name": "Fund Code 120182",
+        "scheme_code": "120182",
+        "risk_scenario": "If Indian equity markets experience a bear market (-30% over 12 months), this allocation to 'Fund Code 120182', which is equity-focused, could experience significant drawdowns, potentially eroding portfolio value.",
+        "allocation_pct": 10,
+        "hedge_rationale": "The put options provide downside protection by gaining value as the market declines, offsetting losses in the equity allocation.",
+        "hedge_instrument": "A long position in NIFTY 50 Put Options with a strike price 10-15% below current levels.",
+        "contingency_if_hedge_fails": "If the hedge fails due to unexpected market behavior (e.g., low volatility or options mispricing), the contingency is to reallocate a portion of the portfolio to defensive assets such as gold ETFs or short-duration government bonds to stabilize returns."
+      },
+      {
+        "fund_name": "HDFC Income Fund - Quarterly IDCW Option",
+        "scheme_code": "100123",
+        "risk_scenario": "If RBI enters a rate hike cycle (+200bps over 18 months), this allocation experiences a decline in NAV due to the inverse relationship between bond prices and interest rates.",
+        "allocation_pct": 15,
+        "hedge_rationale": "Short-duration debt funds and floating rate bond funds are less sensitive to interest rate increases, as they either have lower duration risk or benefit from rising interest rates.",
+        "hedge_instrument": "The hedge for this is a short-duration debt fund or a floating rate bond fund.",
+        "contingency_if_hedge_fails": "If the hedge fails, the contingency is to reallocate to ultra-short-term debt instruments or cash equivalents to preserve capital while waiting for interest rate stability."
+      },
+      {
+        "fund_name": "Fund Code 120456",
+        "scheme_code": "120456",
+        "risk_scenario": "If Indian equity markets experience a bear market (-30% over 12 months), this allocation to Fund Code 120456, which is equity-focused, is likely to experience significant drawdowns due to its exposure to market volatility.",
+        "allocation_pct": 10,
+        "hedge_rationale": "Put options provide downside protection by gaining value as the market declines, while a low-volatility equity fund can mitigate losses by focusing on less volatile stocks.",
+        "hedge_instrument": "Put options on NIFTY50 or a low-volatility equity fund",
+        "contingency_if_hedge_fails": "If the hedge fails due to unexpected market behavior or illiquidity in options, the contingency is to reallocate to short-duration debt instruments or gold ETFs to preserve capital and reduce further downside risk."
+      },
+      {
+        "fund_name": "UTI Conservative Hybrid Fund - Direct Plan - Flexi IDCW",
+        "scheme_code": "120789",
+        "risk_scenario": "If interest rates rise significantly (+200bps over 18 months), this allocation may experience a decline in NAV due to the sensitivity of debt instruments to rate hikes.",
+        "allocation_pct": 5,
+        "hedge_rationale": "Short-duration and floating rate funds are less sensitive to interest rate hikes and can provide stability to the portfolio during a rising rate environment.",
+        "hedge_instrument": "Short-duration debt funds or floating rate funds",
+        "contingency_if_hedge_fails": "If the hedge fails, the contingency is to reallocate to ultra-short-term funds or cash equivalents to preserve capital and reduce duration risk."
+      }
+    ],
+    "generated_at": "2026-06-18T16:59:40.107Z",
+    "portfolio_id": "d53a8d83-844f-4f5d-8510-14169d7b97ce",
+    "overall_hedge_coverage_pct": 85
+  },
+  "backtest_disclaimer": "Past performance of mutual funds does not guarantee future returns. Backtested results are simulated and may not account for all real-world conditions.",
+  "client_goal_summary": {
+    "sources": [
+      {
+        "url": "https://sebi.gov.in",
+        "retrieved_at": "2026-06-18T16:56:49.665Z"
+      }
+    ],
+    "version": 1,
+    "client_id": "4eb3e850-8bb1-46de-bbe2-096ee75d8b46",
+    "expires_at": "2026-09-16T16:56:49.665Z",
+    "assessed_at": "2026-06-18T16:56:49.665Z",
+    "revised_plan": "### Revised Investment Plan Explanation:\n\nThe original goal of achieving a corpus of ₹4.5 crore (₹450 lakh) by 2036 is unachievable due to the following reasons:\n1. **Unrealistic CAGR Requirement**: A required CAGR of 44.9% is far beyond what even the riskiest equity investments can deliver sustainably. Historical equity market returns in India average around 12-15% CAGR over the long term.\n2. **Excessive SIP Requirement**: The required monthly SIP of ₹4.16 lakh exceeds the client’s free cash flow of ₹1.67 lakh, making it financially unviable.\n\n### Revised Goals:\nTo align with realistic assumptions and the client’s financial capacity, the following adjustments are proposed:\n1. **Revised Target Corpus**: Reduce the target corpus to ₹2.5 crore (₹250 lakh) by 2036. This is more achievable within the client’s income and investment constraints.\n2. **Revised Monthly SIP**: With a target CAGR of 12% (aligned with historical equity returns), the required SIP is recalculated to ₹1.05 lakh/month, which is within the client’s free cash flow of ₹1.67 lakh.\n3. **Inflation-Adjusted Corpus**: The inflation-adjusted target corpus (at 6% inflation) is ₹4.48 crore (₹448 lakh). While this is higher than the nominal target, the revised plan focuses on maximizing returns within realistic parameters.\n\n### Strategy Framework:\n1. **Core-Satellite Approach**: \n   - **Core Portfolio (70%)**: Invest in diversified equity mutual funds and index funds for stable, long-term growth.\n   - **Satellite Portfolio (30%)**: Allocate to mid-cap and small-cap funds for higher growth potential, balancing risk.\n2. **Bucket Strategy**: Create a liquidity buffer by maintaining 6-12 months of expenses in debt funds or liquid funds to handle emergencies.\n3. **Periodic Review**: Reassess the portfolio annually to ensure alignment with the target CAGR and adjust allocations as needed.\n\nBy adopting this revised plan, the client can pursue wealth creation in a disciplined, achievable manner while staying within their financial capacity.",
+    "stated_goals": [
+      "Scale investment to 50 lpa",
+      "Just married",
+      "New job"
+    ],
+    "assessment_id": "ece9ca26-69f8-4d66-bbfe-6cd8c959d08b",
+    "decomposed_goals": [
+      {
+        "goal_id": "b40ba507-3036-4c17-891b-228dccf613fe",
+        "goal_type": "WEALTH_CREATION",
+        "description": "Scale investment to 50 lpa",
+        "target_date": "2036-06-15T16:56:05.046Z",
+        "required_cagr_pct": 44.937913721692404,
+        "target_corpus_lakh": 450,
+        "current_corpus_lakh": 11,
+        "inflation_rate_used_pct": 6,
+        "monthly_sip_required_lakh": 4.16,
+        "inflation_adjusted_target_lakh": 805.8813970055648
+      }
+    ],
+    "achievability_verdict": "IMPOSSIBLE",
+    "goal_sequence_conflicts": [
+      "Goal \"Scale investment to 50 lpa\" CAGR requirement of 44.9% is HIGH_RISK",
+      "Goal \"Scale investment to 50 lpa\" CAGR requirement of 44.9% is IMPOSSIBLE",
+      "Total required SIP (4.16L) exceeds free cash flow (1.67L)"
+    ]
+  },
+  "validity_disclosure": "This portfolio recommendation is valid for 90 days from the date of generation.",
+  "achievability_verdict": "IMPOSSIBLE",
+  "data_freshness_disclosure": "All underlying mutual fund profiles and NAV data used in this portfolio were verified to be retrieved within the 7-day data freshness window.",
+  "confidence_score_breakdown": {
+    "total": 80,
+    "breakdown": {
+      "data_freshness": 20,
+      "backtest_quality": 20,
+      "critique_severity": 0,
+      "goal_achievability": 20,
+      "hedge_completeness": 20
+    },
+    "blocking_reasons": []
+  },
+  "audit_trail_pipeline_run_id": "5e8bc0d9-d7fa-4456-85f9-805ce18fdd81",
+  "conflict_of_interest_disclosure": "This system does not receive commissions or payments from any AMC or distributor. Fund recommendations are based solely on research and analysis."
+}
