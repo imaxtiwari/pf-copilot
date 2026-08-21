@@ -1,16 +1,21 @@
 import { FORBIDDEN_IN_ASSISTANT_OUTPUT } from '@/lib/contracts/no-advice'
 import { z } from 'zod'
 
-type ValidationResult = { ok: true; warnings?: string[] } | { ok: false; errors: string[]; warnings?: string[] }
+type ValidationResult = { ok: true } | { ok: false; errors: string[] }
+
+export type ValidateRagResponseOptions = {
+  /** If provided, ensures every requested scheme has at least one citation chunk. */
+  requiredSchemeCodes?: string[]
+  /** Map of scheme code → retrieved chunk ids. Required when requiredSchemeCodes is set. */
+  chunksByScheme?: Record<string, string[]>
+}
 
 export function validateRagResponse(
   response: unknown,
-  retrievedChunks: { id: string; factsheetDate: string }[],
+  retrievedChunkIds: string[],
+  options: ValidateRagResponseOptions = {},
 ): ValidationResult {
   const errors: string[] = []
-  const warnings: string[] = []
-  
-  const retrievedChunkIds = retrievedChunks.map(c => c.id)
 
   // CHECK 1: Shape
   const shape = z
@@ -71,17 +76,44 @@ export function validateRagResponse(
     }
   }
 
-  // CHECK 5: Staleness Check
-  if (retrievedChunks.length > 0) {
-    const dates = retrievedChunks.map(c => new Date(c.factsheetDate).getTime()).filter(t => !isNaN(t))
-    if (dates.length > 0) {
-      const oldestTime = Math.min(...dates)
-      const ageInDays = Math.floor((Date.now() - oldestTime) / 86400000)
-      if (ageInDays > 180) {
-        warnings.push(`Stale data warning: oldest chunk is ${ageInDays} days old (> 180 days).`)
+  // CHECK 5: Multi-fund citation coverage (only when requested)
+  if (!r.refused && options.requiredSchemeCodes && options.requiredSchemeCodes.length > 0) {
+    const citationChunkIds = new Set(r.citations.map((c) => c.chunk_id))
+    for (const schemeCode of options.requiredSchemeCodes) {
+      const schemeChunkIds = options.chunksByScheme?.[schemeCode] ?? []
+      const hasSchemeCitation = schemeChunkIds.some((id) => citationChunkIds.has(id))
+      if (!hasSchemeCitation) {
+        errors.push(
+          `No citation covers scheme "${schemeCode}" — every requested scheme must be cited`,
+        )
       }
     }
   }
 
-  return errors.length === 0 ? { ok: true, warnings } : { ok: false, errors, warnings }
+  // CHECK 6: Numeric claims must carry an inline chunk citation in the same sentence
+  if (!r.refused) {
+    const answerBody = answerWithoutUserQuotes
+    // Simple sentence split on . ! ? \n; keep non-empty segments
+    const sentences = answerBody
+      .split(/(?<=[.!?\n])\s+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0)
+
+    // Numeric claim pattern: digits optionally with decimal, followed by a unit
+    const numericClaimRe = /\d+(?:\.\d+)?\s*(?:%|percent|pct|Cr|crore|lakh|lacs|INR|₹|bps|bp)/gi
+
+    for (const sentence of sentences) {
+      // Ignore sentences that contain chunk-id references inside them (e.g. chunk labels)
+      const numericMatches = [...sentence.matchAll(numericClaimRe)]
+      if (numericMatches.length === 0) continue
+      if (!sentence.includes('[chunk_')) {
+        // The whole sentence has numeric claim(s) but no inline citation at all
+        errors.push(
+          `Numeric claim "${sentence.slice(0, 80)}${sentence.length > 80 ? '...' : ''}" is not cited with a [chunk_id]`,
+        )
+      }
+    }
+  }
+
+  return errors.length === 0 ? { ok: true } : { ok: false, errors }
 }

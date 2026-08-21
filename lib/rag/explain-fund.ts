@@ -1,20 +1,22 @@
 import { eq } from 'drizzle-orm'
 import { db } from '../db'
 import * as schema from '../../db/schema'
-import { getGpt4o } from '../azure-openai'
+import { getGpt4o, getGpt4oMini } from '../azure-openai'
 import { EXPLAIN_FUND_PROMPT } from '../prompts/explain-fund'
+import { EXPLAIN_FUND_TRANSLATE_PROMPT } from '../prompts/explain-fund-translate'
 
-let gpt4oClient: any = null
-function getGpt4oClient() {
-  if (!gpt4oClient) gpt4oClient = getGpt4o()
-  return gpt4oClient
-}
-const GPT4O_DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O || 'gpt-4o'
+// Module-level singletons — avoids creating a new HTTP agent on every RAG call
+const gpt4oClient = getGpt4o()
+const gpt4oMiniClient = getGpt4oMini()
+const GPT4O_DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O!
+const GPT4O_MINI_DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O_MINI!
 import { retrieveChunks } from './retrieval'
 import { validateRagResponse } from './validate-response'
 import type { RagResponseFormatted, RefusalReason, Citation } from '../contracts/refusal-types'
 import type { RetrievedChunk } from './retrieval'
 import logger from '../logger'
+
+export type SupportedLanguage = 'en' | 'hi-en'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -27,8 +29,6 @@ function formatResponse(
   chunks: RetrievedChunk[],
   schemeName: string,
   schemeCode: string,
-  freshness?: import('../contracts/refusal-types').FreshnessMetadata,
-  validation_warnings?: string[],
 ): RagResponseFormatted {
   return {
     answer: parsed.answer,
@@ -38,8 +38,6 @@ function formatResponse(
     scheme_code: schemeCode,
     scheme_name: schemeName,
     chunks_retrieved: chunks.length,
-    freshness,
-    validation_warnings,
   }
 }
 
@@ -47,6 +45,7 @@ function formatResponse(
 
 export type ExplainFundOptions = {
   top_k?: number
+  language?: SupportedLanguage
 }
 
 export async function explainFund(
@@ -55,6 +54,14 @@ export async function explainFund(
   options?: ExplainFundOptions,
 ): Promise<RagResponseFormatted> {
   const topK = options?.top_k ?? 8
+  const language = options?.language ?? 'en'
+
+  if (language !== 'en' && language !== 'hi-en') {
+    return refusedResponse(
+      'contract_violation',
+      `Unsupported language "${language}" requested for explain_fund.`,
+    )
+  }
 
   // 1. Resolve scheme
   const scheme = await db.query.amfiSchemeMaster.findFirst({
@@ -86,15 +93,14 @@ export async function explainFund(
 
   // 3. LLM call (with one-retry on contract violation)
   const callLlm = async (extraNudge?: string): Promise<unknown> => {
-    const userContent = `Retrieved chunks:\n\n${chunksFormatted}\n\nUser question: ${question}${
-      extraNudge ? `\n\nCorrection: ${extraNudge}` : ''
-    }`
+    const userContent = `Retrieved chunks:\n\n${chunksFormatted}\n\nUser question: ${question}${extraNudge ? `\n\nCorrection: ${extraNudge}` : ''
+      }`
     const messages = [
       { role: 'system' as const, content: EXPLAIN_FUND_PROMPT.text },
       { role: 'user' as const, content: userContent },
     ]
     const start = Date.now()
-    const completion = await getGpt4oClient().chat.completions.create({
+    const completion = await gpt4oClient.chat.completions.create({
       model: GPT4O_DEPLOYMENT,
       messages,
       response_format: { type: 'json_object' },
@@ -122,13 +128,13 @@ export async function explainFund(
   }
 
   let parsed = await callLlm()
-  let validation = validateRagResponse(parsed, chunks)
+  let validation = validateRagResponse(parsed, chunkIds)
 
   if (!validation.ok) {
     logger.warn({ errors: validation.errors, schemeCode: scheme_code }, 'rag: response failed validation, retrying once')
     const nudge = `Your previous response violated the contract: ${validation.errors.join('; ')}. Try again strictly.`
     parsed = await callLlm(nudge)
-    validation = validateRagResponse(parsed, chunks)
+    validation = validateRagResponse(parsed, chunkIds)
 
     if (!validation.ok) {
       logger.error({ errors: validation.errors, schemeCode: scheme_code }, 'rag: retry also failed validation')
@@ -139,30 +145,17 @@ export async function explainFund(
     }
   }
 
-  // 4. Compute freshness and append footer
-  const dates = chunks.map(c => new Date(c.factsheetDate).getTime()).filter(t => !isNaN(t))
-  let freshness: import('../contracts/refusal-types').FreshnessMetadata | undefined = undefined
-  
-  if (dates.length > 0 && !(parsed as any).refused) {
-    const oldestTime = Math.min(...dates)
-    const oldestChunkDate = new Date(oldestTime)
-    const ageInDays = Math.floor((Date.now() - oldestTime) / 86400000)
-    let staleness: 'fresh' | 'aging' | 'stale' | 'critical' = 'fresh'
-    if (ageInDays > 180) staleness = 'critical'
-    else if (ageInDays > 90) staleness = 'stale'
-    else if (ageInDays > 30) staleness = 'aging'
-    else staleness = 'fresh'
-
-    freshness = { oldestChunkDate, ageInDays, staleness }
-    const dateStr = oldestChunkDate.toISOString().split('T')[0]
-    
-    if (ageInDays <= 30) {
-      (parsed as any).answer += `\n\n_Data sourced from factsheet dated ${dateStr}. Up to date._`
-    } else if (ageInDays <= 90) {
-      (parsed as any).answer += `\n\n_Data sourced from factsheet dated ${dateStr} (${ageInDays} days ago). Verify current figures at the AMC website._`
-    } else {
-      (parsed as any).answer += `\n\n⚠️ _Data sourced from factsheet dated ${dateStr} (${ageInDays} days ago). This may be significantly outdated. Check the AMC website for current data._`
+  // 4. Optional Hinglish translation (only the prose; citations preserved exactly)
+  if (language === 'hi-en') {
+    const translated = await translateToHinglish(
+      parsed as { answer: string; citations: Citation[]; refused: boolean; refusal_reason: string | null },
+      chunkIds,
+      scheme_code,
+    )
+    if (translated) {
+      return formatResponse(translated, chunks, scheme.schemeName, scheme_code)
     }
+    // Fallback: return validated English response if translation fails validation twice
   }
 
   return formatResponse(
@@ -170,7 +163,68 @@ export async function explainFund(
     chunks,
     scheme.schemeName,
     scheme_code,
-    freshness,
-    validation.warnings
   )
+}
+
+async function translateToHinglish(
+  english: { answer: string; citations: Citation[]; refused: boolean; refusal_reason: string | null },
+  chunkIds: string[],
+  schemeCode: string,
+): Promise<{ answer: string; citations: Citation[]; refused: boolean; refusal_reason: string | null } | null> {
+  const callTranslator = async (extraNudge?: string): Promise<unknown> => {
+    const userContent = `Translate the "answer" field of this JSON into simple Hinglish. Preserve all [chunk_...] citations exactly as they are and copy the citations array unchanged.${extraNudge ? `\n\nCorrection: ${extraNudge}` : ''}\n\n${JSON.stringify(english)}`
+    const start = Date.now()
+    const completion = await gpt4oMiniClient.chat.completions.create({
+      model: GPT4O_MINI_DEPLOYMENT,
+      messages: [
+        { role: 'system' as const, content: EXPLAIN_FUND_TRANSLATE_PROMPT.text },
+        { role: 'user' as const, content: userContent },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.0,
+    })
+    logger.info(
+      {
+        schemeCode,
+        durationMs: Date.now() - start,
+        tokens: completion.usage?.total_tokens,
+        retry: !!extraNudge,
+      },
+      'rag: hinglish translation complete',
+    )
+    const raw = completion.choices[0]?.message?.content ?? '{}'
+    try {
+      return JSON.parse(raw)
+    } catch {
+      logger.warn({ schemeCode, raw: raw.slice(0, 200) }, 'rag: Hinglish translator returned non-JSON')
+      return {}
+    }
+  }
+
+  let translated = await callTranslator()
+  let validation = validateRagResponse(translated, chunkIds)
+
+  if (!validation.ok) {
+    logger.warn({ errors: validation.errors, schemeCode }, 'rag: hinglish translation failed validation, retrying once')
+    translated = await callTranslator(
+      `Your previous translation violated the contract: ${validation.errors.join('; ')}. Fix the issue while keeping the answer in Hinglish and citations unchanged.`,
+    )
+    validation = validateRagResponse(translated, chunkIds)
+
+    if (!validation.ok) {
+      logger.error({ errors: validation.errors, schemeCode }, 'rag: hinglish translation retry also failed; falling back to English')
+      return null
+    }
+  }
+
+  const t = translated as { answer: string; citations: Citation[]; refused: boolean; refusal_reason: string | null }
+  // Extra safety: translated citations must match English citations exactly (order and content).
+  const englishCitationsJson = JSON.stringify(english.citations)
+  const translatedCitationsJson = JSON.stringify(t.citations)
+  if (englishCitationsJson !== translatedCitationsJson) {
+    logger.warn({ schemeCode }, 'rag: hinglish translation changed citations; falling back to English')
+    return null
+  }
+
+  return t
 }

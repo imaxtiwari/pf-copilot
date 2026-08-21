@@ -75,6 +75,11 @@ export const TOOL_DEFINITIONS: ChatCompletionTool[] = [
             type: 'string',
             description: "The user's specific question about the fund, verbatim or closely paraphrased.",
           },
+          language: {
+            type: 'string',
+            enum: ['en', 'hi-en'],
+            description: "Output language. 'en' (default) for English, 'hi-en' for simple Hinglish (Hindi-English).",
+          },
         },
         required: ['scheme_code', 'question'],
       },
@@ -83,26 +88,50 @@ export const TOOL_DEFINITIONS: ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
-      name: 'get_recommendation_packet',
+      name: 'explain_stock',
       description:
-        "Queries the pipeline_results table to fetch the final approved portfolio recommendation packet for the user. Call this when the user asks about their recommended portfolio, fund allocations, approved plan, or investment suggestions.",
+        "Explains a stock using official annual report and exchange-announcement data. Returns a cited, grounded answer — never general knowledge. May refuse if document data is not available. Call this whenever the user asks about a specific stock or company: business segments, revenue, profit, debt, dividends, or recent disclosures.",
       parameters: {
         type: 'object',
-        properties: {},
-        required: [],
+        properties: {
+          isin: {
+            type: 'string',
+            description: "ISIN of the company (e.g. 'INE002A01018').",
+          },
+          question: {
+            type: 'string',
+            description: "The user's specific question about the stock, verbatim or closely paraphrased.",
+          },
+          language: {
+            type: 'string',
+            enum: ['en', 'hi-en'],
+            description: "Output language. 'en' (default) for English, 'hi-en' for simple Hinglish (Hindi-English).",
+          },
+        },
+        required: ['isin', 'question'],
       },
     },
   },
   {
     type: 'function',
     function: {
-      name: 'get_sip_status',
+      name: 'compare_funds',
       description:
-        "Queries the sip_adherence_reports table to fetch the latest SIP adherence report for the user. Call this when the user asks about their SIPs, monthly investments, whether they're on track, or how much they're investing.",
+        "Compares two or more mutual funds using official AMFI factsheet data. Returns a cited, grounded side-by-side comparison of expense ratio, returns, AUM, fund manager, benchmark, and risk metrics. May refuse if factsheet data is missing for any scheme. Call this when the user asks to compare funds.",
       parameters: {
         type: 'object',
-        properties: {},
-        required: [],
+        properties: {
+          scheme_codes: {
+            type: 'array',
+            items: { type: 'string' },
+            description: "AMFI scheme codes of the funds to compare (e.g. ['119551', '145001']).",
+          },
+          question: {
+            type: 'string',
+            description: "The user's comparison question, verbatim or closely paraphrased.",
+          },
+        },
+        required: ['scheme_codes', 'question'],
       },
     },
   },

@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '../../../../lib/db'
-import { casUploads, portfolioHoldings, driftReports, chatMessages, sipAdherenceReports, portfolioDrafts, userProfile } from '../../../../db/schema'
+import { casUploads, portfolioHoldings } from '../../../../db/schema'
 import { ok, err } from '../../../../lib/contracts/error-envelope'
 import { parseCAS } from '../../../../lib/cas/parse'
 import { resolveOrCreateUserId, COOKIE_NAME, cookieOptions } from '../../../../lib/auth/dev-user'
-import { trackSIPAdherence } from '../../../../lib/sip/sip-tracker'
-import { and, eq, desc } from 'drizzle-orm'
-import { detectDrift } from '../../../../lib/cas/drift-detector'
+import { refreshSnapshots } from '../../../../lib/portfolio/snapshots'
+import { generateInsight, persistInsight } from '../../../../lib/portfolio/insights'
 import logger from '../../../../lib/logger'
 
-const MAX_BYTES = 50 * 1024 * 1024 // 50 MB
+const MAX_BYTES = 10 * 1024 * 1024 // 10 MB
 
 export async function POST(req: NextRequest) {
   const { userId, isNew } = await resolveOrCreateUserId()
@@ -42,14 +41,6 @@ export async function POST(req: NextRequest) {
   // Read into memory — buffer never touches disk
   let buffer: Buffer | null = Buffer.from(await file.arrayBuffer())
 
-  const fileSizeMB = buffer.length / (1024 * 1024)
-  if (fileSizeMB > 10) {
-    logger.warn({ userId, fileSizeMB: fileSizeMB.toFixed(1) }, '[cas] Large CAS file')
-  }
-  if (fileSizeMB > 50) {
-    return NextResponse.json(err('file_too_large', 'CAS file too large. Maximum 50MB.'), { status: 413 })
-  }
-
   logger.info({ userId, sizeBytes: buffer.length }, 'cas ingest: starting')
 
   const result = await parseCAS(buffer, userId)
@@ -59,7 +50,7 @@ export async function POST(req: NextRequest) {
 
   if (result.ok && result.fromCache) {
     const holdings = await db.query.portfolioHoldings.findMany({
-      where: (h: any, { eq }: any) => eq(h.casUploadId, result.uploadId),
+      where: (h, { eq }) => eq(h.casUploadId, result.uploadId),
     })
     const response = NextResponse.json(
       ok({ holdings_count: holdings.length, unmatched_schemes: [], from_cache: true }),
@@ -86,31 +77,10 @@ export async function POST(req: NextRequest) {
 
   const { extraction, source, schemeCheck, hash } = result
 
-  // Fetch previous validated upload and holdings before inserting the new one
-  const [previousUpload] = await db
-    .select()
-    .from(casUploads)
-    .where(
-      and(
-        eq(casUploads.userId, userId),
-        eq(casUploads.status, 'validated')
-      )
-    )
-    .orderBy(desc(casUploads.uploadedAt))
-    .limit(1)
-
-  let previousHoldings: any[] = []
-  if (previousUpload) {
-    previousHoldings = await db
-      .select()
-      .from(portfolioHoldings)
-      .where(eq(portfolioHoldings.casUploadId, previousUpload.id))
-  }
-
   // All-or-nothing: insert cas_upload + holdings in a transaction
-  let uploadId: string
+  let uploadId = ''
   try {
-    await db.transaction(async (tx: any) => {
+    await db.transaction(async (tx) => {
       const [upload] = await tx
         .insert(casUploads)
         .values({
@@ -152,92 +122,19 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Calculate portfolio drift
+  // Build portfolio snapshots for the new/updated holdings
   try {
-    const newHoldings = extraction.holdings.map((h) => ({
-      userId,
-      schemeName: h.scheme_name,
-      schemeCode: h.scheme_code ?? null,
-      folioNumber: h.folio_number,
-      units: String(h.units),
-      nav: String(h.nav),
-      marketValue: String(h.market_value),
-      asOfDate: extraction.as_of_date,
-    }))
+    await refreshSnapshots(userId)
+  } catch (e) {
+    logger.warn({ userId, err: e }, 'cas ingest: snapshot refresh failed')
+  }
 
-    const driftReport = await detectDrift(previousHoldings, newHoldings)
-
-    // Save drift report
-    await db.insert(driftReports).values({
-      userId,
-      previousCasUploadId: previousUpload ? previousUpload.id : null,
-      currentCasUploadId: uploadId!,
-      report: driftReport,
-      generatedAt: new Date(),
-    })
-
-    // If rebalancing is needed, create a chat notification
-    if (driftReport.driftFromRecommendation?.rebalancingNeeded) {
-      await db.insert(chatMessages).values({
-        userId,
-        role: 'assistant',
-        content: `⚠️ Rebalancing Needed: Your portfolio allocation has drifted from your approved plan. Urgency: ${driftReport.driftFromRecommendation.rebalancingUrgency}. Please check the portfolio page for details.`,
-        ts: new Date(),
-      })
-      logger.info({ userId }, 'cas ingest: created rebalance chat notification')
-    }
-
-    // Run SIP adherence tracker
-    try {
-      const [latestApproved] = await db
-        .select()
-        .from(portfolioDrafts)
-        .where(
-          and(
-            eq(portfolioDrafts.clientId, userId),
-            eq(portfolioDrafts.status, 'APPROVED')
-          )
-        )
-        .orderBy(desc(portfolioDrafts.createdAt))
-        .limit(1)
-
-      const [profile] = await db
-        .select()
-        .from(userProfile)
-        .where(eq(userProfile.userId, userId))
-        .limit(1)
-
-      if (latestApproved && profile) {
-        const report = await trackSIPAdherence(latestApproved, driftReport, profile, db)
-        
-        await db.insert(sipAdherenceReports).values({
-          userId,
-          casUploadId: uploadId!,
-          pipelineRunId: latestApproved.pipelineRunId!,
-          report,
-          overallAdherenceScore: report.overallAdherenceScore,
-          generatedAt: new Date()
-        })
-        logger.info({ userId, score: report.overallAdherenceScore }, 'cas ingest: generated and saved SIP adherence report')
-
-        // Proactive Chat Notification
-        if (report.overallAdherenceScore < 70) {
-          const topAlert = report.alerts.find(a => a.urgency === 'HIGH') || report.alerts[0]
-          const topMessage = topAlert ? ` ${topAlert.message}` : ''
-          await db.insert(chatMessages).values({
-            userId,
-            role: 'assistant',
-            content: `I noticed your latest portfolio upload — your SIP adherence is at ${report.overallAdherenceScore}%.${topMessage} Want me to walk you through what's off track?`,
-            ts: new Date()
-          })
-          logger.info({ userId }, 'cas ingest: created proactive low SIP adherence chat message')
-        }
-      }
-    } catch (sipErr) {
-      logger.error({ userId, err: sipErr }, 'cas ingest: SIP tracker run failed')
-    }
-  } catch (err) {
-    logger.error({ userId, err }, 'cas ingest: drift detection or notification failed')
+  // Generate a deterministic educational insight tied to this upload
+  try {
+    const insight = await generateInsight({ userId, uploadId })
+    await persistInsight(insight)
+  } catch (e) {
+    logger.warn({ userId, uploadId, err: e }, 'cas ingest: insight generation failed')
   }
 
   logger.info(

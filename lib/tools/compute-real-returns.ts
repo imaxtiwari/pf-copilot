@@ -15,6 +15,9 @@ export type RealReturnsResult = {
   inflation_confidence: string | null
   factsheet_returns_data: string | null
   real_return_formula: string
+  /** For a single-scheme query, coverage is binary. */
+  coverage_ratio: number
+  excluded_funds: string[]
   note: string | null
 }
 
@@ -59,26 +62,29 @@ export async function computeRealReturns(
       ? returnsChunks.map((c: any) => `[${c.factsheetDate}]:\n${c.chunkText}`).join('\n\n---\n\n')
       : null
 
+  const hasData = !!factsheetReturnsData
   return {
     scheme_code: schemeCode,
     scheme_name: schemeName,
     your_holding: holding
       ? {
-          units: Number(holding.units),
-          nav: Number(holding.nav),
-          market_value: Number(holding.marketValue),
-          as_of_date: holding.asOfDate,
-        }
+        units: Number(holding.units),
+        nav: Number(holding.nav),
+        market_value: Number(holding.marketValue),
+        as_of_date: holding.asOfDate,
+      }
       : null,
     personal_inflation_rate: inflationRate,
     inflation_confidence: profile?.inflationConfidence ?? null,
     factsheet_returns_data: factsheetReturnsData,
     real_return_formula:
       'real_return = (1 + nominal_return) / (1 + personal_inflation_rate) - 1',
+    coverage_ratio: hasData && holding ? 1 : 0,
+    excluded_funds: !hasData && holding ? [schemeName ?? schemeCode] : [],
     note: !inflationRate
       ? 'No personal inflation rate found. Complete onboarding at /onboarding to enable real return calculation.'
       : !factsheetReturnsData
-      ? 'No factsheet returns data available. Run the factsheet ingestion script for this scheme.'
-      : null,
+        ? 'No factsheet returns data available. Run the factsheet ingestion script for this scheme.'
+        : null,
   }
 }

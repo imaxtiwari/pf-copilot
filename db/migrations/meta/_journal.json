@@ -12,50 +12,50 @@
     {
       "idx": 1,
       "version": "7",
-      "when": 1781544640019,
-      "tag": "0001_chunky_dust",
+      "when": 1779722187532,
+      "tag": "0001_pgvector",
       "breakpoints": true
     },
     {
       "idx": 2,
       "version": "7",
-      "when": 1781631570304,
-      "tag": "0002_productive_krista_starr",
+      "when": 1779722187533,
+      "tag": "0002_portfolio_snapshots",
       "breakpoints": true
     },
     {
       "idx": 3,
       "version": "7",
-      "when": 1781633043517,
-      "tag": "0003_misty_vapor",
+      "when": 1779722187534,
+      "tag": "0003_amfi_category",
       "breakpoints": true
     },
     {
       "idx": 4,
       "version": "7",
-      "when": 1781633842827,
-      "tag": "0004_chilly_eternity",
+      "when": 1779722187535,
+      "tag": "0004_portfolio_insights",
       "breakpoints": true
     },
     {
       "idx": 5,
       "version": "7",
-      "when": 1781797326688,
-      "tag": "0005_slimy_norrin_radd",
+      "when": 1785950635702,
+      "tag": "0005_chat_audit",
       "breakpoints": true
     },
     {
       "idx": 6,
       "version": "7",
-      "when": 1781799767987,
-      "tag": "0006_simple_trish_tilby",
+      "when": 1786043664000,
+      "tag": "0006_demat_tables",
       "breakpoints": true
     },
     {
       "idx": 7,
       "version": "7",
-      "when": 1781887581381,
-      "tag": "0007_tan_wasp",
+      "when": 1786044122000,
+      "tag": "0007_embedding_dimensions",
       "breakpoints": true
     }
   ]

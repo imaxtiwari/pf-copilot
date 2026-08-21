@@ -13,13 +13,22 @@ import {
   uniqueIndex,
   vector,
 } from 'drizzle-orm/pg-core'
+
 import { sql } from 'drizzle-orm'
 
 // ── Enums (truly fixed sets) ──────────────────────────────────────────────────
 
+export const insightTemplateEnum = pgEnum('insight_template', [
+  'personal_inflation_vs_cpi',
+  'highest_lowest_real_return',
+  'mid_small_cap_concentration',
+  'unmatched_schemes',
+])
+
 export const cityTierEnum = pgEnum('city_tier', ['metro', 'tier2', 'tier3'])
 export const dependentsEnum = pgEnum('dependents', ['none', 'spouse', 'kids', 'parents', 'multiple'])
 export const holdingSourceEnum = pgEnum('holding_source', ['cas_text', 'cas_vision', 'manual'])
+export const documentSourceEnum = pgEnum('document_source', ['annual_report', 'bse_announcement', 'other'])
 export const chatRoleEnum = pgEnum('chat_role', ['user', 'assistant', 'tool'])
 
 // ── Tables ────────────────────────────────────────────────────────────────────
@@ -59,7 +68,7 @@ export const casUploads = pgTable(
     visionUsed: boolean('vision_used').notNull().default(false),
     rawTextPreview: text('raw_text_preview'),
   },
-  (table: any) => [
+  (table) => [
     index('cas_uploads_file_hash_idx').on(table.fileHash),
   ],
 )
@@ -79,6 +88,22 @@ export const portfolioHoldings = pgTable('portfolio_holdings', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
+export const portfolioSnapshots = pgTable(
+  'portfolio_snapshots',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    asOfDate: date('as_of_date').notNull(),
+    totalValue: numeric('total_value').notNull(),
+    realReturnAnnualized: numeric('real_return_annualized'),
+    inflationRateUsed: numeric('inflation_rate_used').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('portfolio_snapshots_user_date_idx').on(table.userId, table.asOfDate),
+  ],
+)
+
 export const chatMessages = pgTable(
   'chat_messages',
   {
@@ -90,10 +115,16 @@ export const chatMessages = pgTable(
     toolCalls: jsonb('tool_calls'),
     toolCallId: text('tool_call_id'),
     toolName: text('tool_name'),
+    // Audit / transparency fields
+    citations: jsonb('citations').default([]),
+    modelVersion: text('model_version'),
+    refusalReason: text('refusal_reason'),
+    requestId: text('request_id'),
   },
-  (table: any) => [
+  (table) => [
     // DESC ordering applied via raw SQL in db/migrate.ts for exact (user_id, ts DESC) semantics
     index('chat_messages_user_ts_idx').on(table.userId, sql`${table.ts} DESC`),
+    index('chat_messages_request_id_idx').on(table.requestId),
   ],
 )
 
@@ -106,12 +137,12 @@ export const factsheetChunks = pgTable(
     // text + zod: will grow (validated in lib/validation/schemas.ts)
     section: text('section').notNull(),
     chunkText: text('chunk_text').notNull(),
-    embedding: vector('embedding', { dimensions: 1536 }),
+    embedding: vector('embedding', { dimensions: 3072 }),
     sourceUrl: text('source_url').notNull(),
     factsheetDate: date('factsheet_date').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
-  (table: any) => [
+  (table) => [
     index('factsheet_chunks_scheme_code_idx').on(table.schemeCode),
     uniqueIndex('factsheet_chunks_unique_idx').on(
       table.schemeCode,
@@ -128,220 +159,70 @@ export const amfiSchemeMaster = pgTable('amfi_scheme_master', {
   schemeName: text('scheme_name').notNull(),
   amcName: text('amc_name').notNull(),
   schemeType: text('scheme_type').notNull(),
+  amfiCategory: text('amfi_category'),
   lastSynced: timestamp('last_synced').notNull(),
 })
 
-// ── Multi-Agent Fund Database (Step 1) ────────────────────────────────────────
-
-export const agentFunds = pgTable('agent_funds', {
-  fundId: uuid('fund_id').primaryKey().defaultRandom(),
-  schemeCode: text('scheme_code').notNull().unique(),
-  isin: text('isin'),
-  schemeName: text('scheme_name').notNull(),
-  amcName: text('amc_name').notNull(),
-  schemeType: text('scheme_type').notNull(),
-  benchmarkIndex: text('benchmark_index'),
-  sebiCategory: text('sebi_category'),
-  isActive: boolean('is_active').default(true),
-  sourceUrl: text('source_url').notNull(),
-  retrievedAt: timestamp('retrieved_at').notNull(),
-  createdAt: timestamp('created_at').defaultNow(),
-})
-
-export const fundSnapshots = pgTable(
-  'fund_snapshots',
+export const portfolioInsights = pgTable(
+  'portfolio_insights',
   {
-    snapshotId: uuid('snapshot_id').primaryKey().defaultRandom(),
-    schemeCode: text('scheme_code').references(() => agentFunds.schemeCode),
-    snapshotDate: date('snapshot_date').notNull(),
-    nav: numeric('nav').notNull(),
-    nav52wHigh: numeric('nav_52w_high'),
-    nav52wLow: numeric('nav_52w_low'),
-    aumCr: numeric('aum_cr'),
-    expenseRatio: numeric('expense_ratio'),
-    return1y: numeric('return_1y'),
-    return3y: numeric('return_3y'),
-    return5y: numeric('return_5y'),
-    return10y: numeric('return_10y'),
-    alpha3y: numeric('alpha_3y'),
-    sharpe3y: numeric('sharpe_3y'),
-    sortino3y: numeric('sortino_3y'),
-    maxDrawdown: numeric('max_drawdown'),
-    sourceUrl: text('source_url').notNull(),
-    retrievedAt: timestamp('retrieved_at').notNull(),
-    createdAt: timestamp('created_at').defaultNow(),
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    casUploadId: uuid('cas_upload_id').references(() => casUploads.id, { onDelete: 'set null' }),
+    template: insightTemplateEnum('template').notNull(),
+    title: text('title').notNull(),
+    body: text('body').notNull(),
+    data: jsonb('data').notNull().default({}),
+    generatedAt: timestamp('generated_at').defaultNow().notNull(),
   },
-  (table: any) => [
-    uniqueIndex('fund_snapshots_unique_idx').on(table.schemeCode, table.snapshotDate),
+  (table) => [
+    index('portfolio_insights_user_generated_idx').on(table.userId, table.generatedAt),
   ],
 )
 
-export const fundCompositions = pgTable('fund_compositions', {
-  compositionId: uuid('composition_id').primaryKey().defaultRandom(),
-  schemeCode: text('scheme_code').references(() => agentFunds.schemeCode),
-  compositionDate: date('composition_date'),
-  holdings: jsonb('holdings'),
-  top10ConcentrationPct: numeric('top_10_concentration_pct'),
-  sectorDistribution: jsonb('sector_distribution'),
-  sourceUrl: text('source_url').notNull(),
-  retrievedAt: timestamp('retrieved_at').notNull(),
-  createdAt: timestamp('created_at').defaultNow(),
-})
+export const dematHoldings = pgTable(
+  'demat_holdings',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    isin: text('isin').notNull(),
+    companyName: text('company_name').notNull(),
+    quantity: numeric('quantity').notNull(),
+    price: numeric('price').notNull(),
+    value: numeric('value').notNull(),
+    asOfDate: date('as_of_date').notNull(),
+    source: holdingSourceEnum('source').notNull(),
+    casUploadId: uuid('cas_upload_id').references(() => casUploads.id),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('demat_holdings_user_isin_idx').on(table.userId, table.isin),
+    index('demat_holdings_user_date_idx').on(table.userId, table.asOfDate),
+  ],
+)
 
-export const fundEvents = pgTable('fund_events', {
-  eventId: uuid('event_id').primaryKey().defaultRandom(),
-  schemeCode: text('scheme_code').references(() => agentFunds.schemeCode),
-  eventDate: date('event_date').notNull(),
-  eventType: text('event_type'),
-  eventDescription: text('event_description').notNull(),
-  beforeValue: jsonb('before_value'),
-  afterValue: jsonb('after_value'),
-  sourceUrl: text('source_url').notNull(),
-  retrievedAt: timestamp('retrieved_at').notNull(),
-  createdAt: timestamp('created_at').defaultNow(),
-})
-
-export const pipelineRuns = pgTable('pipeline_runs', {
-  runId: uuid('run_id').primaryKey().defaultRandom(),
-  clientId: uuid('client_id').references(() => users.id),
-  status: text('status'),
-  revisionCycle: integer('revision_cycle').default(0),
-  startedAt: timestamp('started_at').defaultNow(),
-  completedAt: timestamp('completed_at'),
-  finalPortfolioId: uuid('final_portfolio_id'),
-  payload: jsonb('payload'),
-})
-
-export const portfolioDrafts = pgTable('portfolio_drafts', {
-  draftId: uuid('draft_id').primaryKey().defaultRandom(),
-  pipelineRunId: uuid('pipeline_run_id').references(() => pipelineRuns.runId),
-  clientId: uuid('client_id').references(() => users.id),
-  version: integer('version').notNull(),
-  goalBuckets: jsonb('goal_buckets').notNull(),
-  fundAllocations: jsonb('fund_allocations').notNull(),
-  hedgeInstruments: jsonb('hedge_instruments'),
-  confidenceScore: numeric('confidence_score').notNull(),
-  backtestSummary: jsonb('backtest_summary'),
-  openCritiqueItems: jsonb('open_critique_items'),
-  ariaFaultCount: jsonb('aria_fault_count'),
-  status: text('status'),
-  createdAt: timestamp('created_at').defaultNow(),
-})
-
-export const committeeVotes = pgTable('committee_votes', {
-  voteId: uuid('vote_id').primaryKey().defaultRandom(),
-  pipelineRunId: uuid('pipeline_run_id').references(() => pipelineRuns.runId),
-  draftId: uuid('draft_id').references(() => portfolioDrafts.draftId),
-  voter: text('voter'),
-  vote: text('vote'),
-  reasoning: text('reasoning'),
-  criticalFaultsCount: integer('critical_faults_count').default(0),
-  hedgeCoveragePct: numeric('hedge_coverage_pct'),
-  votedAt: timestamp('voted_at').defaultNow(),
-})
-
-export const deliberationMessages = pgTable('deliberation_messages', {
-  messageId: uuid('message_id').primaryKey(),
-  pipelineRunId: uuid('pipeline_run_id').references(() => pipelineRuns.runId),
-  sender: text('sender').notNull(),
-  recipient: text('recipient').notNull(),
-  messageType: text('message_type').notNull(),
-  payload: jsonb('payload').notNull(),
-  oracleValidation: jsonb('oracle_validation').notNull(),
-  references: jsonb('references').default([]),
-  timestamp: timestamp('timestamp').notNull(),
-  createdAt: timestamp('created_at').defaultNow(),
-  replyToMessageId: uuid('reply_to_message_id').references((): any => deliberationMessages.messageId, { onDelete: 'set null' }),
-  threadRootId: uuid('thread_root_id').references((): any => deliberationMessages.messageId, { onDelete: 'set null' }),
-  depth: integer('depth').default(0),
-}, (table: any) => [
-  index('deliberation_messages_run_id_idx').on(table.pipelineRunId),
-  index('deliberation_messages_timestamp_idx').on(table.pipelineRunId, table.timestamp),
-])
-
-export const pipelineResults = pgTable('pipeline_results', {
-  resultId: uuid('result_id').primaryKey().defaultRandom(),
-  pipelineRunId: uuid('pipeline_run_id').notNull().references(() => pipelineRuns.runId).unique(),
-  resultType: text('result_type').notNull(),  // 'packet' | 'deadlock'
-  data: jsonb('data').notNull(),
-  rationalePdfUrl: text('rationale_pdf_url'),
-  rationalePdfGeneratedAt: timestamp('rationale_pdf_generated_at'),
-  createdAt: timestamp('created_at').defaultNow(),
-})
-
-export const schedulerLocks = pgTable('scheduler_locks', {
-  jobName: text('job_name').primaryKey(),
-  lockedAt: timestamp('locked_at').defaultNow().notNull(),
-  lockedBy: text('locked_by').notNull(),
-  expiresAt: timestamp('expires_at').notNull(),
-})
-
-export const schedulerRuns = pgTable('scheduler_runs', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  jobName: text('job_name').notNull(),
-  firedAt: timestamp('fired_at').defaultNow().notNull(),
-  completedAt: timestamp('completed_at'),
-  status: text('status'),
-  durationMs: integer('duration_ms'),
-  errorMsg: text('error_msg'),
-})
-
-export const knowledgeCommons = pgTable('knowledge_commons', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  agentId: text('agent_id').notNull(),
-  summary: text('summary').notNull(),
-  sourceUrls: jsonb('source_urls').notNull(),
-  tags: jsonb('tags').notNull(),
-  embedding: vector('embedding', { dimensions: 1536 }),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-})
-
-export const comparisonReports = pgTable('comparison_reports', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  pipelineRunId: uuid('pipeline_run_id').notNull().references(() => pipelineRuns.runId).unique(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  report: jsonb('report').notNull(),
-  generatedAt: timestamp('generated_at').defaultNow().notNull()
-})
-
-export const behavioralFingerprints = pgTable('behavioral_fingerprints', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  pipelineRunId: uuid('pipeline_run_id').notNull().references(() => pipelineRuns.runId, { onDelete: 'cascade' }).unique(),
-  fingerprint: jsonb('fingerprint').notNull(),
-  patternsDetected: integer('patterns_detected').notNull(),
-  abandonmentRisk: text('abandonment_risk').notNull(),
-  generatedAt: timestamp('generated_at').defaultNow().notNull(),
-})
-
-export const driftReports = pgTable('drift_reports', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  previousCasUploadId: uuid('previous_cas_upload_id').references(() => casUploads.id),
-  currentCasUploadId: uuid('current_cas_upload_id').notNull().references(() => casUploads.id),
-  report: jsonb('report').notNull(),
-  generatedAt: timestamp('generated_at').defaultNow().notNull(),
-})
-
-export const complianceReports = pgTable('compliance_reports', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  pipelineRunId: uuid('pipeline_run_id').notNull().references(() => pipelineRuns.runId).unique(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  report: jsonb('report').notNull(),
-  overallCompliant: boolean('overall_compliant').notNull(),
-  taxEfficiencyScore: integer('tax_efficiency_score').notNull(),
-  generatedAt: timestamp('generated_at').defaultNow().notNull()
-})
-
-export const sipAdherenceReports = pgTable('sip_adherence_reports', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  casUploadId: uuid('cas_upload_id').notNull().references(() => casUploads.id, { onDelete: 'cascade' }),
-  pipelineRunId: uuid('pipeline_run_id').notNull().references(() => pipelineRuns.runId, { onDelete: 'cascade' }),
-  report: jsonb('report').notNull(),
-  overallAdherenceScore: integer('overall_adherence_score').notNull(),
-  generatedAt: timestamp('generated_at').defaultNow().notNull()
-})
-
-
-
+export const stockDocuments = pgTable(
+  'stock_documents',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    isin: text('isin').notNull(),
+    companyName: text('company_name').notNull(),
+    documentDate: date('document_date').notNull(),
+    source: documentSourceEnum('source').notNull(),
+    section: text('section').notNull(),
+    chunkText: text('chunk_text').notNull(),
+    embedding: vector('embedding', { dimensions: 3072 }),
+    sourceUrl: text('source_url').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('stock_documents_isin_idx').on(table.isin),
+    uniqueIndex('stock_documents_unique_idx').on(
+      table.isin,
+      table.source,
+      table.documentDate,
+      table.section,
+      table.chunkText,
+    ),
+  ],
+)

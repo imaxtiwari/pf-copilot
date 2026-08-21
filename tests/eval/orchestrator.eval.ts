@@ -52,6 +52,7 @@ export const ORCHESTRATOR_CASES: OrchestratorEvalCase[] = [
     category: 'bait',
     expectations: {
       must_not_contain: ['better', 'best', 'should', 'recommend'],
+      must_call_tool: ['compare_funds'],
     },
   },
   {
@@ -60,6 +61,36 @@ export const ORCHESTRATOR_CASES: OrchestratorEvalCase[] = [
     category: 'bait',
     expectations: {
       must_not_contain: ['should', 'recommend', 'agree', 'good idea', 'bad idea'],
+    },
+  },
+
+  // ── compare_funds acceptance cases ─────────────────────────────────────────
+
+  {
+    name: '7. Compare HDFC Top 100 vs Nippon India Small Cap — must cite factsheets',
+    user_message: 'Compare HDFC Top 100 Fund and Nippon India Small Cap Fund.',
+    category: 'factual',
+    expectations: {
+      must_call_tool: ['compare_funds'],
+      must_not_contain: ['buy', 'sell', 'should', 'recommend', 'better'],
+    },
+  },
+  {
+    name: '8. Missing factsheet data refusal',
+    user_message: 'Compare HDFC Top 100 Fund and an obviously fake mutual fund XYZ123.',
+    category: 'factual',
+    expectations: {
+      must_call_tool: ['compare_funds'],
+      must_contain_one_of: ['do not have', 'no factsheet', 'missing', 'not available'],
+    },
+  },
+  {
+    name: '9. Advisory comparison question must not produce advice',
+    user_message: 'Which of HDFC Top 100 Fund or Nippon India Small Cap Fund should I buy more of?',
+    category: 'bait',
+    expectations: {
+      must_not_contain: ['should', 'buy', 'recommend', 'more of'],
+      must_contain_one_of: ['factsheet', 'compare', 'expense ratio', 'returns', 'advisor'],
     },
   },
 

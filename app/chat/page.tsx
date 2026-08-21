@@ -2,6 +2,13 @@
 
 import { useState, useEffect, useRef, FormEvent } from 'react'
 
+import type { WorkspaceState, AgentEvent, CopilotStatus } from '@/lib/contracts/agent-events'
+import { buildWorkspaceState } from '@/lib/agent-mapping'
+import { AIWorkspaceShell } from '@/components/ai-workspace-shell'
+import { AgentActivityPanel } from '@/components/agent-activity-panel'
+import type { ToolTrace } from '@/lib/orchestrator'
+import { subscribeToChatStream, type ChatStreamData } from '@/lib/sse-client'
+
 // ── types ─────────────────────────────────────────────────────────────────────
 
 type Citation = {
@@ -10,6 +17,18 @@ type Citation = {
   factsheet_date: string
 }
 
+export type ChatApiData = {
+  assistant_message: string
+  tool_traces: ToolTrace[]
+  citations: Citation[]
+  model_version: string
+  refusal_reason: string | null
+  request_id: string
+  workspace_state?: WorkspaceState
+}
+
+export type SupportedLanguage = 'en' | 'hi-en'
+
 type Message = {
   id?: string
   role: 'user' | 'assistant'
@@ -17,6 +36,14 @@ type Message = {
   citations?: Citation[]
   ts?: string
 }
+
+type ChatResponse = {
+  ok: boolean
+  data?: ChatApiData
+  error?: { message: string }
+}
+
+const INTENT_KEYWORDS = ['portfolio', 'inflation', 'fund', 'stock', 'compare']
 
 // ── sub-components ─────────────────────────────────────────────────────────────
 
@@ -38,11 +65,10 @@ function ChatBubble({ message }: { message: Message }) {
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-          isUser
-            ? 'bg-indigo-600 text-white'
-            : 'bg-white text-gray-900 shadow-sm ring-1 ring-gray-100'
-        }`}
+        className={`max-w-[80%] rounded-2xl px-4 py-3 ${isUser
+          ? 'bg-indigo-600 text-white'
+          : 'bg-white text-gray-900 shadow-sm ring-1 ring-gray-100'
+          }`}
       >
         {/* Content — preserve whitespace */}
         <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
@@ -76,13 +102,107 @@ function TypingIndicator() {
   )
 }
 
+function detectDevanagari(text: string): boolean {
+  return /[\u0900-\u097F]/.test(text)
+}
+
+function detectIntent(text: string): string | null {
+  const lower = text.toLowerCase()
+  for (const keyword of INTENT_KEYWORDS) {
+    if (lower.includes(keyword)) return keyword
+  }
+  return null
+}
+
+function buildQueuedState(intent: string | null): WorkspaceState {
+  const agents: WorkspaceState['agents'] = [
+    { name: 'Portfolio Analyst', status: 'queued', currentTask: 'Queued for portfolio analysis', evidence: [], nextStep: 'Will activate if needed' },
+    { name: 'Inflation Analyst', status: 'queued', currentTask: 'Queued for inflation analysis', evidence: [], nextStep: 'Will activate if needed' },
+    { name: 'Performance Analyst', status: 'queued', currentTask: 'Queued for return analysis', evidence: [], nextStep: 'Will activate if needed' },
+    { name: 'Fund Research Agent', status: 'queued', currentTask: 'Queued for fund research', evidence: [], nextStep: 'Will activate if needed' },
+    { name: 'Risk Analyst', status: 'queued', currentTask: 'Queued for risk review', evidence: [], nextStep: 'Will activate if needed' },
+    { name: 'Copilot', status: 'working', currentTask: 'Understanding your question and routing to analysts', evidence: [], nextStep: 'Deliver final answer' },
+  ]
+
+  // Mark relevant agents as queued based on the detected intent.  If no intent
+  // is detected, everything remains queued so the panel still shows activity.
+  const relevant = new Set<string>()
+  if (intent === 'portfolio') {
+    relevant.add('Portfolio Analyst')
+    relevant.add('Performance Analyst')
+  } else if (intent === 'inflation') {
+    relevant.add('Inflation Analyst')
+    relevant.add('Performance Analyst')
+  } else if (intent === 'fund') {
+    relevant.add('Fund Research Agent')
+  } else if (intent === 'stock') {
+    relevant.add('Risk Analyst')
+  } else if (intent === 'compare') {
+    relevant.add('Fund Research Agent')
+    relevant.add('Risk Analyst')
+  }
+
+  const updatedAgents = agents.map((agent) => {
+    if (agent.name === 'Copilot') return agent
+    if (relevant.size > 0 && !relevant.has(agent.name)) {
+      return { ...agent, status: 'idle' as const, currentTask: 'Standing by' }
+    }
+    return agent
+  })
+
+  return {
+    copilotStatus: 'analysing',
+    agents: updatedAgents,
+    activity: [
+      {
+        id: 'copilot-queued',
+        timestamp: new Date(),
+        agent: 'Copilot',
+        message: `Analysing your question${intent ? ` about ${intent}` : ''}`,
+      },
+    ],
+    summary: 'Your financial team · Preparing analysis',
+  }
+}
+
+function buildCompleteState(assistantMessage: string): WorkspaceState {
+  return {
+    copilotStatus: 'complete',
+    agents: [
+      { name: 'Portfolio Analyst', status: 'idle', currentTask: 'Standing by', evidence: [], nextStep: 'Will activate if needed' },
+      { name: 'Inflation Analyst', status: 'idle', currentTask: 'Standing by', evidence: [], nextStep: 'Will activate if needed' },
+      { name: 'Performance Analyst', status: 'idle', currentTask: 'Standing by', evidence: [], nextStep: 'Will activate if needed' },
+      { name: 'Fund Research Agent', status: 'idle', currentTask: 'Standing by', evidence: [], nextStep: 'Will activate if needed' },
+      { name: 'Risk Analyst', status: 'idle', currentTask: 'Standing by', evidence: [], nextStep: 'Will activate if needed' },
+      { name: 'Copilot', status: 'complete', currentTask: 'Synthesis complete', evidence: [{ label: 'Response length', value: `${assistantMessage.length} chars` }], nextStep: 'Deliver final answer' },
+    ],
+    activity: [
+      {
+        id: 'copilot-complete',
+        timestamp: new Date(),
+        agent: 'Copilot',
+        message: 'Copilot synthesised the final response',
+        evidence: [{ label: 'Response length', value: `${assistantMessage.length} chars` }],
+      },
+    ],
+    summary: 'Your financial team · Analysis complete',
+  }
+}
+
 // ── main page ─────────────────────────────────────────────────────────────────
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
+  const [language, setLanguage] = useState<SupportedLanguage>('en')
   const [loading, setLoading] = useState(false)
   const [historyLoaded, setHistoryLoaded] = useState(false)
+  const [workspaceState, setWorkspaceState] = useState<WorkspaceState | null>(null)
+  const [panelExpanded, setPanelExpanded] = useState(true)
+  const [streamedEvents, setStreamedEvents] = useState<AgentEvent[]>([])
+  const [streaming, setStreaming] = useState(false)
+  const streamCloseRef = useRef<(() => void) | null>(null)
+
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -104,6 +224,14 @@ export default function ChatPage() {
     void loadHistory()
   }, [])
 
+  // Auto-detect language from user input
+  useEffect(() => {
+    if (input.trim().length > 0) {
+      const detected = detectDevanagari(input) ? 'hi-en' : 'en'
+      if (detected !== language) setLanguage(detected)
+    }
+  }, [input, language])
+
   // Scroll to bottom whenever messages change
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -118,46 +246,68 @@ export default function ChatPage() {
     const userMsg: Message = { role: 'user', content: text }
     setMessages((prev) => [...prev, userMsg])
     setLoading(true)
+    setStreaming(true)
+    setStreamedEvents([])
+    setWorkspaceState(buildQueuedState(detectIntent(text)))
 
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text }),
-      })
-      const json = (await res.json()) as {
-        ok: boolean
-        data?: { assistant_message: string; citations: Citation[] }
-        error?: { message: string }
-      }
+    const closeStream = subscribeToChatStream(
+      '/api/chat/stream',
+      { message: text, language },
+      {
+        onEvent: (event) => {
+          setStreamedEvents((prev) => [...prev, event])
+        },
+        onStatusChange: (status: CopilotStatus) => {
+          setWorkspaceState((prev) =>
+            prev
+              ? {
+                ...prev,
+                copilotStatus: status,
+              }
+              : prev,
+          )
+        },
+        onComplete: (data: ChatStreamData) => {
+          const { assistant_message, tool_traces, citations, workspace_state } = data
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: assistant_message,
+              citations,
+              id: data.request_id,
+            },
+          ])
 
-      if (json.ok && json.data) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: 'assistant',
-            content: json.data!.assistant_message,
-            citations: json.data!.citations,
-          },
-        ])
-      } else {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: 'assistant',
-            content: json.error?.message ?? 'Something went wrong. Please try again.',
-          },
-        ])
-      }
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: 'Network error. Please check your connection and try again.' },
-      ])
-    } finally {
-      setLoading(false)
-      inputRef.current?.focus()
-    }
+          if (workspace_state) {
+            setWorkspaceState(workspace_state)
+          } else if (tool_traces && tool_traces.length > 0) {
+            setWorkspaceState(buildWorkspaceState(tool_traces, assistant_message, true))
+          } else {
+            setWorkspaceState(buildCompleteState(assistant_message))
+          }
+
+          setLoading(false)
+          setStreaming(false)
+          streamCloseRef.current = null
+          inputRef.current?.focus()
+        },
+        onError: (error) => {
+          const fallback = error.message ?? 'Something went wrong. Please try again.'
+          setMessages((prev) => [
+            ...prev,
+            { role: 'assistant', content: fallback },
+          ])
+          setWorkspaceState(buildCompleteState(fallback))
+          setLoading(false)
+          setStreaming(false)
+          streamCloseRef.current = null
+          inputRef.current?.focus()
+        },
+      },
+    )
+
+    streamCloseRef.current = closeStream
   }
 
   // Auto-grow textarea
@@ -175,20 +325,50 @@ export default function ChatPage() {
     }
   }
 
-  return (
-    <div className="flex h-screen flex-col bg-gray-50">
+  const chatThread = (
+    <>
       {/* Header */}
       <header className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 shadow-sm">
         <div>
           <h1 className="text-base font-semibold text-gray-900">PF Copilot</h1>
           <p className="text-xs text-gray-500">Educational only · Not investment advice</p>
         </div>
-        <a
-          href="/onboarding"
-          className="text-xs text-indigo-600 underline-offset-2 hover:underline"
-        >
-          Edit profile
-        </a>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+            <button
+              type="button"
+              onClick={() => setLanguage('en')}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${language === 'en'
+                ? 'bg-white text-indigo-700 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              EN
+            </button>
+            <button
+              type="button"
+              onClick={() => setLanguage('hi-en')}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${language === 'hi-en'
+                ? 'bg-white text-indigo-700 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              हिंदी
+            </button>
+          </div>
+          <a
+            href="/chat/audit"
+            className="text-xs text-indigo-600 underline-offset-2 hover:underline"
+          >
+            Audit log
+          </a>
+          <a
+            href="/onboarding"
+            className="text-xs text-indigo-600 underline-offset-2 hover:underline"
+          >
+            Edit profile
+          </a>
+        </div>
       </header>
 
       {/* Messages */}
@@ -203,11 +383,11 @@ export default function ChatPage() {
               </h2>
               <p className="max-w-sm text-sm text-gray-500">
                 Try: &ldquo;What does my portfolio look like?&rdquo;,
-                &ldquo;What&apos;s my real return on Parag Parikh Flexi?&rdquo;, or
+                &ldquo;What's my real return on Parag Parikh Flexi?&rdquo;, or
                 &ldquo;Explain the expense ratio of HDFC Top 100.&rdquo;
               </p>
               <p className="mt-1 rounded bg-yellow-50 px-3 py-1.5 text-xs text-yellow-800">
-                I explain. I don&apos;t advise. Always verify with your financial advisor.
+                I explain. I don't advise. Always verify with your financial advisor.
               </p>
             </div>
           )}
@@ -217,6 +397,21 @@ export default function ChatPage() {
           ))}
 
           {loading && <TypingIndicator />}
+
+          {streaming && streamedEvents.length > 0 && (
+            <div className="flex justify-start">
+              <div className="max-w-[80%] rounded-2xl bg-white px-4 py-3 text-xs text-gray-500 shadow-sm ring-1 ring-gray-100">
+                <p className="font-medium text-indigo-700">Analyst activity</p>
+                <ul className="mt-1 space-y-0.5">
+                  {streamedEvents.slice(-5).map((ev, i) => (
+                    <li key={`${('id' in ev ? ev.id : i) ?? i}-${i}`}>
+                      {'agent' in ev ? ev.agent : 'Copilot'}: {ev.type.replace(/_/g, ' ')}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
           <div ref={bottomRef} />
         </div>
       </main>
@@ -257,6 +452,34 @@ export default function ChatPage() {
           Educational only · Not financial advice · Verify with your advisor
         </p>
       </footer>
-    </div>
+    </>
+  )
+
+  return (
+    <AIWorkspaceShell
+      panel={
+        workspaceState ? (
+          <AgentActivityPanel
+            state={workspaceState}
+            expanded={panelExpanded}
+            onToggleExpand={() => setPanelExpanded((p) => !p)}
+          />
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-6 text-center dark:border-slate-700 dark:bg-slate-950">
+            <div className="text-3xl">🤖</div>
+            <div>
+              <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                Your AI team is standing by
+              </h2>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Send a message to start the analysis.
+              </p>
+            </div>
+          </div>
+        )
+      }
+    >
+      {chatThread}
+    </AIWorkspaceShell>
   )
 }

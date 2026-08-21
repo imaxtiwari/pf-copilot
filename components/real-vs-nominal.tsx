@@ -4,7 +4,17 @@ type PortfolioSummary = {
   total_value: number
   weighted_nominal_return_1y: number | null
   weighted_real_return_1y: number | null
+  coverage_ratio: number
   personal_inflation_rate: number
+}
+
+type PerHolding = {
+  scheme_code: string | null
+  scheme_name: string
+  market_value: number
+  nominal_return_1y: number | null
+  real_return_1y: number | null
+  factsheet_date: string | null
 }
 
 function pct(val: number | null, decimals = 2): string {
@@ -21,20 +31,33 @@ function returnColor(val: number | null): string {
 
 export function RealVsNominal({
   portfolio,
+  perHolding = [],
   inflationConfidence = 'medium',
 }: {
   portfolio: PortfolioSummary
+  perHolding?: PerHolding[]
   inflationConfidence?: 'low' | 'medium' | 'high'
 }) {
-  const { weighted_nominal_return_1y, weighted_real_return_1y, personal_inflation_rate } = portfolio
+  const { weighted_nominal_return_1y, weighted_real_return_1y, personal_inflation_rate, coverage_ratio } = portfolio
 
   const inflationEaten =
     weighted_nominal_return_1y !== null && weighted_real_return_1y !== null
       ? weighted_nominal_return_1y - weighted_real_return_1y
       : null
 
+  const excludedFunds = perHolding.filter(
+    (h) => h.nominal_return_1y === null && h.market_value > 0,
+  )
+
   return (
     <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-6 shadow-sm">
+      {/* Coverage banner */}
+      <div className="mb-4 flex items-center justify-center gap-2 text-xs font-medium text-indigo-800">
+        <span className="rounded-full bg-indigo-100 px-3 py-1">
+          Based on {pct(coverage_ratio)} of portfolio value
+        </span>
+      </div>
+
       {/* Returns split */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-around">
         {/* Nominal */}
@@ -78,13 +101,14 @@ export function RealVsNominal({
           <>
             Inflation accounts for{' '}
             <span className="font-semibold text-orange-600">{pct(inflationEaten)}</span> of your
-            nominal return. Real return is what actually grows your purchasing power — the number
-            that matters for long-term goals like retirement or a house.
+            nominal return. The weighted return is calculated across your full portfolio value; only{' '}
+            {pct(coverage_ratio)} of that value has factsheet return data.
           </>
         ) : (
           <>
             Real return = what actually grows your purchasing power after accounting for your
-            personal inflation rate ({pct(personal_inflation_rate)}).
+            personal inflation rate ({pct(personal_inflation_rate)}). No factsheet return data covers
+            any of your portfolio yet.
           </>
         )}
       </p>
@@ -94,6 +118,25 @@ export function RealVsNominal({
           * Inflation estimate is based on default assumptions — complete your onboarding profile
           for a personalised rate.
         </p>
+      )}
+
+      {/* Excluded funds */}
+      {excludedFunds.length > 0 && (
+        <div className="mt-5 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-yellow-800">
+            Funds excluded from return calculation
+          </p>
+          <ul className="list-inside list-disc space-y-1 text-sm text-yellow-800">
+            {excludedFunds.map((h) => (
+              <li key={h.scheme_code ?? h.scheme_name}>
+                {h.scheme_name}{' '}
+                <span className="text-xs text-yellow-700">
+                  (₹{h.market_value.toLocaleString('en-IN')})
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   )

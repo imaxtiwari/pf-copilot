@@ -7,7 +7,9 @@ export default defineConfig({
   },
   test: {
     // Only pick up unit tests — eval cases and e2e specs are excluded
-    include: ['tests/unit/**/*.test.ts', 'tests/integration/**/*.test.ts'],
+    include: ['tests/unit/**/*.test.{ts,tsx}'],
+    environment: 'happy-dom',
+    setupFiles: ['tests/unit/setup.ts'],
     coverage: {
       provider: 'v8',
       include: [

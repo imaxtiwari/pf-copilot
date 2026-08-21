@@ -3,15 +3,15 @@ import { ToolArgSchemas } from '../../lib/tools/arg-schemas'
 
 // ── schema presence ───────────────────────────────────────────────────────────
 
-describe('ToolArgSchemas — all seven tools are present', () => {
+describe('ToolArgSchemas — all five tools are present', () => {
   const EXPECTED_TOOLS = [
     'get_portfolio',
     'compute_personal_inflation',
     'compute_real_returns',
     'lookup_chat_history',
     'explain_fund',
-    'get_recommendation_packet',
-    'get_sip_status',
+    'explain_stock',
+    'compare_funds',
   ] as const
 
   for (const tool of EXPECTED_TOOLS) {
@@ -39,14 +39,6 @@ describe('ToolArgSchemas — zero-arg tools accept {}', () => {
 
   it('lookup_chat_history: {} passes', () => {
     expect(ToolArgSchemas.lookup_chat_history.safeParse({}).success).toBe(true)
-  })
-
-  it('get_recommendation_packet: {} passes', () => {
-    expect(ToolArgSchemas.get_recommendation_packet.safeParse({}).success).toBe(true)
-  })
-
-  it('get_sip_status: {} passes', () => {
-    expect(ToolArgSchemas.get_sip_status.safeParse({}).success).toBe(true)
   })
 
   it('zero-arg tools strip unknown extra keys without failing (Zod default strip mode)', () => {
@@ -84,6 +76,103 @@ describe('ToolArgSchemas — compute_real_returns', () => {
   it('scheme_code missing entirely fails', () => {
     const result = ToolArgSchemas.compute_real_returns.safeParse({})
     expect(result.success).toBe(false)
+  })
+})
+
+// ── compare_funds ─────────────────────────────────────────────────────────────
+
+describe('ToolArgSchemas — compare_funds', () => {
+  it('valid array of string scheme_codes + non-empty question passes', () => {
+    const result = ToolArgSchemas.compare_funds.safeParse({
+      scheme_codes: ['119551', '145001'],
+      question: 'Compare these funds',
+    })
+    expect(result.success).toBe(true)
+    if (!result.success) return
+    expect(result.data.scheme_codes).toEqual(['119551', '145001'])
+    expect(result.data.question).toBe('Compare these funds')
+  })
+
+  it('numeric scheme_codes are coerced to strings', () => {
+    const result = ToolArgSchemas.compare_funds.safeParse({
+      scheme_codes: [119551, 145001],
+      question: 'Compare these funds',
+    })
+    expect(result.success).toBe(true)
+    if (!result.success) return
+    expect(result.data.scheme_codes).toEqual(['119551', '145001'])
+  })
+
+  it('single scheme_code fails because min is 2', () => {
+    const result = ToolArgSchemas.compare_funds.safeParse({
+      scheme_codes: ['119551'],
+      question: 'Compare these funds',
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('empty scheme_codes array fails', () => {
+    const result = ToolArgSchemas.compare_funds.safeParse({
+      scheme_codes: [],
+      question: 'Compare these funds',
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('missing question fails', () => {
+    const result = ToolArgSchemas.compare_funds.safeParse({ scheme_codes: ['119551', '145001'] })
+    expect(result.success).toBe(false)
+  })
+
+  it('empty question string fails', () => {
+    const result = ToolArgSchemas.compare_funds.safeParse({
+      scheme_codes: ['119551', '145001'],
+      question: '',
+    })
+    expect(result.success).toBe(false)
+  })
+})
+
+// ── explain_stock ─────────────────────────────────────────────────────────────
+
+describe('ToolArgSchemas — explain_stock', () => {
+  it('valid ISIN + question passes', () => {
+    const result = ToolArgSchemas.explain_stock.safeParse({
+      isin: 'INE002A01018',
+      question: 'What is the revenue?',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('coerces isin to uppercase? no — regex is case-insensitive', () => {
+    const result = ToolArgSchemas.explain_stock.safeParse({
+      isin: 'ine002a01018',
+      question: 'What is the revenue?',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects invalid ISIN length', () => {
+    const result = ToolArgSchemas.explain_stock.safeParse({
+      isin: 'INE002A0101',
+      question: 'What is the revenue?',
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects missing question', () => {
+    const result = ToolArgSchemas.explain_stock.safeParse({ isin: 'INE002A01018' })
+    expect(result.success).toBe(false)
+  })
+
+  it('language defaults to "en"', () => {
+    const result = ToolArgSchemas.explain_stock.safeParse({
+      isin: 'INE002A01018',
+      question: 'What is the revenue?',
+    })
+    expect(result.success).toBe(true)
+    if (!result.success) return
+    expect(result.data.language).toBe('en')
   })
 })
 
@@ -148,6 +237,36 @@ describe('ToolArgSchemas — explain_fund', () => {
 
   it('both fields missing fails', () => {
     const result = ToolArgSchemas.explain_fund.safeParse({})
+    expect(result.success).toBe(false)
+  })
+
+  it('language defaults to "en" when omitted', () => {
+    const result = ToolArgSchemas.explain_fund.safeParse({
+      scheme_code: '119551',
+      question: 'What is the expense ratio?',
+    })
+    expect(result.success).toBe(true)
+    if (!result.success) return
+    expect(result.data.language).toBe('en')
+  })
+
+  it('language "hi-en" is accepted', () => {
+    const result = ToolArgSchemas.explain_fund.safeParse({
+      scheme_code: '119551',
+      question: 'What is the expense ratio?',
+      language: 'hi-en',
+    })
+    expect(result.success).toBe(true)
+    if (!result.success) return
+    expect(result.data.language).toBe('hi-en')
+  })
+
+  it('invalid language is rejected', () => {
+    const result = ToolArgSchemas.explain_fund.safeParse({
+      scheme_code: '119551',
+      question: 'What is the expense ratio?',
+      language: 'es',
+    })
     expect(result.success).toBe(false)
   })
 })

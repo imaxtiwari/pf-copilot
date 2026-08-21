@@ -16,9 +16,9 @@ export function ok<T>(data: T): ApiSuccess<T> {
   return { ok: true, data }
 }
 
-export function err(code: string, message: string, details?: unknown): ApiError {
+export function err(code: string, message: string, details?: unknown, requestId?: string): ApiError {
   return {
     ok: false,
-    error: { code, message, details, request_id: crypto.randomUUID() },
+    error: { code, message, details, request_id: requestId ?? crypto.randomUUID() },
   }
 }

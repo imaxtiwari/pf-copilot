@@ -4,17 +4,21 @@ import { db } from '@/lib/db'
 import * as schema from '@/db/schema'
 import { getGpt4oMini } from '@/lib/azure-openai'
 import { ORCHESTRATOR_PROMPT } from '@/lib/prompts/orchestrator'
+import type { SupportedLanguage } from '@/lib/rag/explain-fund'
 import { TOOL_DEFINITIONS } from '@/lib/tools/definitions'
 import { getPortfolio } from '@/lib/tools/get-portfolio'
 import { computePersonalInflationTool } from '@/lib/tools/compute-inflation'
 import { computeRealReturns } from '@/lib/tools/compute-real-returns'
 import { lookupChatHistory } from '@/lib/tools/lookup-chat-history'
 import { explainFundTool } from '@/lib/tools/explain-fund'
-import { getRecommendationPacket } from '@/lib/tools/get-recommendation-packet'
-import { getSipStatus } from '@/lib/tools/get-sip-status'
+import { explainStockTool } from '@/lib/tools/explain-stock'
+import { compareFundsTool } from '@/lib/tools/compare-funds'
 import { ToolArgSchemas } from '@/lib/tools/arg-schemas'
-import type { Citation } from '@/lib/contracts/refusal-types'
+import type { Citation, RefusalReason } from '@/lib/contracts/refusal-types'
+import type { OrchestratorAgentEvent, Evidence } from '@/lib/contracts/agent-events'
+import { mapToolNameToAgentName } from '@/lib/agent-mapping'
 import logger from '@/lib/logger'
+import { randomUUID } from 'node:crypto'
 
 // ── config ────────────────────────────────────────────────────────────────────
 
@@ -22,12 +26,8 @@ const P95_LATENCY_BUDGET_MS = 12_000
 const MAX_TOOL_ITERATIONS = 5
 
 // Module-level singletons — avoids creating a new HTTP agent on every chat turn
-let _client: any = null
-function getClient() {
-  if (!_client) _client = getGpt4oMini()
-  return _client
-}
-const _deployment = process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O_MINI || 'gpt-4o-mini'
+const _client = getGpt4oMini()
+const _deployment = process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O_MINI!
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
@@ -41,14 +41,28 @@ export type OrchestratorResult = {
   assistant_message: string
   tool_traces: ToolTrace[]
   citations: Citation[]
+  model_version: string
+  refusal_reason: RefusalReason | null
+  request_id: string
+}
+
+export type OrchestratorOptions = {
+  language?: SupportedLanguage
+  onEvent?: (event: OrchestratorAgentEvent) => void
 }
 
 // ── tool dispatcher ───────────────────────────────────────────────────────────
+
+function detectHinglish(message: string): SupportedLanguage {
+  // Devanagari ranges: excludes Sanskrit/Vedic marks, includes common Hindi/Nagari
+  return /[\u0900-\u097F]/.test(message) ? 'hi-en' : 'en'
+}
 
 async function dispatchTool(
   toolName: string,
   args: Record<string, string>,
   userId: string,
+  language: SupportedLanguage,
 ): Promise<unknown> {
   // Args are validated by the call site (parsedArgs block) before reaching here.
   switch (toolName) {
@@ -61,36 +75,30 @@ async function dispatchTool(
     case 'lookup_chat_history':
       return lookupChatHistory(userId)
     case 'explain_fund':
-      return explainFundTool(args.scheme_code, args.question)
-    case 'get_recommendation_packet':
-      return getRecommendationPacket(userId)
-    case 'get_sip_status':
-      return getSipStatus(userId)
+      return explainFundTool(args.scheme_code, args.question, language)
+    case 'explain_stock':
+      return explainStockTool(args.isin, args.question, language)
+    case 'compare_funds':
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return compareFundsTool((args as any).scheme_codes, args.question)
     default:
       logger.warn({ toolName }, 'orchestrator: unknown tool called')
       return { error: `Unknown tool: ${toolName}` }
   }
 }
 
-// ── context window ──────────────────────────────────────────────────────────────
-
-export function buildContextWindow(messages: { role: string; content: string }[]): { role: string; content: string }[] {
-  const TOKEN_BUDGET = 3000
-  const estimateTokens = (m: { role: string; content: string }): number => Math.ceil(m.content.length / 4)
-
-  const result: { role: string; content: string }[] = []
-  let tokens = 0
-
-  // DB returns descending (newest first). Iterate over newest first.
-  for (const msg of messages) {
-    const t = estimateTokens(msg)
-    if (tokens + t > TOKEN_BUDGET && result.length > 0) break
-    // unshift puts oldest at the start of the array
-    result.unshift(msg)
-    tokens += t
+function collectToolMetadata(
+  result: unknown,
+  opts: { citations: Citation[]; refusalReason: RefusalReason | null },
+) {
+  if (!result || typeof result !== 'object') return
+  const r = result as { refused?: unknown; refusal_reason?: unknown; citations?: Citation[] }
+  if (Array.isArray(r.citations)) {
+    opts.citations.push(...r.citations)
   }
-
-  return result
+  if (r.refused === true && typeof r.refusal_reason === 'string') {
+    opts.refusalReason = r.refusal_reason as RefusalReason
+  }
 }
 
 // ── main export ───────────────────────────────────────────────────────────────
@@ -98,14 +106,34 @@ export function buildContextWindow(messages: { role: string; content: string }[]
 export async function runOrchestrator(
   userId: string,
   message: string,
+  language?: SupportedLanguage,
 ): Promise<OrchestratorResult> {
+  return runOrchestratorWithOptions(userId, message, { language })
+}
+
+export async function runOrchestratorWithEvents(
+  userId: string,
+  message: string,
+  language: SupportedLanguage | undefined,
+  onEvent: (event: OrchestratorAgentEvent) => void,
+): Promise<OrchestratorResult> {
+  return runOrchestratorWithOptions(userId, message, { language, onEvent })
+}
+
+async function runOrchestratorWithOptions(
+  userId: string,
+  message: string,
+  options: OrchestratorOptions,
+): Promise<OrchestratorResult> {
+  const { language, onEvent } = options
+  const emit = (event: OrchestratorAgentEvent) => onEvent?.(event)
   const startedAt = Date.now()
 
   // 1. Persist user message
   await db.insert(schema.chatMessages).values({ userId, role: 'user', content: message })
 
-  // 2. Fetch last 30 messages for context pool (chronological order)
-  const rawHistory = await db
+  // 2. Fetch last 10 messages for context (chronological order)
+  const history = await db
     .select({
       role: schema.chatMessages.role,
       content: schema.chatMessages.content,
@@ -113,26 +141,30 @@ export async function runOrchestrator(
     .from(schema.chatMessages)
     .where(eq(schema.chatMessages.userId, userId))
     .orderBy(desc(schema.chatMessages.ts))
-    .limit(30)
+    .limit(10)
+
+  const resolvedLanguage = language ?? detectHinglish(message)
 
   // 3. Build messages array (oldest first) — only user/assistant roles for context window
-  const filteredHistory = rawHistory.filter((h: any) => h.role === 'user' || h.role === 'assistant')
-  const contextWindow = buildContextWindow(filteredHistory)
-
   const messages: ChatCompletionMessageParam[] = [
     { role: 'system', content: ORCHESTRATOR_PROMPT.text },
-    ...contextWindow.map((h: any) => ({
-      role: h.role as 'user' | 'assistant',
-      content: h.content,
-    }))
+    ...history
+      .reverse()
+      .filter((h) => h.role === 'user' || h.role === 'assistant')
+      .map((h) => ({
+        role: h.role as 'user' | 'assistant',
+        content: h.content,
+      })),
   ]
 
   const traces: ToolTrace[] = []
   const citations: Citation[] = []
+  let refusalReason: RefusalReason | null = null
+  const requestId = randomUUID()
 
   // 4. Tool-call loop with iteration cap
   for (let i = 0; i < MAX_TOOL_ITERATIONS; i++) {
-    const completion = await getClient().chat.completions.create({
+    const completion = await _client.chat.completions.create({
       model: _deployment,
       messages,
       tools: TOOL_DEFINITIONS,
@@ -151,6 +183,10 @@ export async function runOrchestrator(
         userId,
         role: 'assistant',
         content: finalContent,
+        citations,
+        modelVersion: _deployment,
+        refusalReason,
+        requestId,
       })
 
       const elapsed = Date.now() - startedAt
@@ -166,7 +202,14 @@ export async function runOrchestrator(
         'orchestrator: turn complete',
       )
 
-      return { assistant_message: finalContent, tool_traces: traces, citations }
+      return {
+        assistant_message: finalContent,
+        tool_traces: traces,
+        citations,
+        model_version: _deployment,
+        refusal_reason: refusalReason,
+        request_id: requestId,
+      }
     }
 
     // Process tool calls
@@ -179,9 +222,9 @@ export async function runOrchestrator(
       let parsedArgs: Record<string, string> = {}
       try {
         const raw = JSON.parse(tc.function.arguments)
-        const schema = ToolArgSchemas[tc.function.name as keyof typeof ToolArgSchemas]
-        if (schema) {
-          const validated = schema.safeParse(raw)
+        const argSchema = ToolArgSchemas[tc.function.name as keyof typeof ToolArgSchemas]
+        if (argSchema) {
+          const validated = argSchema.safeParse(raw)
           if (validated.success) {
             parsedArgs = validated.data as Record<string, string>
           } else {
@@ -197,20 +240,34 @@ export async function runOrchestrator(
         parsedArgs = {}
       }
 
-      const result = await dispatchTool(tc.function.name, parsedArgs, userId)
+      const agent = mapToolNameToAgentName(tc.function.name)
+      emit({ type: 'AgentStarted', agent, timestamp: new Date() })
+      emit({ type: 'ToolCalled', agent, tool: tc.function.name, args: parsedArgs, timestamp: new Date() })
+
+      const result = await dispatchTool(tc.function.name, parsedArgs, userId, resolvedLanguage)
 
       traces.push({ tool: tc.function.name, args: parsedArgs, result })
 
-      // Collect citations from explain_fund results
-      if (
-        tc.function.name === 'explain_fund' &&
+      const success = !(
         result &&
         typeof result === 'object' &&
-        'citations' in result &&
-        Array.isArray((result as { citations: Citation[] }).citations)
-      ) {
-        citations.push(...(result as { citations: Citation[] }).citations)
+        'error' in result &&
+        result.error !== undefined &&
+        result.error !== null
+      )
+      emit({ type: 'ToolCompleted', agent, tool: tc.function.name, success, timestamp: new Date() })
+
+      // Collect citations and refusal metadata from strict-RAG tools
+      if (tc.function.name === 'explain_fund' || tc.function.name === 'explain_stock' || tc.function.name === 'compare_funds') {
+        collectToolMetadata(result, { citations, refusalReason })
       }
+
+      const finding = extractFinding(tc.function.name, result)
+      if (finding) {
+        emit({ type: 'FindingCreated', agent, finding: finding.finding, evidence: finding.evidence, timestamp: new Date() })
+      }
+
+      emit({ type: 'AgentCompleted', agent, timestamp: new Date() })
 
       messages.push({
         role: 'tool',
@@ -227,10 +284,105 @@ export async function runOrchestrator(
     userId,
     role: 'assistant',
     content: fallbackMessage,
+    citations,
+    modelVersion: _deployment,
+    refusalReason: refusalReason ?? 'contract_violation',
+    requestId,
   })
   return {
     assistant_message: fallbackMessage,
     tool_traces: traces,
     citations,
+    model_version: _deployment,
+    refusal_reason: refusalReason ?? 'contract_violation',
+    request_id: requestId,
   }
+}
+
+function extractFinding(toolName: string, result: unknown): { finding: string; evidence: Evidence[] } | null {
+  if (!result || typeof result !== 'object') return null
+  const r = result as Record<string, unknown>
+
+  switch (toolName) {
+    case 'get_portfolio': {
+      const holdings = Array.isArray(r.holdings) ? r.holdings : []
+      const total = typeof r.total_value === 'number' ? r.total_value : 0
+      return {
+        finding: `Portfolio loaded with ${holdings.length} holding${holdings.length === 1 ? '' : 's'}`,
+        evidence: [
+          { label: 'Holdings', value: String(holdings.length) },
+          { label: 'Total value', value: `₹${formatCompact(total)}` },
+        ],
+      }
+    }
+    case 'compute_personal_inflation': {
+      const rate = typeof r.inflation_rate === 'number' ? r.inflation_rate : null
+      const confidence = r.confidence ? String(r.confidence) : undefined
+      return {
+        finding: rate !== null ? `Personal inflation computed at ${rate}%` : 'Personal inflation computed',
+        evidence: [
+          ...(rate !== null ? [{ label: 'Personal inflation', value: `${rate}%` }] : []),
+          ...(confidence ? [{ label: 'Confidence', value: confidence }] : []),
+        ],
+      }
+    }
+    case 'compute_real_returns': {
+      const scheme = typeof r.scheme_name === 'string' ? r.scheme_name : undefined
+      const coverage = typeof r.coverage_ratio === 'number' ? `${Math.round(r.coverage_ratio * 100)}%` : undefined
+      return {
+        finding: scheme ? `Real returns analysed for ${scheme}` : 'Real returns analysed',
+        evidence: [
+          ...(scheme ? [{ label: 'Scheme', value: scheme }] : []),
+          ...(coverage ? [{ label: 'Coverage', value: coverage }] : []),
+        ],
+      }
+    }
+    case 'explain_fund': {
+      const scheme = typeof r.scheme_name === 'string' ? r.scheme_name : undefined
+      const answer = typeof r.answer === 'string' ? r.answer : undefined
+      return {
+        finding: scheme ? `Fund research complete for ${scheme}` : 'Fund research complete',
+        evidence: [
+          ...(scheme ? [{ label: 'Scheme', value: scheme }] : []),
+          ...(answer ? [{ label: 'Answer', value: answer }] : []),
+        ],
+      }
+    }
+    case 'compare_funds': {
+      const comparison = typeof r.comparison === 'string' ? r.comparison : undefined
+      return {
+        finding: comparison ?? 'Fund comparison complete',
+        evidence: [
+          ...(comparison ? [{ label: 'Comparison', value: comparison }] : []),
+        ],
+      }
+    }
+    case 'explain_stock': {
+      const company = typeof r.company_name === 'string' ? r.company_name : undefined
+      const answer = typeof r.answer === 'string' ? r.answer : undefined
+      return {
+        finding: company ? `Stock research complete for ${company}` : 'Stock research complete',
+        evidence: [
+          ...(company ? [{ label: 'Company', value: company }] : []),
+          ...(answer ? [{ label: 'Answer', value: answer }] : []),
+        ],
+      }
+    }
+    case 'lookup_chat_history': {
+      const count = Array.isArray(r.messages) ? r.messages.length : 0
+      return {
+        finding: `Recalled ${count} prior chat turn${count === 1 ? '' : 's'}`,
+        evidence: [{ label: 'Turns recalled', value: String(count) }],
+      }
+    }
+    default:
+      return null
+  }
+}
+
+function formatCompact(n: number): string {
+  if (n >= 1_00_00_000) return `${(n / 1_00_00_000).toFixed(1)}Cr`
+  if (n >= 1_00_000) return `${(n / 1_00_000).toFixed(1)}L`
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`
+  return String(Math.round(n))
 }

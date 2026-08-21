@@ -8,6 +8,9 @@ export const FORBIDDEN_IN_ASSISTANT_OUTPUT = [
   'best fund',
   'good fund',
   'bad fund',
+  'best stock',
+  'good stock',
+  'bad stock',
   'top pick',
 ] as const
 
