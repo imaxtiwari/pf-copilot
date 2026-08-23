@@ -21,7 +21,7 @@ export class Mentor {
     private deliberationRoom: DeliberationRoom,
     private memoryStore: AgentMemoryStore,
     private db: any
-  ) {}
+  ) { }
 
   async runPostPipelineAnalysis(
     pipelineRunId: string,
@@ -154,7 +154,7 @@ CRITICAL: Do NOT include investment advice. Focus on agent reasoning patterns, n
 
     const rawText = response.choices[0]?.message?.content?.trim() || ''
     const cleanJson = rawText.replace(/^```json/, '').replace(/```$/, '').trim()
-    
+
     let parsed: {
       learnings: Array<{ agent: string; learning: string; reason: string; tags: string[] }>
       critique_analyses?: Array<{ pattern: string; critiqueCategory: string; revisionCycle: number; confidenceDelta: number }>
@@ -213,7 +213,7 @@ CRITICAL: Do NOT include investment advice. Focus on agent reasoning patterns, n
             limit: 1,
             pipeline_run_id: pipelineRunId
           })
-          if (recalled.length > 0) {
+          if (recalled.length > 0 && recalled[0].content) {
             const hypothesis = JSON.parse(recalled[0].content)
             const totalAssumptions = hypothesis.assumptions ? hypothesis.assumptions.length : 1
             const correctionsCount = goalAssessment.user_corrections ? goalAssessment.user_corrections.length : 0

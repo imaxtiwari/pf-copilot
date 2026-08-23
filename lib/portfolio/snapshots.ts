@@ -46,11 +46,7 @@ export async function getUserInflationRate(userId: string): Promise<{
 async function getReturnsChunks(schemeCodes: string[]) {
     if (schemeCodes.length === 0) return []
 
-    const rows = await db.execute<{
-        scheme_code: string
-        chunk_text: string
-        factsheet_date: string
-    }>(
+    const result = await db.execute(
         sql`
       SELECT DISTINCT ON (scheme_code)
         scheme_code,
@@ -63,7 +59,8 @@ async function getReturnsChunks(schemeCodes: string[]) {
     `,
     )
 
-    return rows.rows.map((r) => ({
+    const rows = result.rows as { scheme_code: string; chunk_text: string; factsheet_date: string }[]
+    return rows.map((r) => ({
         schemeCode: r.scheme_code,
         chunkText: r.chunk_text,
         factsheetDate: r.factsheet_date,
@@ -86,7 +83,7 @@ export async function buildSnapshots(userId: string): Promise<SnapshotRow[]> {
 
     if (holdings.length === 0) return []
 
-    const schemeCodes = [...new Set(holdings.filter((h) => h.schemeCode).map((h) => h.schemeCode!))]
+    const schemeCodes = [...new Set(holdings.filter((h) => h.schemeCode).map((h) => h.schemeCode!))] as string[]
     const returnsChunks = await getReturnsChunks(schemeCodes)
     const returnsMap = new Map(
         returnsChunks.map((c) => [c.schemeCode, { chunkText: c.chunkText, factsheetDate: c.factsheetDate }]),

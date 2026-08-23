@@ -118,6 +118,7 @@ export interface MemoryEntry {
   tags: string[]
   status: MemoryStatus
   created_at: string
+  content?: string
   pipeline_run_id?: string
 }
 

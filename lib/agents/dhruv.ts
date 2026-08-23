@@ -37,7 +37,7 @@ import logger from '../logger'
 export type DeadlockTrigger =
   | { stage: 'SEBI_COMPLIANCE'; revisions: number; complianceBlockReason: string; mostProblematicGoal: string; shortestGoalTimeline: number }
   | { stage: 'ARIA_CRITIQUE'; revisions: number; persistentFaultCategory: string }
-  | { stage: 'PRIYA_DRAFTING'; revisions: number; impossibilityReason: string }
+  | { stage: 'PRIYA_DRAFTING'; revisions: number; impossibilityReason: string; bestDraftId: string; bestConfidence: number; riskDisclosures: string[] }
   | { stage: 'ARIA_PREFLIGHT'; impossibilityReason: string }
   | { stage: 'COMMITTEE_VOTE'; revisions: number; bestDraftId: string; bestConfidence: number; riskDisclosures: string[] }
 
@@ -815,7 +815,7 @@ export class Dhruv {
                 await this.stateMachine.transition('REVISION', 'DEADLOCKED', pipelineRunId)
                 await this.evaluateEarlyDeadlock(allDrafts, pipelineRunId)
                 await this.safeDeadlockTransition(pipelineRunId, 'Phase 2 Early deadlock due to confidence trajectory divergence')
-                await this.executeDeadlockProtocol(pipelineRunId, allDrafts, { stage: 'PRIYA_DRAFTING', revisions: cycle, bestDraftId: currentDraft.portfolio_id, bestConfidence: currentDraft.confidence_score.total, riskDisclosures: ['Mathematical impossibility detected. Confidence thrashing.'] }, { goals: currentDraft.goal_buckets })
+                await this.executeDeadlockProtocol(pipelineRunId, allDrafts, { stage: 'PRIYA_DRAFTING', revisions: cycle, bestDraftId: currentDraft.portfolio_id, bestConfidence: currentDraft.confidence_score.total, riskDisclosures: ['Mathematical impossibility detected. Confidence thrashing.'], impossibilityReason: 'Confidence thrashing below 60 with non-positive delta' }, { goals: currentDraft.goal_buckets })
                 logger.warn({ pipelineRunId }, 'DHRUV: runPhase2 completed with early deadlock')
                 return
               }
@@ -944,7 +944,7 @@ export class Dhruv {
                 await this.stateMachine.transition('REVISION', 'DEADLOCKED', pipelineRunId)
                 await this.evaluateEarlyDeadlock(allDrafts, pipelineRunId)
                 await this.safeDeadlockTransition(pipelineRunId, 'Phase 2 Early deadlock due to confidence trajectory divergence')
-                await this.executeDeadlockProtocol(pipelineRunId, allDrafts, { stage: 'PRIYA_DRAFTING', revisions: cycle, bestDraftId: currentDraft.portfolio_id, bestConfidence: currentDraft.confidence_score.total, riskDisclosures: ['Mathematical impossibility detected. Confidence thrashing.'] }, { goals: currentDraft.goal_buckets })
+                await this.executeDeadlockProtocol(pipelineRunId, allDrafts, { stage: 'PRIYA_DRAFTING', revisions: cycle, bestDraftId: currentDraft.portfolio_id, bestConfidence: currentDraft.confidence_score.total, riskDisclosures: ['Mathematical impossibility detected. Confidence thrashing.'], impossibilityReason: 'Confidence thrashing below 60 with non-positive delta' }, { goals: currentDraft.goal_buckets })
                 logger.warn({ pipelineRunId }, 'DHRUV: runPhase2 completed with early deadlock')
                 return
               }
@@ -1489,7 +1489,7 @@ ${JSON.stringify(goalAssessment.stated_goals, null, 2)}
         weeklyLearnings['ARIA'] = ariaMemories
           .filter(m => m.source_url && m.source_url.startsWith('http'))
           .map(m => ({
-            summary: m.content,
+            summary: m.content || m._summary || '[No summary]',
             source_urls: [m.source_url],
             tags: ['weekly_learning', 'audit'],
             agent: 'ARIA' as AgentId
@@ -1500,7 +1500,7 @@ ${JSON.stringify(goalAssessment.stated_goals, null, 2)}
         weeklyLearnings['KIRAN'] = kiranMemories
           .filter(m => m.source_url && m.source_url.startsWith('http'))
           .map(m => ({
-            summary: m.content,
+            summary: m.content || m._summary || '[No summary]',
             source_urls: [m.source_url],
             tags: ['weekly_learning', 'macro_risk'],
             agent: 'KIRAN' as AgentId

@@ -113,7 +113,7 @@ export default async function PortfolioPage() {
   const returnsChunks: Array<{ schemeCode: string; chunkText: string; factsheetDate: string }> =
     schemeCodes.length > 0
       ? (
-        await db.execute<{ scheme_code: string; chunk_text: string; factsheet_date: string }>(
+        await db.execute(
           sql`
               SELECT DISTINCT ON (scheme_code)
                 scheme_code,
@@ -126,9 +126,9 @@ export default async function PortfolioPage() {
             `,
         )
       ).rows.map((r) => ({
-        schemeCode: r.scheme_code,
-        chunkText: r.chunk_text,
-        factsheetDate: r.factsheet_date,
+        schemeCode: (r as { scheme_code: string }).scheme_code,
+        chunkText: (r as { chunk_text: string }).chunk_text,
+        factsheetDate: (r as { factsheet_date: string }).factsheet_date,
       }))
       : []
 

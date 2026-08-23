@@ -80,7 +80,9 @@ export enum AuditActionType {
   CONFIDENCE_DIVERGING = 'CONFIDENCE_DIVERGING',
   RIYA_PROFILING_COMPLETE = 'RIYA_PROFILING_COMPLETE',
   ORACLE_CROSS_RUN_ANOMALY = 'ORACLE_CROSS_RUN_ANOMALY',
-  ARIA_MINOR_ACCUMULATION_REJECT = 'ARIA_MINOR_ACCUMULATION_REJECT'
+  ARIA_MINOR_ACCUMULATION_REJECT = 'ARIA_MINOR_ACCUMULATION_REJECT',
+  DEADLOCK_STAGE_CORRECTION = 'DEADLOCK_STAGE_CORRECTION',
+  FORCE_STAGE_SET = 'FORCE_STAGE_SET'
 }
 
 export type AgentId = 'ARIA' | 'KIRAN' | 'SOMA' | 'VIKRAM' | 'PRIYA' | 'DHRUV' | 'ORACLE' | 'SYSTEM' | 'RIYA'
@@ -181,7 +183,7 @@ class AuditTrail {
   public getRunSummary(pipeline_run_id: string): AuditRunSummary {
     const events = this.query({ pipeline_run_id })
     const event_breakdown: Record<string, number> = {}
-    
+
     events.forEach(e => {
       event_breakdown[e.action_type] = (event_breakdown[e.action_type] || 0) + 1
     })

@@ -61,16 +61,17 @@ export async function getAllocationForUser(userId: string): Promise<AllocationVi
                 .where(inArray(schema.amfiSchemeMaster.schemeCode, schemeCodes))
             : []
 
-    const categoryByCode = new Map(categoryRows.map((r) => [r.schemeCode, r.amfiCategory]))
-
-    const classified = holdings.map((h) =>
-        classifyHolding(
-            h.schemeName,
-            h.schemeCode,
-            Number(h.marketValue),
-            h.schemeCode ? categoryByCode.get(h.schemeCode) : null,
-        ),
+    const categoryByCode = new Map<string, string | null>(
+        categoryRows.map((r) => [r.schemeCode as string, (r.amfiCategory as string | null) ?? null]),
     )
+
+    const classified = holdings.map((h) => {
+        const schemeName = h.schemeName as string
+        const schemeCode = (h.schemeCode ?? null) as string | null
+        const marketValue = Number(h.marketValue)
+        const amfiCategory = schemeCode ? categoryByCode.get(schemeCode) ?? null : null
+        return classifyHolding(schemeName, schemeCode, marketValue, amfiCategory)
+    })
 
     const table = buildAllocationTable(classified)
 

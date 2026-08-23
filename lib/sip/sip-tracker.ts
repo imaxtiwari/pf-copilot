@@ -79,14 +79,14 @@ export async function trackSIPAdherence(
   }
 
   // 3. Map approved portfolio allocations to recommended SIP amounts per fund/bucket
-  const recommendedSIPs = []
+  const recommendedSIPs: SIPAdherenceReport['recommendedSIPs'] = []
   const fundAllocations = approvedPortfolio.fundAllocations || approvedPortfolio.fund_allocations || []
   const goalBuckets = approvedPortfolio.goalBuckets || approvedPortfolio.goal_buckets || []
 
   for (const a of fundAllocations) {
     const bucket = goalBuckets.find((b: any) => b.bucket_id === a.goal_bucket_id || b.goal_id === a.goal_bucket_id)
     const goal = bucket ? decomposedGoals.find((g: any) => g.goal_id === bucket.goal_id || g.goal_type === bucket.goal_type) : null
-    
+
     const monthlySipLakh = goal ? parseFloat(goal.monthly_sip_required_lakh || '0') : 0
     const allocationPct = parseFloat(a.allocation_pct || '0')
     const monthlyAmount = Math.round(monthlySipLakh * 100000 * (allocationPct / 100))
@@ -101,7 +101,7 @@ export async function trackSIPAdherence(
 
   // 4. Detected SIPs from CAS drift report
   const rawDetected = driftReport.sipDetection || []
-  const detectedSIPs = rawDetected.map((d: any) => {
+  const detectedSIPs: SIPAdherenceReport['detectedSIPs'] = rawDetected.map((d: any) => {
     const prevDet = prevReportDetectedSips.find((p: any) => p.schemeName.trim().toLowerCase() === d.schemeName.trim().toLowerCase())
     const confidence = d.confidence || 'MEDIUM'
     let monthsRunning = prevDet ? (prevDet.monthsRunning || 1) + 1 : (confidence === 'HIGH' ? 3 : confidence === 'MEDIUM' ? 2 : 1)
@@ -129,19 +129,19 @@ export async function trackSIPAdherence(
 
   // 5. Adherence by fund list
   const allSchemes = new Set([...recMap.keys(), ...detMap.keys()])
-  const adherenceByFund = []
-  
+  const adherenceByFund: SIPAdherenceReport['adherenceByFund'] = []
+
   // SIP detection is possible only if there is a previous upload and we are comparing
   const isSipDetectionPossible = !!driftReport.previousUploadAt
 
   for (const key of allSchemes) {
     const recList = recommendedSIPs.filter(r => r.schemeName.trim().toLowerCase() === key)
     const detList = detectedSIPs.filter(d => d.schemeName.trim().toLowerCase() === key)
-    
+
     const schemeName = recList[0]?.schemeName || detList[0]?.schemeName || ''
     const recommended = recMap.get(key) || 0
     const actual = detMap.get(key) || 0
-    
+
     let status: 'ON_TRACK' | 'UNDER_INVESTING' | 'OVER_INVESTING' | 'NOT_STARTED' | 'UNDETECTED' = 'ON_TRACK'
 
     if (recommended > 0 && actual === 0) {
@@ -178,8 +178,8 @@ export async function trackSIPAdherence(
     }
   }
 
-  const overallAdherenceScore = scoreRecommendedTotal > 0 
-    ? Math.round((weightedFulfilled / scoreRecommendedTotal) * 100) 
+  const overallAdherenceScore = scoreRecommendedTotal > 0
+    ? Math.round((weightedFulfilled / scoreRecommendedTotal) * 100)
     : 100
 
   // 7. Monthly Shortfall
@@ -206,7 +206,7 @@ export async function trackSIPAdherence(
     message: string
     urgency: 'HIGH' | 'MEDIUM' | 'LOW'
   }> = []
-  
+
   // High Alert: Paused SIP
   if (isSipDetectionPossible) {
     for (const prevDet of prevReportDetectedSips) {

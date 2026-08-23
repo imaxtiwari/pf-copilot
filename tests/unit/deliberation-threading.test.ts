@@ -25,7 +25,8 @@ describe('Deliberation Room Threading Integrity', () => {
       sender: 'PRIYA',
       recipient: 'ALL',
       message_type: 'PORTFOLIO_DRAFT',
-      payload: { test: 'root' }
+      payload: { test: 'root' },
+      references: []
     })
 
     expect(messageId).toBeDefined()
@@ -43,7 +44,8 @@ describe('Deliberation Room Threading Integrity', () => {
       sender: 'PRIYA',
       recipient: 'ALL',
       message_type: 'PORTFOLIO_DRAFT',
-      payload: { test: 'root' }
+      payload: { test: 'root' },
+      references: []
     })
 
     const ariaId = await room.send({
@@ -51,7 +53,8 @@ describe('Deliberation Room Threading Integrity', () => {
       sender: 'ARIA',
       recipient: 'ALL',
       message_type: 'CRITIQUE',
-      payload: { test: 'child' }
+      payload: { test: 'child' },
+      references: []
     }, priyaId)
 
     const [msg] = await db.select().from(deliberationMessages).where(eq(deliberationMessages.messageId, ariaId))
@@ -69,7 +72,8 @@ describe('Deliberation Room Threading Integrity', () => {
       sender: 'ARIA',
       recipient: 'ALL',
       message_type: 'CRITIQUE',
-      payload: { test: 'fallback' }
+      payload: { test: 'fallback' },
+      references: []
     }, nonexistentId)
 
     const [msg] = await db.select().from(deliberationMessages).where(eq(deliberationMessages.messageId, ariaId))
@@ -85,7 +89,8 @@ describe('Deliberation Room Threading Integrity', () => {
       sender: 'PRIYA',
       recipient: 'ALL',
       message_type: 'PORTFOLIO_DRAFT',
-      payload: { test: 'root' }
+      payload: { test: 'root' },
+      references: []
     })
 
     const aria1Id = await room.send({
@@ -93,7 +98,8 @@ describe('Deliberation Room Threading Integrity', () => {
       sender: 'ARIA',
       recipient: 'ALL',
       message_type: 'CRITIQUE',
-      payload: { test: 'child' }
+      payload: { test: 'child' },
+      references: []
     }, priya0Id)
 
     const priya2Id = await room.send({
@@ -101,17 +107,18 @@ describe('Deliberation Room Threading Integrity', () => {
       sender: 'PRIYA',
       recipient: 'ALL',
       message_type: 'PORTFOLIO_DRAFT',
-      payload: { test: 'grandchild' }
+      payload: { test: 'grandchild' },
+      references: []
     }, aria1Id)
 
     const messages = await db.select().from(deliberationMessages).where(eq(deliberationMessages.pipelineRunId, pipelineRunId))
-    
+
     const priya0 = messages.find(m => m.messageId === priya0Id)
     const aria1 = messages.find(m => m.messageId === aria1Id)
     const priya2 = messages.find(m => m.messageId === priya2Id)
 
     expect(priya0?.threadRootId).toBe(priya0Id)
-    
+
     expect(aria1?.replyToMessageId).toBe(priya0Id)
     expect(aria1?.threadRootId).toBe(priya0Id)
     expect(aria1?.depth).toBe(1)

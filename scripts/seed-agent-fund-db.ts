@@ -11,7 +11,21 @@ import { WebResearchTool } from '../lib/research/web-research-tool'
 import { AgentMemoryStore } from '../lib/memory/memory-store'
 import { deliberationRoom } from '../lib/deliberation/deliberation-room'
 import { getGpt4oMini } from '../lib/azure-openai'
-import { parseAmfiDate } from './sync-amfi-master'
+
+function parseAmfiDate(raw: string): string | null {
+  // Accepts dates like "01-Jan-2024" and returns "2024-01-01"
+  const months: Record<string, string> = {
+    jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+    jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12',
+  }
+  const normalized = raw.trim().toLowerCase()
+  const parts = normalized.split('-')
+  if (parts.length !== 3) return null
+  const [day, mon, year] = parts
+  const monthNum = months[mon]
+  if (!monthNum || !/^\d{1,2}$/.test(day) || !/^\d{4}$/.test(year)) return null
+  return `${year}-${monthNum}-${day.padStart(2, '0')}`
+}
 
 // Deduplicate priority list to keep runs efficient
 const CONCURRENCY_LIMIT = 3

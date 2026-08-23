@@ -190,7 +190,7 @@ ${JSON.stringify(clientData, null, 2)}
     // Check cash-flow sustainability (Free Cash Flow)
     const statedIncome = clientAnswers.monthly_income_lakh || 2.0
     // Fallback to 50% of income if expenses are omitted
-    const statedExpenses = clientAnswers.monthly_expenses_lakh ?? (statedIncome * 0.5) 
+    const statedExpenses = clientAnswers.monthly_expenses_lakh ?? (statedIncome * 0.5)
     const freeCashFlow = statedIncome - statedExpenses
 
     if (freeCashFlow <= 0) {
@@ -382,7 +382,7 @@ Generate a GoalHypothesis JSON object following the prompt instructions.
 
     const rawText = response.choices[0]?.message?.content?.trim() || ''
     const cleanJson = rawText.replace(/^```json/, '').replace(/```$/, '').trim()
-    
+
     let hypothesisData: any
     try {
       hypothesisData = JSON.parse(cleanJson)
@@ -475,7 +475,7 @@ Return ONLY the updated GoalHypothesis JSON object. Do not include markdown code
 
     const rawText = response.choices[0]?.message?.content?.trim() || ''
     const cleanJson = rawText.replace(/^```json/, '').replace(/```$/, '').trim()
-    
+
     let updatedData: any
     try {
       updatedData = JSON.parse(cleanJson)
@@ -560,7 +560,7 @@ Return ONLY the updated GoalHypothesis JSON object. Do not include markdown code
         limit: 1,
         pipeline_run_id: pipelineRunId
       })
-      if (recalled.length > 0) {
+      if (recalled.length > 0 && recalled[0].content) {
         hypothesis = JSON.parse(recalled[0].content)
         logger.info('VIKRAM: recalled existing goal hypothesis')
       } else {
@@ -577,7 +577,7 @@ Return ONLY the updated GoalHypothesis JSON object. Do not include markdown code
     if (context.userCorrections && context.userCorrections.length > 0) {
       logger.info({ corrections: context.userCorrections }, 'VIKRAM: applying corrections to hypothesis')
       hypothesis = await this.applyCorrections(hypothesis, context.userCorrections, pipelineRunId)
-      
+
       await this.memoryStore.write('VIKRAM', {
         content: hypothesis,
         memory_type: 'VIKRAM_GOAL_HYPOTHESIS',
@@ -850,16 +850,16 @@ Strategic Asset Allocation Guidance:
 
 Portfolio Actual Allocations by Asset Class:
 ${Object.entries(aggregations)
-  .map(([k, v]) => `- ${k}: ${v.toFixed(2)}%`)
-  .join('\n')}
+          .map(([k, v]) => `- ${k}: ${v.toFixed(2)}%`)
+          .join('\n')}
 
 Selected Strategy Frameworks:
 ${selectedFrameworkNames.map(name => `- ${name}`).join('\n')}
 
 Bucket Structure (Goal Buckets):
 ${(draft.goal_buckets || [])
-  .map(gb => `- Bucket ID: ${gb.bucket_id}, Type: ${gb.goal_type}, Horizon: ${gb.time_horizon_years} years, Allocation: ${gb.allocation_pct}%`)
-  .join('\n')}
+          .map(gb => `- Bucket ID: ${gb.bucket_id}, Type: ${gb.goal_type}, Horizon: ${gb.time_horizon_years} years, Allocation: ${gb.allocation_pct}%`)
+          .join('\n')}
 
 Tasks:
 1. Verify if the actual equity, debt, and gold allocations fall within the specified guidance ranges.

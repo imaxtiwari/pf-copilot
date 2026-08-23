@@ -14,7 +14,11 @@ import { WebResearchTool } from '../research/web-research-tool'
 import { AgentMemoryStore, makePipelineKey } from '../memory/memory-store'
 import { DeliberationRoom } from '../deliberation/deliberation-room'
 import { getGpt4oMini } from '../azure-openai'
-import { parseAmfiDate } from '../../scripts/sync-amfi-master'
+function parseAmfiDate(input: string | null | undefined): Date | null {
+  if (!input) return null
+  const d = new Date(input)
+  return isNaN(d.getTime()) ? null : d
+}
 import { randomUUID } from 'crypto'
 import { KnowledgeCommons } from '../research/knowledge-commons'
 import logger from '../logger'

@@ -38,7 +38,7 @@ export interface ComplianceReport {
 }
 
 export class Sebi {
-  constructor(private db: any) {}
+  constructor(private db: any) { }
 
   private isEquity(schemeName: string, schemeType?: string | null, sebiCategory?: string | null): boolean {
     const type = (schemeType || sebiCategory || '').toLowerCase()
@@ -107,7 +107,7 @@ export class Sebi {
 
       // Resolve purchase parameters (default to 30% gain if unspecified)
       const purchaseNav = h.purchaseNav ? parseFloat(h.purchaseNav) : (h.purchasePrice ? parseFloat(h.purchasePrice) : currentNav * 0.7)
-      
+
       // Resolve purchase date (default to 1.5 years ago)
       let purchaseDate = new Date(Date.now() - 1.5 * 365.25 * 24 * 60 * 60 * 1000)
       if (h.purchaseDate) {
@@ -173,7 +173,7 @@ export class Sebi {
 
     // ── 2. COMPUTE ELSS TAX SAVING GAP ──────────────────────────────────────────
     const applicable = userProfile.taxBracket === 30 || userProfile.taxBracket === 0.3
-    const recommendedAllocations = portfolioDraft.fund_allocations || portfolioDraft.fundAllocations || []
+    const recommendedAllocations = portfolioDraft.fund_allocations || []
 
     const elssAllocations = recommendedAllocations.filter((fa: any) => {
       const snap = fa.scheme_code ? snapshotMap.get(fa.scheme_code) : null
@@ -181,7 +181,7 @@ export class Sebi {
     })
 
     const currentElssAllocation = elssAllocations.reduce((sum, fa: any) => sum + parseFloat(fa.allocation_pct || '0'), 0)
-    
+
     // Assume total portfolio value as the base for tax saving
     const baseValue = totalCurrentValue > 0 ? totalCurrentValue : 150000
     const currentElssAmount = baseValue * (currentElssAllocation / 100)
@@ -217,15 +217,15 @@ User Profile:
 
 Existing Holdings:
 ${JSON.stringify(
-  existingHoldings.map(h => ({
-    name: h.schemeName,
-    value: h.marketValue,
-    units: h.units,
-    nav: h.nav
-  })),
-  null,
-  2
-)}
+      existingHoldings.map(h => ({
+        name: h.schemeName,
+        value: h.marketValue,
+        units: h.units,
+        nav: h.nav
+      })),
+      null,
+      2
+    )}
 
 Recommended Portfolio Draft:
 ${JSON.stringify(portfolioDraft, null, 2)}
@@ -314,7 +314,7 @@ JSON Schema:
     await this.db.insert(schema.complianceReports).values({
       id: randomUUID(),
       pipelineRunId,
-      userId: portfolioDraft.client_id || portfolioDraft.clientId || inputs.userId,
+      userId: portfolioDraft.client_id || inputs.userId,
       report: finalReport,
       overallCompliant: finalReport.overallCompliant,
       taxEfficiencyScore: finalReport.taxEfficiencyScore,

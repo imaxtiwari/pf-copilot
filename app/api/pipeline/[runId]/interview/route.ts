@@ -123,7 +123,7 @@ export async function POST(
       isHypothesisMode = true
       const finalize = parsed.data.finalize ?? false
       const vikram = new Vikram(deliberationRoom, agentMemoryStore, new WebResearchTool('VIKRAM', agentMemoryStore, deliberationRoom), db)
-      
+
       if (!finalize) {
         const riya = new Riya(deliberationRoom, agentMemoryStore, new WebResearchTool('RIYA', agentMemoryStore, deliberationRoom), db)
         const fingerprint = await riya.getOrGenerateFingerprint(userId, runId, [])
@@ -235,7 +235,7 @@ export async function GET(
         limit: 1,
         pipeline_run_id: runId
       })
-      if (recalled.length > 0) {
+      if (recalled.length > 0 && recalled[0].content) {
         hypothesis = JSON.parse(recalled[0].content)
       }
     } catch (err) {

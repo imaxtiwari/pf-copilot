@@ -95,7 +95,7 @@ async function loadHoldingsReal(input: InsightInput): Promise<MappedHolding[]> {
 
     const [returnsResult, categoryResult] = await Promise.all([
         schemeCodes.length > 0
-            ? db.execute<{ scheme_code: string; chunk_text: string; factsheet_date: string }>(
+            ? db.execute(
                 sql`
         SELECT DISTINCT ON (scheme_code)
           scheme_code,
@@ -105,22 +105,22 @@ async function loadHoldingsReal(input: InsightInput): Promise<MappedHolding[]> {
         WHERE scheme_code = ANY(${schemeCodes}::text[])
           AND section = 'returns'
         ORDER BY scheme_code, factsheet_date DESC
-      `,
+      `
             )
-            : Promise.resolve({ rows: [] } as { rows: { scheme_code: string; chunk_text: string; factsheet_date: string }[] }),
+            : Promise.resolve({ rows: [] }),
         schemeCodes.length > 0
-            ? db.execute<{ scheme_code: string; amfi_category: string | null }>(
+            ? db.execute(
                 sql`
         SELECT scheme_code, amfi_category
         FROM amfi_scheme_master
         WHERE scheme_code = ANY(${schemeCodes}::text[])
-      `,
+      `
             )
-            : Promise.resolve({ rows: [] } as { rows: { scheme_code: string; amfi_category: string | null }[] }),
+            : Promise.resolve({ rows: [] }),
     ])
 
-    const returnsMap = new Map(returnsResult.rows.map((r) => [r.scheme_code, r.chunk_text]))
-    const categoryMap = new Map(categoryResult.rows.map((r) => [r.scheme_code, r.amfi_category]))
+    const returnsMap = new Map((returnsResult.rows as { scheme_code: string; chunk_text: string }[]).map((r) => [r.scheme_code, r.chunk_text]))
+    const categoryMap = new Map((categoryResult.rows as { scheme_code: string; amfi_category: string | null }[]).map((r) => [r.scheme_code, r.amfi_category]))
 
     return rows.map((r) => {
         const code = r.schemeCode
