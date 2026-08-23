@@ -8,15 +8,6 @@ export const metadata: Metadata = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  // Trigger scheduler startup on the server side (non-blocking)
-  if (typeof window === 'undefined') {
-    const port = process.env.PORT || 3000
-    fetch(`http://localhost:${port}/api/scheduler`).catch((err) => {
-      // Silently catch error, expected if server is not fully up or port is different
-      console.warn('Scheduler startup trigger fetch failed:', err.message)
-    })
-  }
-
   return (
     <html lang="en">
       <body>

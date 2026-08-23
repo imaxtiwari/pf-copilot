@@ -1,0 +1,17 @@
+# lefthook configuration for PF Copilot
+# Install hooks with: lefthook install
+# Requires gitleaks to be installed: https://github.com/gitleaks/gitleaks
+pre-commit:
+  commands:
+    secrets-scan:
+      run: gitleaks protect --staged --verbose
+      skip:
+        - merge
+        - squash
+pre-push:
+  commands:
+    secrets-scan-history:
+      run: gitleaks detect --source . --log-opts="origin/main..HEAD"
+      skip:
+        - merge
+        - squash

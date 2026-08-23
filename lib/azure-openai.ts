@@ -8,8 +8,24 @@ function requireEnv(name: string): string {
   return val
 }
 
+function isProduction(): boolean {
+  return process.env.NODE_ENV === 'production'
+}
+
 function shouldMock(): boolean {
+  if (isProduction()) {
+    return false
+  }
   return process.env.MOCK_LLM === 'true' || !process.env.AZURE_OPENAI_API_KEY
+}
+
+function assertNotProductionMock(label: string): void {
+  if (isProduction() && (process.env.MOCK_LLM === 'true' || !process.env.AZURE_OPENAI_API_KEY)) {
+    throw new Error(
+      `Mock LLM selection attempted in production for ${label}. ` +
+      `AZURE_OPENAI_API_KEY must be set and MOCK_LLM must not be true in production.`,
+    )
+  }
 }
 
 function makeMockClient(model: string): any {
@@ -36,7 +52,7 @@ function makeMockClient(model: string): any {
         const inputStr = typeof params.input === 'string' ? params.input : JSON.stringify(params.input)
         const vector = mockEmbedding(inputStr)
         const encoding_format = params.encoding_format
-        
+
         if (encoding_format === 'base64') {
           const buf = Buffer.from(vector.buffer)
           return {
@@ -44,7 +60,7 @@ function makeMockClient(model: string): any {
             usage: { prompt_tokens: 5, total_tokens: 5 }
           }
         }
-        
+
         return {
           data: [{ embedding: Array.from(vector), index: 0 }],
           usage: { prompt_tokens: 5, total_tokens: 5 }
@@ -57,6 +73,7 @@ function makeMockClient(model: string): any {
 const clientCache = new Map<string, AzureOpenAI>()
 
 function makeClient(deployment: string): AzureOpenAI {
+  assertNotProductionMock(`deployment:${deployment}`)
   if (shouldMock()) {
     return makeMockClient(deployment) as unknown as AzureOpenAI
   }
@@ -76,6 +93,7 @@ function makeClient(deployment: string): AzureOpenAI {
 }
 
 export function getGpt4o(): AzureOpenAI {
+  assertNotProductionMock('gpt-4o')
   if (shouldMock()) {
     return makeMockClient('gpt-4o') as unknown as AzureOpenAI
   }
@@ -83,6 +101,7 @@ export function getGpt4o(): AzureOpenAI {
 }
 
 export function getGpt4oMini(): AzureOpenAI {
+  assertNotProductionMock('gpt-4o-mini')
   if (shouldMock()) {
     return makeMockClient('gpt-4o-mini') as unknown as AzureOpenAI
   }
@@ -90,13 +109,14 @@ export function getGpt4oMini(): AzureOpenAI {
 }
 
 export async function getEmbedding(text: string): Promise<number[]> {
+  assertNotProductionMock('embedding')
   if (shouldMock()) {
     return Array.from(mockEmbedding(text))
   }
   const deployment = requireEnv('AZURE_OPENAI_DEPLOYMENT_EMBEDDING')
   const client = makeClient(deployment)
   const start = Date.now()
-  
+
   const retries = 6
   let lastError: any
 

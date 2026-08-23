@@ -24,7 +24,7 @@ import { PipelineStateMachine } from '../pipeline/pipeline-state-machine'
 import { auditTrail, AuditActionType } from '../audit/audit-trail'
 import { Kiran } from './kiran'
 import { Vikram } from './vikram'
-import { Aria } from './aria'
+import { Aria, deriveARIAVote } from './aria'
 import { Soma } from './soma'
 import { Priya } from './priya'
 import { Mentor } from './mentor'
@@ -34,7 +34,7 @@ import { AgentId } from '../deliberation/message-schema'
 import { getGpt4o } from '../azure-openai'
 import logger from '../logger'
 
-export type DeadlockTrigger = 
+export type DeadlockTrigger =
   | { stage: 'SEBI_COMPLIANCE'; revisions: number; complianceBlockReason: string; mostProblematicGoal: string; shortestGoalTimeline: number }
   | { stage: 'ARIA_CRITIQUE'; revisions: number; persistentFaultCategory: string }
   | { stage: 'PRIYA_DRAFTING'; revisions: number; impossibilityReason: string }
@@ -93,7 +93,7 @@ export class Dhruv {
         payload: { fromStage: currentStage, forcedTo: 'COMMITTEE_VOTE' }
       })
     }
-    
+
     const stageToTransitionFrom = canDeadlock ? currentStage : 'COMMITTEE_VOTE'
     await this.stateMachine.transition(stageToTransitionFrom, 'DEADLOCKED', pipelineRunId)
   }
@@ -289,11 +289,11 @@ export class Dhruv {
     existingHoldings.forEach((h: any) => { if (h.schemeCode) schemeCodes.add(h.schemeCode) })
     draft.fund_allocations.forEach((a: any) => { if (a.scheme_code) schemeCodes.add(a.scheme_code) })
 
-    const fundSnapshots = schemeCodes.size > 0 
+    const fundSnapshots = schemeCodes.size > 0
       ? await this.db
-          .select()
-          .from(schema.fundSnapshots)
-          .where(inArray(schema.fundSnapshots.schemeCode, Array.from(schemeCodes)))
+        .select()
+        .from(schema.fundSnapshots)
+        .where(inArray(schema.fundSnapshots.schemeCode, Array.from(schemeCodes)))
       : []
 
     const [profile] = await this.db
@@ -323,7 +323,7 @@ export class Dhruv {
 
     while (cycle < maxCycles) {
       await this.stateMachine.transition(cycle === 0 ? 'PRIYA_BUILD' : 'REVISION', 'SEBI_COMPLIANCE', pipelineRunId)
-      
+
       sebiReport = await sebi.runComplianceCheck({
         userId: clientId,
         pipelineRunId,
@@ -338,7 +338,7 @@ export class Dhruv {
         if (cycle >= maxCycles) {
           break
         }
-        
+
         await this.stateMachine.transition('SEBI_COMPLIANCE', 'REVISION', pipelineRunId)
         await this.db
           .update(schema.pipelineRuns)
@@ -372,11 +372,11 @@ export class Dhruv {
 
         // Priya revise
         draft = await priya.revise(draft, critiqueReport, realHedgeMap, pipelineRunId)
-        
+
         // Kiran rebuild hedge map & stress test for revised draft
         realHedgeMap = await kiran.buildHedgeMap(draft, pipelineRunId)
         stressTest = await kiran.runStressTest(draft, pipelineRunId)
-        
+
         draft.hedge_instruments = realHedgeMap
         draft.backtest_summary.scenario_overlay = stressTest
         allDrafts.push(draft)
@@ -385,11 +385,11 @@ export class Dhruv {
         const newSchemeCodes = new Set<string>()
         existingHoldings.forEach((h: any) => { if (h.schemeCode) newSchemeCodes.add(h.schemeCode) })
         draft.fund_allocations.forEach((a: any) => { if (a.scheme_code) newSchemeCodes.add(a.scheme_code) })
-        const newSnapshots = newSchemeCodes.size > 0 
+        const newSnapshots = newSchemeCodes.size > 0
           ? await this.db
-              .select()
-              .from(schema.fundSnapshots)
-              .where(inArray(schema.fundSnapshots.schemeCode, Array.from(newSchemeCodes)))
+            .select()
+            .from(schema.fundSnapshots)
+            .where(inArray(schema.fundSnapshots.schemeCode, Array.from(newSchemeCodes)))
           : []
         for (const snap of newSnapshots) {
           const code = snap.schemeCode || snap.scheme_code
@@ -397,19 +397,19 @@ export class Dhruv {
             fundSnapshots.push(snap)
           }
         }
-        
+
         continue
       }
 
       await this.stateMachine.transition('SEBI_COMPLIANCE', 'DELIBERATION', pipelineRunId)
       realHedgeMap = await kiran.buildHedgeMap(draft, pipelineRunId)
       stressTest = await kiran.runStressTest(draft, pipelineRunId)
-      
+
       draft.hedge_instruments = realHedgeMap
       draft.backtest_summary.scenario_overlay = stressTest
 
       await this.stateMachine.transition('DELIBERATION', 'COMMITTEE_VOTE', pipelineRunId)
-      
+
       const voteRecord = await this.runCommitteeSession(draft, pipelineRunId, sebiReport, strategyFramework)
 
       if (voteRecord.outcome === 'APPROVED') {
@@ -424,12 +424,12 @@ export class Dhruv {
           const schemeCodes = new Set<string>()
           existingHoldings.forEach((h: any) => { if (h.schemeCode) schemeCodes.add(h.schemeCode) })
           draft.fund_allocations.forEach((a: any) => { if (a.scheme_code) schemeCodes.add(a.scheme_code) })
-          
-          const fundSnapshots = schemeCodes.size > 0 
+
+          const fundSnapshots = schemeCodes.size > 0
             ? await this.db
-                .select()
-                .from(schema.fundSnapshots)
-                .where(inArray(schema.fundSnapshots.schemeCode, Array.from(schemeCodes)))
+              .select()
+              .from(schema.fundSnapshots)
+              .where(inArray(schema.fundSnapshots.schemeCode, Array.from(schemeCodes)))
             : []
 
           const atlas = new Atlas(this.db)
@@ -440,12 +440,12 @@ export class Dhruv {
             existingHoldings,
             fundSnapshots
           )
-          
+
           await this.stateMachine.transition('ATLAS_COMPARISON', 'PDF_GENERATION', pipelineRunId)
         } else {
           await this.stateMachine.transition('COMMITTEE_VOTE', 'PDF_GENERATION', pipelineRunId)
         }
-        
+
         // Save final portfolio ID to pipeline_runs
         await this.db
           .update(schema.pipelineRuns)
@@ -472,7 +472,7 @@ export class Dhruv {
         if (cycle >= maxCycles) {
           break
         }
-        
+
         // Revision stage
         await this.stateMachine.transition('COMMITTEE_VOTE', 'REVISION', pipelineRunId)
         await this.db
@@ -489,21 +489,21 @@ export class Dhruv {
 
         // Priya revise
         draft = await priya.revise(draft, critiqueReport, realHedgeMap, pipelineRunId)
-        
+
         // Kiran rebuild hedge map & stress test for revised draft
         realHedgeMap = await kiran.buildHedgeMap(draft, pipelineRunId)
         stressTest = await kiran.runStressTest(draft, pipelineRunId)
-        
+
         draft.hedge_instruments = realHedgeMap
         draft.backtest_summary.scenario_overlay = stressTest
         allDrafts.push(draft)
-        
+
         const isThrashing = await this.stateMachine.checkConvergence(pipelineRunId)
         if (isThrashing) {
           const drafts = await this.db.select().from(schema.portfolioDrafts).where(eq(schema.portfolioDrafts.pipelineRunId, pipelineRunId))
           const trajectoryData = drafts.map((d: any) => ({ version: d.version, confidenceScore: d.confidenceScore }))
           await this.evaluateEarlyDeadlock(trajectoryData, pipelineRunId)
-          
+
           await this.safeDeadlockTransition(pipelineRunId, 'Thrashing detected')
           return this.executeDeadlockProtocol(pipelineRunId, allDrafts, { stage: 'COMMITTEE_VOTE', revisions: cycle, bestDraftId: draft.portfolio_id, bestConfidence: draft.confidence_score.total, riskDisclosures: ['Thrashing detected'] }, { goals: draft.goal_buckets })
         }
@@ -512,7 +512,7 @@ export class Dhruv {
 
     // 10. revision_cycle reaches 5 -> Deadlock
     await this.safeDeadlockTransition(pipelineRunId, 'Max revisions reached')
-    const deadlockReport = await this.executeDeadlockProtocol(pipelineRunId, allDrafts, { stage: 'COMMITTEE_VOTE', revisions: maxCycles, bestDraftId: allDrafts[allDrafts.length-1].portfolio_id, bestConfidence: allDrafts[allDrafts.length-1].confidence_score.total, riskDisclosures: ['Max revisions reached'] }, { goals: allDrafts[allDrafts.length-1].goal_buckets })
+    const deadlockReport = await this.executeDeadlockProtocol(pipelineRunId, allDrafts, { stage: 'COMMITTEE_VOTE', revisions: maxCycles, bestDraftId: allDrafts[allDrafts.length - 1].portfolio_id, bestConfidence: allDrafts[allDrafts.length - 1].confidence_score.total, riskDisclosures: ['Max revisions reached'] }, { goals: allDrafts[allDrafts.length - 1].goal_buckets })
     return deadlockReport
   }
 
@@ -531,7 +531,7 @@ export class Dhruv {
       const riya = new Riya(this.deliberationRoom, this.memoryStore, this.webResearchTool, this.db)
       const fingerprint = await riya.getOrGenerateFingerprint(clientId, pipelineRunId, [])
       await this.stateMachine.transition('RIYA_BEHAVIORAL_PROFILING', 'PROFILING_AND_GOAL_ASSESSMENT', pipelineRunId)
-      
+
       const [riskProfile, interviewQuestions] = await Promise.all([
         kiran.buildClientRiskProfile(
           clientId,
@@ -563,7 +563,7 @@ export class Dhruv {
           }
         })
         .where(eq(schema.pipelineRuns.runId, pipelineRunId))
-      
+
       logger.info({ pipelineRunId }, 'DHRUV: runPhase1 completed successfully')
     } catch (err) {
       logger.error({ err, pipelineRunId }, 'DHRUV: runPhase1 failed')
@@ -704,154 +704,154 @@ export class Dhruv {
         pipelineRunId
       )
 
-    // Fetch existing holdings and fund snapshots for SEBI
-    const existingHoldings = await this.db
-      .select()
-      .from(schema.portfolioHoldings)
-      .where(eq(schema.portfolioHoldings.userId, clientId))
+      // Fetch existing holdings and fund snapshots for SEBI
+      const existingHoldings = await this.db
+        .select()
+        .from(schema.portfolioHoldings)
+        .where(eq(schema.portfolioHoldings.userId, clientId))
 
-    const schemeCodes = new Set<string>()
-    existingHoldings.forEach((h: any) => { if (h.schemeCode) schemeCodes.add(h.schemeCode) })
-    draft.fund_allocations.forEach((a: any) => { if (a.scheme_code) schemeCodes.add(a.scheme_code) })
+      const schemeCodes = new Set<string>()
+      existingHoldings.forEach((h: any) => { if (h.schemeCode) schemeCodes.add(h.schemeCode) })
+      draft.fund_allocations.forEach((a: any) => { if (a.scheme_code) schemeCodes.add(a.scheme_code) })
 
-    const fundSnapshots = schemeCodes.size > 0 
-      ? await this.db
+      const fundSnapshots = schemeCodes.size > 0
+        ? await this.db
           .select()
           .from(schema.fundSnapshots)
           .where(inArray(schema.fundSnapshots.schemeCode, Array.from(schemeCodes)))
-      : []
+        : []
 
-    const [profile] = await this.db
-      .select()
-      .from(schema.userProfile)
-      .where(eq(schema.userProfile.userId, clientId))
-      .limit(1)
+      const [profile] = await this.db
+        .select()
+        .from(schema.userProfile)
+        .where(eq(schema.userProfile.userId, clientId))
+        .limit(1)
 
-    const sebiUserProfile = {
-      age: clientData.age || profile?.age,
-      income: (providedAnswers?.monthly_income_lakh || 2.0) * 12 * 100000,
-      taxBracket: clientData.taxBracketPct || 30
-    }
-
-    const sebi = new Sebi(this.db)
-
-    let realHedgeMap = await kiran.buildHedgeMap(draft, pipelineRunId)
-    let stressTest = await kiran.runStressTest(draft, pipelineRunId)
-    draft.hedge_instruments = realHedgeMap
-    draft.backtest_summary.scenario_overlay = stressTest
-
-    // 9. Committee Voting Loop
-    let cycle = 0
-    const maxCycles = 5
-    const allDrafts: PortfolioDraft[] = [draft]
-    let sebiReport: any = null
-
-    while (cycle < maxCycles) {
-      await this.stateMachine.transition(cycle === 0 ? 'PRIYA_BUILD' : 'REVISION', 'SEBI_COMPLIANCE', pipelineRunId)
-      
-      sebiReport = await sebi.runComplianceCheck({
-        userId: clientId,
-        pipelineRunId,
-        portfolioDraft: draft,
-        existingHoldings,
-        userProfile: sebiUserProfile,
-        fundSnapshots
-      })
-
-      if (!sebiReport.overallCompliant) {
-        cycle++
-        if (cycle >= maxCycles) {
-          break
-        }
-        
-        await this.stateMachine.transition('SEBI_COMPLIANCE', 'REVISION', pipelineRunId)
-        await this.db
-          .update(schema.pipelineRuns)
-          .set({ revisionCycle: cycle })
-          .where(eq(schema.pipelineRuns.runId, pipelineRunId))
-
-        // Create a CritiqueReport representing compliance blocks
-        const critiqueReport: CritiqueReport = {
-          report_id: randomUUID(),
-          pipeline_run_id: pipelineRunId,
-          draft_version: draft.version,
-          critiqued_at: new Date().toISOString(),
-          faults: sebiReport.sebiComplianceFlags
-            .filter(f => f.severity === 'BLOCK')
-            .map(f => ({
-              fault_id: randomUUID(),
-              fault_category: 'OTHER',
-              fault_description: `[SEBI COMPLIANCE BLOCK] Rule: ${f.rule}. Issue: ${f.issue}. Remediation: ${f.remediation}`,
-              evidence_sources: [{ url: 'https://sebi.gov.in', excerpt_summary: f.rule, retrieved_at: new Date().toISOString() }],
-              severity: 'CRITICAL',
-              suggested_remedy: f.remediation,
-              confidence_tier: 'VERIFIED',
-              from_fault_library: false
-            })),
-          critical_count: sebiReport.sebiComplianceFlags.filter(f => f.severity === 'BLOCK').length,
-          major_count: 0,
-          minor_count: 0,
-          observation_count: 0,
-          overall_assessment: 'Portfolio blocked due to SEBI compliance violations.'
-        }
-
-        // Priya revise
-        draft = await priya.revise(draft, critiqueReport, realHedgeMap, pipelineRunId)
-        
-        // Kiran rebuild hedge map & stress test for revised draft
-        realHedgeMap = await kiran.buildHedgeMap(draft, pipelineRunId)
-        stressTest = await kiran.runStressTest(draft, pipelineRunId)
-        
-        draft.hedge_instruments = realHedgeMap
-        draft.backtest_summary.scenario_overlay = stressTest
-        allDrafts.push(draft)
-
-        if (allDrafts.length >= 2) {
-          const currentDraft = allDrafts[allDrafts.length - 1]
-          const previousDraft = allDrafts[allDrafts.length - 2]
-          if (currentDraft.confidence_score.total < 60 && previousDraft.confidence_score.total < 60) {
-            const delta = currentDraft.confidence_score.total - previousDraft.confidence_score.total
-            if (delta <= 0) {
-              await this.stateMachine.transition('REVISION', 'DEADLOCKED', pipelineRunId)
-              await this.evaluateEarlyDeadlock(allDrafts, pipelineRunId)
-              await this.safeDeadlockTransition(pipelineRunId, 'Phase 2 Early deadlock due to confidence trajectory divergence')
-              await this.executeDeadlockProtocol(pipelineRunId, allDrafts, { stage: 'PRIYA_DRAFTING', revisions: cycle, bestDraftId: currentDraft.portfolio_id, bestConfidence: currentDraft.confidence_score.total, riskDisclosures: ['Mathematical impossibility detected. Confidence thrashing.'] }, { goals: currentDraft.goal_buckets })
-              logger.warn({ pipelineRunId }, 'DHRUV: runPhase2 completed with early deadlock')
-              return
-            }
-          }
-        }
-
-        // Update snapshots for new funds if any
-        const newSchemeCodes = new Set<string>()
-        existingHoldings.forEach((h: any) => { if (h.schemeCode) newSchemeCodes.add(h.schemeCode) })
-        draft.fund_allocations.forEach((a: any) => { if (a.scheme_code) newSchemeCodes.add(a.scheme_code) })
-        const newSnapshots = newSchemeCodes.size > 0 
-          ? await this.db
-              .select()
-              .from(schema.fundSnapshots)
-              .where(inArray(schema.fundSnapshots.schemeCode, Array.from(newSchemeCodes)))
-          : []
-        for (const snap of newSnapshots) {
-          const code = snap.schemeCode || snap.scheme_code
-          if (code && !fundSnapshots.some(s => (s.schemeCode || s.scheme_code) === code)) {
-            fundSnapshots.push(snap)
-          }
-        }
-        
-        continue
+      const sebiUserProfile = {
+        age: clientData.age || profile?.age,
+        income: (providedAnswers?.monthly_income_lakh || 2.0) * 12 * 100000,
+        taxBracket: clientData.taxBracketPct || 30
       }
 
-      await this.stateMachine.transition('SEBI_COMPLIANCE', 'DELIBERATION', pipelineRunId)
-      realHedgeMap = await kiran.buildHedgeMap(draft, pipelineRunId)
-      stressTest = await kiran.runStressTest(draft, pipelineRunId)
-      
+      const sebi = new Sebi(this.db)
+
+      let realHedgeMap = await kiran.buildHedgeMap(draft, pipelineRunId)
+      let stressTest = await kiran.runStressTest(draft, pipelineRunId)
       draft.hedge_instruments = realHedgeMap
       draft.backtest_summary.scenario_overlay = stressTest
 
-      await this.stateMachine.transition('DELIBERATION', 'COMMITTEE_VOTE', pipelineRunId)
-      
-      const voteRecord = await this.runCommitteeSession(draft, pipelineRunId, sebiReport, strategyFramework)
+      // 9. Committee Voting Loop
+      let cycle = 0
+      const maxCycles = 5
+      const allDrafts: PortfolioDraft[] = [draft]
+      let sebiReport: any = null
+
+      while (cycle < maxCycles) {
+        await this.stateMachine.transition(cycle === 0 ? 'PRIYA_BUILD' : 'REVISION', 'SEBI_COMPLIANCE', pipelineRunId)
+
+        sebiReport = await sebi.runComplianceCheck({
+          userId: clientId,
+          pipelineRunId,
+          portfolioDraft: draft,
+          existingHoldings,
+          userProfile: sebiUserProfile,
+          fundSnapshots
+        })
+
+        if (!sebiReport.overallCompliant) {
+          cycle++
+          if (cycle >= maxCycles) {
+            break
+          }
+
+          await this.stateMachine.transition('SEBI_COMPLIANCE', 'REVISION', pipelineRunId)
+          await this.db
+            .update(schema.pipelineRuns)
+            .set({ revisionCycle: cycle })
+            .where(eq(schema.pipelineRuns.runId, pipelineRunId))
+
+          // Create a CritiqueReport representing compliance blocks
+          const critiqueReport: CritiqueReport = {
+            report_id: randomUUID(),
+            pipeline_run_id: pipelineRunId,
+            draft_version: draft.version,
+            critiqued_at: new Date().toISOString(),
+            faults: sebiReport.sebiComplianceFlags
+              .filter(f => f.severity === 'BLOCK')
+              .map(f => ({
+                fault_id: randomUUID(),
+                fault_category: 'OTHER',
+                fault_description: `[SEBI COMPLIANCE BLOCK] Rule: ${f.rule}. Issue: ${f.issue}. Remediation: ${f.remediation}`,
+                evidence_sources: [{ url: 'https://sebi.gov.in', excerpt_summary: f.rule, retrieved_at: new Date().toISOString() }],
+                severity: 'CRITICAL',
+                suggested_remedy: f.remediation,
+                confidence_tier: 'VERIFIED',
+                from_fault_library: false
+              })),
+            critical_count: sebiReport.sebiComplianceFlags.filter(f => f.severity === 'BLOCK').length,
+            major_count: 0,
+            minor_count: 0,
+            observation_count: 0,
+            overall_assessment: 'Portfolio blocked due to SEBI compliance violations.'
+          }
+
+          // Priya revise
+          draft = await priya.revise(draft, critiqueReport, realHedgeMap, pipelineRunId)
+
+          // Kiran rebuild hedge map & stress test for revised draft
+          realHedgeMap = await kiran.buildHedgeMap(draft, pipelineRunId)
+          stressTest = await kiran.runStressTest(draft, pipelineRunId)
+
+          draft.hedge_instruments = realHedgeMap
+          draft.backtest_summary.scenario_overlay = stressTest
+          allDrafts.push(draft)
+
+          if (allDrafts.length >= 2) {
+            const currentDraft = allDrafts[allDrafts.length - 1]
+            const previousDraft = allDrafts[allDrafts.length - 2]
+            if (currentDraft.confidence_score.total < 60 && previousDraft.confidence_score.total < 60) {
+              const delta = currentDraft.confidence_score.total - previousDraft.confidence_score.total
+              if (delta <= 0) {
+                await this.stateMachine.transition('REVISION', 'DEADLOCKED', pipelineRunId)
+                await this.evaluateEarlyDeadlock(allDrafts, pipelineRunId)
+                await this.safeDeadlockTransition(pipelineRunId, 'Phase 2 Early deadlock due to confidence trajectory divergence')
+                await this.executeDeadlockProtocol(pipelineRunId, allDrafts, { stage: 'PRIYA_DRAFTING', revisions: cycle, bestDraftId: currentDraft.portfolio_id, bestConfidence: currentDraft.confidence_score.total, riskDisclosures: ['Mathematical impossibility detected. Confidence thrashing.'] }, { goals: currentDraft.goal_buckets })
+                logger.warn({ pipelineRunId }, 'DHRUV: runPhase2 completed with early deadlock')
+                return
+              }
+            }
+          }
+
+          // Update snapshots for new funds if any
+          const newSchemeCodes = new Set<string>()
+          existingHoldings.forEach((h: any) => { if (h.schemeCode) newSchemeCodes.add(h.schemeCode) })
+          draft.fund_allocations.forEach((a: any) => { if (a.scheme_code) newSchemeCodes.add(a.scheme_code) })
+          const newSnapshots = newSchemeCodes.size > 0
+            ? await this.db
+              .select()
+              .from(schema.fundSnapshots)
+              .where(inArray(schema.fundSnapshots.schemeCode, Array.from(newSchemeCodes)))
+            : []
+          for (const snap of newSnapshots) {
+            const code = snap.schemeCode || snap.scheme_code
+            if (code && !fundSnapshots.some(s => (s.schemeCode || s.scheme_code) === code)) {
+              fundSnapshots.push(snap)
+            }
+          }
+
+          continue
+        }
+
+        await this.stateMachine.transition('SEBI_COMPLIANCE', 'DELIBERATION', pipelineRunId)
+        realHedgeMap = await kiran.buildHedgeMap(draft, pipelineRunId)
+        stressTest = await kiran.runStressTest(draft, pipelineRunId)
+
+        draft.hedge_instruments = realHedgeMap
+        draft.backtest_summary.scenario_overlay = stressTest
+
+        await this.stateMachine.transition('DELIBERATION', 'COMMITTEE_VOTE', pipelineRunId)
+
+        const voteRecord = await this.runCommitteeSession(draft, pipelineRunId, sebiReport, strategyFramework)
 
         if (voteRecord.outcome === 'APPROVED') {
           const existingHoldings = await this.db
@@ -865,12 +865,12 @@ export class Dhruv {
             const schemeCodes = new Set<string>()
             existingHoldings.forEach((h: any) => { if (h.schemeCode) schemeCodes.add(h.schemeCode) })
             draft.fund_allocations.forEach((a: any) => { if (a.scheme_code) schemeCodes.add(a.scheme_code) })
-            
-            const fundSnapshots = schemeCodes.size > 0 
+
+            const fundSnapshots = schemeCodes.size > 0
               ? await this.db
-                  .select()
-                  .from(schema.fundSnapshots)
-                  .where(inArray(schema.fundSnapshots.schemeCode, Array.from(schemeCodes)))
+                .select()
+                .from(schema.fundSnapshots)
+                .where(inArray(schema.fundSnapshots.schemeCode, Array.from(schemeCodes)))
               : []
 
             const atlas = new Atlas(this.db)
@@ -881,12 +881,12 @@ export class Dhruv {
               existingHoldings,
               fundSnapshots
             )
-            
+
             await this.stateMachine.transition('ATLAS_COMPARISON', 'PDF_GENERATION', pipelineRunId)
           } else {
             await this.stateMachine.transition('COMMITTEE_VOTE', 'PDF_GENERATION', pipelineRunId)
           }
-          
+
           await this.db
             .update(schema.pipelineRuns)
             .set({ finalPortfolioId: draft.portfolio_id, completedAt: new Date() })
@@ -913,7 +913,7 @@ export class Dhruv {
           if (cycle >= maxCycles) {
             break
           }
-          
+
           await this.stateMachine.transition('COMMITTEE_VOTE', 'REVISION', pipelineRunId)
           await this.db
             .update(schema.pipelineRuns)
@@ -927,10 +927,10 @@ export class Dhruv {
           )
 
           draft = await priya.revise(draft, critiqueReport, realHedgeMap, pipelineRunId)
-          
+
           realHedgeMap = await kiran.buildHedgeMap(draft, pipelineRunId)
           stressTest = await kiran.runStressTest(draft, pipelineRunId)
-          
+
           draft.hedge_instruments = realHedgeMap
           draft.backtest_summary.scenario_overlay = stressTest
           allDrafts.push(draft)
@@ -955,7 +955,7 @@ export class Dhruv {
 
       // 10. revision_cycle reaches 5 -> Deadlock
       await this.safeDeadlockTransition(pipelineRunId, 'Phase 2 Max revisions reached')
-      await this.executeDeadlockProtocol(pipelineRunId, allDrafts, { stage: 'COMMITTEE_VOTE', revisions: maxCycles, bestDraftId: allDrafts[allDrafts.length-1].portfolio_id, bestConfidence: allDrafts[allDrafts.length-1].confidence_score.total, riskDisclosures: ['Max revisions reached'] }, { goals: allDrafts[allDrafts.length-1].goal_buckets })
+      await this.executeDeadlockProtocol(pipelineRunId, allDrafts, { stage: 'COMMITTEE_VOTE', revisions: maxCycles, bestDraftId: allDrafts[allDrafts.length - 1].portfolio_id, bestConfidence: allDrafts[allDrafts.length - 1].confidence_score.total, riskDisclosures: ['Max revisions reached'] }, { goals: allDrafts[allDrafts.length - 1].goal_buckets })
       logger.warn({ pipelineRunId }, 'DHRUV: runPhase2 completed with deadlock')
     } catch (err) {
       logger.error({ err, pipelineRunId }, 'DHRUV: runPhase2 failed')
@@ -986,7 +986,7 @@ export class Dhruv {
     // Run evaluations in parallel
     const aria = new Aria(this.deliberationRoom, this.memoryStore, new WebResearchTool('ARIA', this.memoryStore, this.deliberationRoom), this.db)
     const kiran = new Kiran(this.deliberationRoom, this.memoryStore, new WebResearchTool('KIRAN', this.memoryStore, this.deliberationRoom), this.db)
-    
+
     const [critiqueReport, hedgeMap] = await Promise.all([
       aria.critiquePortfolioDraft(draft, { message_id: draft.portfolio_id, client_id: draft.client_id }, pipelineRunId, complianceReport),
       kiran.buildHedgeMap(draft, pipelineRunId)
@@ -996,9 +996,8 @@ export class Dhruv {
     const votes: { voter: 'ARIA' | 'KIRAN' | 'VIKRAM' | 'DHRUV'; vote: 'APPROVE' | 'REJECT'; reasoning: string }[] = []
 
     // 1. ARIA vote
-    const { deriveARIAVote } from './aria'
     const ariaDecision = deriveARIAVote(critiqueReport.faults)
-    
+
     votes.push({
       voter: 'ARIA',
       vote: ariaDecision.vote,
@@ -1165,30 +1164,30 @@ Analyze the objection and voting history across the revision cycles to determine
 
 Vote Records History (Ordered chronologically):
 ${JSON.stringify(
-  voteRecords.map(r => ({
-    voter: r.voter,
-    vote: r.vote,
-    reasoning: r.reasoning,
-    critical_faults_count: r.criticalFaultsCount,
-    hedge_coverage_pct: r.hedgeCoveragePct,
-    voted_at: r.votedAt
-  })),
-  null,
-  2
-)}
+        voteRecords.map(r => ({
+          voter: r.voter,
+          vote: r.vote,
+          reasoning: r.reasoning,
+          critical_faults_count: r.criticalFaultsCount,
+          hedge_coverage_pct: r.hedgeCoveragePct,
+          voted_at: r.votedAt
+        })),
+        null,
+        2
+      )}
 
 Deliberation Critique Messages:
 ${JSON.stringify(
-  critiqueMessages.map(m => ({
-    sender: m.sender,
-    objections: m.payload.critique_points,
-    severity: m.payload.severity,
-    recommended_action: m.payload.recommended_action,
-    timestamp: m.timestamp
-  })),
-  null,
-  2
-)}
+        critiqueMessages.map(m => ({
+          sender: m.sender,
+          objections: m.payload.critique_points,
+          severity: m.payload.severity,
+          recommended_action: m.payload.recommended_action,
+          timestamp: m.timestamp
+        })),
+        null,
+        2
+      )}
 
 Portfolio Drafts Evaluated (with total confidence scores):
 ${JSON.stringify(draftsSummary, null, 2)}
@@ -1310,9 +1309,9 @@ CRITICAL RULE:
       directive,
       triggerStage: trigger.stage,
       triggerReason: trigger.stage === 'SEBI_COMPLIANCE' ? trigger.complianceBlockReason :
-                     trigger.stage === 'ARIA_CRITIQUE' ? trigger.persistentFaultCategory :
-                     trigger.stage === 'PRIYA_DRAFTING' ? trigger.impossibilityReason :
-                     trigger.stage === 'ARIA_PREFLIGHT' ? trigger.impossibilityReason : 'COMMITTEE_VOTE_NO_QUORUM',
+        trigger.stage === 'ARIA_CRITIQUE' ? trigger.persistentFaultCategory :
+          trigger.stage === 'PRIYA_DRAFTING' ? trigger.impossibilityReason :
+            trigger.stage === 'ARIA_PREFLIGHT' ? trigger.impossibilityReason : 'COMMITTEE_VOTE_NO_QUORUM',
       revisionCyclesAtDeadlock: trigger.stage === 'ARIA_PREFLIGHT' ? 0 : trigger.revisions,
       bestDraftId: bestDraft ? bestDraft.portfolio_id : null,
       bestDraftConfidence: bestDraft ? bestDraft.confidence_score.total : null,
@@ -1374,9 +1373,9 @@ ${JSON.stringify(goalAssessment.stated_goals, null, 2)}
       max_tokens: 600,
       temperature: 0.2
     })
-    
+
     let execSummary = response.choices[0]?.message?.content?.trim() || 'Your custom portfolio recommendation is ready.'
-    
+
     // Safety check on word count
     const words = execSummary.split(/\s+/).filter(Boolean)
     if (words.length > 500) {
@@ -1537,7 +1536,7 @@ ${JSON.stringify(goalAssessment.stated_goals, null, 2)}
 
   async evaluateEarlyDeadlock(trajectoryData: any[], pipelineRunId: string): Promise<void> {
     logger.warn({ pipelineRunId, trajectoryData }, 'DHRUV: Early deadlock evaluation triggered due to diverging confidence trajectory')
-    
+
     auditTrail.log({
       pipeline_run_id: pipelineRunId,
       agent_id: 'DHRUV',
@@ -1572,7 +1571,7 @@ export async function resolveVote(
 
     const approves = castVotes.filter(v => v.vote === 'APPROVE').length;
     const rejects = castVotes.filter(v => v.vote === 'REJECT').length;
-    
+
     if (approves >= 2 || (castVotes.length === 2 && approves === 2)) {
       return { outcome: 'APPROVED', outcomeReason: `Approved by majority (${approves} approvals, ${rejects} rejections).` };
     }

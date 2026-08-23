@@ -2,21 +2,41 @@ import { NextResponse } from 'next/server'
 import { sql } from 'drizzle-orm'
 import { ok, err } from '@/lib/contracts/error-envelope'
 import { db } from '@/lib/db'
-import { getGpt4oMini, getEmbedding } from '@/lib/azure-openai'
 
+export type HealthCheckResult = {
+  ok: true
+  data: {
+    status: 'healthy'
+    checks: {
+      db: boolean
+      vector: boolean | null
+    }
+  }
+}
+
+export type HealthCheckError = {
+  ok: false
+  error: {
+    code: string
+    message: string
+    details?: unknown
+    request_id: string
+  }
+}
+
+/**
+ * GET /api/health
+ *
+ * Lightweight liveness/readiness probe. It pings the database and, if
+ * QDRANT_URL is configured, attempts a cheap vector endpoint check.
+ * It deliberately does NOT call any LLM, so it is safe for load balancers.
+ */
 export async function GET() {
   const checks = {
     db: false,
-    azure_chat: false,
-    azure_embedding: false,
-    region: 'unknown',
+    vector: null as boolean | null,
   }
   const errors: string[] = []
-
-  try {
-    const endpoint = process.env.AZURE_OPENAI_ENDPOINT
-    if (endpoint) checks.region = new URL(endpoint).hostname
-  } catch { }
 
   try {
     await db.execute(sql`SELECT 1`)
@@ -25,28 +45,23 @@ export async function GET() {
     errors.push(`db: ${e instanceof Error ? e.message : String(e)}`)
   }
 
-  try {
-    const deployment = process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O_MINI ?? 'gpt-4o-mini'
-    const client = getGpt4oMini()
-    const response = await client.chat.completions.create({
-      model: deployment,
-      messages: [{ role: 'user', content: 'respond with OK' }],
-      max_tokens: 10,
-    })
-    if (response.choices[0]?.message?.content) checks.azure_chat = true
-  } catch (e) {
-    errors.push(`azure_chat: ${e instanceof Error ? e.message : String(e)}`)
+  const qdrantUrl = process.env.QDRANT_URL
+  if (qdrantUrl) {
+    try {
+      // Cheap, read-only endpoint to verify Qdrant connectivity.
+      const res = await fetch(`${qdrantUrl}/collections`, { method: 'GET' })
+      checks.vector = res.ok
+      if (!res.ok) {
+        errors.push(`vector: qdrant responded ${res.status}`)
+      }
+    } catch (e) {
+      checks.vector = false
+      errors.push(`vector: ${e instanceof Error ? e.message : String(e)}`)
+    }
   }
 
-  try {
-    const vector = await getEmbedding('test')
-    if (vector.length === 3072) checks.azure_embedding = true
-  } catch (e) {
-    errors.push(`azure_embedding: ${e instanceof Error ? e.message : String(e)}`)
-  }
-
-  if (checks.db && checks.azure_chat && checks.azure_embedding) {
-    return NextResponse.json(ok(checks))
+  if (checks.db) {
+    return NextResponse.json(ok({ status: 'healthy', checks }))
   }
 
   return NextResponse.json(

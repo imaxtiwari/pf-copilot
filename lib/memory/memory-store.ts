@@ -73,13 +73,29 @@ class MockQdrantClient {
   }
 }
 
+function isProduction(): boolean {
+  return process.env.NODE_ENV === 'production'
+}
+
 function makeQdrantClient() {
+  if (isProduction() && process.env.MOCK_LLM === 'true') {
+    throw new Error(
+      'Mock Qdrant client selection attempted in production. ' +
+      'QDRANT_URL must be configured and MOCK_LLM must not be true in production.',
+    )
+  }
   if (process.env.MOCK_LLM === 'true' && process.env.VITEST !== 'true') {
     logger.info('AgentMemoryStore: Initialising mock Qdrant client')
     return new MockQdrantClient() as any
   }
+  const qdrantUrl = process.env.QDRANT_URL || 'http://localhost:6333'
+  if (isProduction() && qdrantUrl === 'http://localhost:6333') {
+    throw new Error(
+      'QDRANT_URL is not configured in production. Set QDRANT_URL to a real Qdrant endpoint.',
+    )
+  }
   return new QdrantClient({
-    url: process.env.QDRANT_URL || 'http://localhost:6333'
+    url: qdrantUrl,
   })
 }
 
@@ -152,15 +168,15 @@ export async function initQdrant() {
 }
 
 export class AgentMemoryStore {
-  
+
   private computeStatus(entry: MemoryEntry): { newStatus: MemoryStatus, changed: boolean } {
     if (entry.ttl_days === Infinity) {
       return { newStatus: 'ACTIVE', changed: entry.status !== 'ACTIVE' }
     }
-    
+
     const ageMs = Date.now() - new Date(entry.created_at).getTime()
     const ageDays = ageMs / (1000 * 60 * 60 * 24)
-    
+
     let newStatus: MemoryStatus = 'ACTIVE'
     if (ageDays >= entry.ttl_days * 3) {
       newStatus = 'ARCHIVED'
@@ -184,7 +200,7 @@ export class AgentMemoryStore {
     const vector = await getEmbedding(summary)
     const id = randomUUID()
     const now = new Date().toISOString()
-    
+
     const payload: MemoryEntry = {
       payload: entry.content,
       _key: key,
@@ -201,7 +217,7 @@ export class AgentMemoryStore {
       created_at: now,
       pipeline_run_id: entry.pipeline_run_id
     }
-    
+
     await qdrant.upsert(`agent_memory_${agentId.toLowerCase()}`, {
       wait: true,
       points: [{ id, vector, payload: payload as unknown as Record<string, unknown> }]
@@ -234,7 +250,7 @@ export class AgentMemoryStore {
     for (const res of results) {
       const payload = res.payload as unknown as MemoryEntry
       const { newStatus, changed } = this.computeStatus(payload)
-      
+
       if (changed) {
         payload.status = newStatus
         pointsToUpdate.push({ id: res.id, status: newStatus })
@@ -250,7 +266,7 @@ export class AgentMemoryStore {
 
     if (pointsToUpdate.length > 0) {
       // Lazy background update
-      Promise.all(pointsToUpdate.map(update => 
+      Promise.all(pointsToUpdate.map(update =>
         qdrant.setPayload(collectionName, {
           points: [update.id],
           payload: { status: update.status }
@@ -281,7 +297,7 @@ export class AgentMemoryStore {
     const vector = await getEmbedding(summary)
     const id = randomUUID()
     const now = new Date().toISOString()
-    
+
     const payload: MemoryEntry = {
       payload: entry.content,
       _key: key,
@@ -298,7 +314,7 @@ export class AgentMemoryStore {
       created_at: now,
       pipeline_run_id: entry.pipeline_run_id
     }
-    
+
     await qdrant.upsert('knowledge_commons', {
       wait: true,
       points: [{ id, vector, payload: payload as unknown as Record<string, unknown> }]
@@ -330,7 +346,7 @@ export class AgentMemoryStore {
     for (const res of results) {
       const payload = res.payload as unknown as MemoryEntry
       const { newStatus, changed } = this.computeStatus(payload)
-      
+
       if (changed) {
         payload.status = newStatus
         pointsToUpdate.push({ id: res.id, status: newStatus })
@@ -345,7 +361,7 @@ export class AgentMemoryStore {
     }
 
     if (pointsToUpdate.length > 0) {
-      Promise.all(pointsToUpdate.map(update => 
+      Promise.all(pointsToUpdate.map(update =>
         qdrant.setPayload('knowledge_commons', {
           points: [update.id],
           payload: { status: update.status }
@@ -366,16 +382,16 @@ export class AgentMemoryStore {
   async getStaleEntries(agentId: AgentId): Promise<MemoryEntry[]> {
     const collectionName = `agent_memory_${agentId.toLowerCase()}`
     const stale: MemoryEntry[] = []
-    
+
     let next_page_offset: string | number | undefined = undefined;
-    
+
     do {
       const res = await qdrant.scroll(collectionName, {
         limit: 100,
         offset: next_page_offset,
         with_payload: true
       })
-      
+
       for (const point of res.points) {
         const payload = point.payload as unknown as MemoryEntry
         const { newStatus } = this.computeStatus(payload)
@@ -383,7 +399,7 @@ export class AgentMemoryStore {
           stale.push(payload)
         }
       }
-      
+
       next_page_offset = res.next_page_offset as string | number | undefined
     } while (next_page_offset !== null && next_page_offset !== undefined)
 
