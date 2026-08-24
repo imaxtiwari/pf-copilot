@@ -2,7 +2,8 @@ import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { runOrchestratorWithEvents, CostBudgetExceededError } from '@/lib/orchestrator'
 import { buildWorkspaceState } from '@/lib/agent-mapping'
-import { resolveOrCreateUserId, COOKIE_NAME, cookieOptions } from '@/lib/auth/dev-user'
+import { getCurrentUser } from '@/lib/auth/dev-user'
+import { unauthorizedResponse } from '@/lib/auth/errors'
 import { db } from '@/lib/db'
 import * as schema from '@/db/schema'
 import type { SupportedLanguage } from '@/lib/rag/explain-fund'
@@ -79,7 +80,9 @@ function sseLine(event: string, data: unknown): string {
 }
 
 export async function POST(req: NextRequest) {
-    const { userId, isNew } = await resolveOrCreateUserId()
+    const user = await getCurrentUser()
+    if (!user) return unauthorizedResponse()
+    const userId = user.userId
 
     // Per-user rate limit: 20 chat messages per minute.
     const userLimit = await rateLimit(req, { key: 'chat:user', limit: 20, window: 60, identifier: `user:${userId}` })
@@ -197,17 +200,6 @@ export async function POST(req: NextRequest) {
         'Cache-Control': 'no-cache, no-transform',
         Connection: 'keep-alive',
     })
-    if (isNew) {
-        const opts = cookieOptions()
-        const flags = [
-            `HttpOnly=${opts.httpOnly}`,
-            `SameSite=${opts.sameSite}`,
-            `Secure=${opts.secure}`,
-            `Path=${opts.path}`,
-            `Max-Age=${opts.maxAge}`,
-        ]
-        headers.append('Set-Cookie', `${COOKIE_NAME}=${userId}; ${flags.join('; ')}`)
-    }
 
     return new Response(stream, { headers })
 }

@@ -4,7 +4,8 @@ import { z } from 'zod'
 import { db } from '@/lib/db'
 import * as schema from '@/db/schema'
 import { ok, err } from '@/lib/contracts/error-envelope'
-import { resolveOrCreateUserId, COOKIE_NAME, cookieOptions } from '@/lib/auth/dev-user'
+import { getCurrentUser } from '@/lib/auth/dev-user'
+import { unauthorizedResponse } from '@/lib/auth/errors'
 import { runOrchestrator, CostBudgetExceededError } from '@/lib/orchestrator'
 import { buildWorkspaceState } from '@/lib/agent-mapping'
 import type { SupportedLanguage } from '@/lib/rag/explain-fund'
@@ -18,7 +19,9 @@ export const maxDuration = 30
 // ── GET /api/chat — return recent message history ─────────────────────────────
 
 export async function GET() {
-  const { userId, isNew } = await resolveOrCreateUserId()
+  const user = await getCurrentUser()
+  if (!user) return unauthorizedResponse()
+  const userId = user.userId
 
   const rows = await db
     .select({
@@ -50,9 +53,7 @@ export async function GET() {
       request_id: r.requestId,
     }))
 
-  const response = NextResponse.json(ok({ messages }))
-  if (isNew) response.cookies.set(COOKIE_NAME, userId, cookieOptions())
-  return response
+  return NextResponse.json(ok({ messages }))
 }
 
 // ── POST /api/chat — send a message, run orchestrator ─────────────────────────
@@ -63,7 +64,9 @@ const ChatRequestSchema = z.object({
 })
 
 export async function POST(req: NextRequest) {
-  const { userId, isNew } = await resolveOrCreateUserId()
+  const user = await getCurrentUser()
+  if (!user) return unauthorizedResponse()
+  const userId = user.userId
 
   // Per-user rate limit: 20 chat messages per minute.
   const userLimit = await rateLimit(req, { key: 'chat:user', limit: 20, window: 60, identifier: `user:${userId}` })
@@ -114,7 +117,6 @@ export async function POST(req: NextRequest) {
       }),
       { status: 200 },
     )
-    if (isNew) response.cookies.set(COOKIE_NAME, userId, cookieOptions())
     return response
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)

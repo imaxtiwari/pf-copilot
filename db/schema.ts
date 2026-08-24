@@ -41,9 +41,13 @@ export const users = pgTable(
   'users',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    legacyUserId: uuid('legacy_user_id'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
-  (table) => [index('users_created_at_idx').on(table.createdAt)],
+  (table) => [
+    index('users_created_at_idx').on(table.createdAt),
+    uniqueIndex('users_legacy_user_id_idx').on(table.legacyUserId),
+  ],
 )
 
 export const userProfile = pgTable(
