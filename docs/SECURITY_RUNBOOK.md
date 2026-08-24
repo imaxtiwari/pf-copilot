@@ -147,3 +147,26 @@ Redaction replaces the value with `[REDACTED]`. Add new fields to the redaction 
 The application no longer triggers `/api/scheduler` from `app/layout.tsx`. On Vercel, the scheduler is invoked by a Cron declaration in `vercel.json`.
 
 If the scheduler route is removed in the future, delete the corresponding `crons` entry from `vercel.json`.
+
+---
+
+## 7. Trade-off Analysis
+
+### 7.1 Polling health check vs push-based health metrics
+
+| Approach | Pros | Cons |
+|---|---|---|
+| **Polling (`/api/health`)** | Simple to configure on any load balancer or uptime monitor; works out of the box on Vercel/Kubernetes; cheap to implement. | Adds request load; only tells you the probe interval saw health. |
+| **Push-based metrics** | Rich telemetry, trends, and alerts; no probe traffic; ideal for observability platforms. | Requires an agent/collector and separate alerting setup; more infrastructure. |
+
+`/api/health` uses a cheap DB ping (and an optional lightweight vector check) because liveness/readiness probes do not need business-level telemetry. A failed DB ping means the app cannot serve requests, which is exactly what a load balancer needs to know. Push-based metrics are recommended as a complement, not a replacement, for probe endpoints.
+
+### 7.2 Compile-time mock removal vs runtime guard
+
+| Approach | Pros | Cons |
+|---|---|---|
+| **Compile-time removal** (e.g. `if (process.env.NODE_ENV === 'production')` tree-shaken by bundler) | Guarantees mock code is absent from production bundles; smallest attack surface. | Harder to test; must build separately for each environment; less explicit failure mode if misconfigured. |
+| **Runtime guard** | Fails loudly in production with a clear error; keeps local/test mock behavior intact; easier to verify with unit tests. | Mock code is still present in the bundle (though unreachable). |
+
+We use runtime guards because they give a deterministic, testable failure when production is misconfigured, while preserving the local developer experience. The guards throw immediately on mock selection so the failure cannot be silently ignored.
+

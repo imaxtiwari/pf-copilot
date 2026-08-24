@@ -127,7 +127,7 @@ function createLazyQdrantClient(): QdrantClientLike {
       if (!client) {
         client = makeQdrantClient()
       }
-      const value = (client as Record<string | symbol, unknown>)[prop]
+      const value = (client as unknown as Record<string | symbol, unknown>)[prop]
       return typeof value === 'function' ? (value as (...args: unknown[]) => unknown).bind(client) : value
     },
   })
