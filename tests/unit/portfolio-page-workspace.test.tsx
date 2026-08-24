@@ -22,10 +22,8 @@ vi.mock('@/lib/db', () => ({ db: mockState.db }))
 vi.mock('@/lib/portfolio/insights', () => ({ getLatestInsight: mockState.getLatestInsight }))
 vi.mock('@/lib/portfolio/get-allocation', () => ({ getAllocationForUser: mockState.getAllocationForUser }))
 
-vi.mock('next/headers', () => ({
-    cookies: vi.fn(async () => ({
-        get: vi.fn((name: string) => (name === 'pf_user_id' ? { value: 'user-123' } : undefined)),
-    })),
+vi.mock('@/lib/auth/dev-user', () => ({
+    getCurrentUser: vi.fn().mockResolvedValue({ userId: 'user-123', isNew: false }),
 }))
 
 function mockHoldingRows(rows: Array<{

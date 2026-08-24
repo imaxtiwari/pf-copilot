@@ -9,8 +9,8 @@ const MAX_BYTES = 10 * 1024 * 1024 // 10 MB
 
 export async function POST(req: NextRequest) {
     const user = await getCurrentUser()
-  if (!user) return unauthorizedResponse()
-  const userId = user.userId
+    if (!user) return unauthorizedResponse()
+    const userId = user.userId
 
     const contentType = req.headers.get('content-type') ?? ''
     if (!contentType.includes('multipart/form-data')) {

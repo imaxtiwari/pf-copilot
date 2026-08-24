@@ -15,9 +15,7 @@ vi.mock('@/lib/db', () => ({
 }))
 
 vi.mock('@/lib/auth/dev-user', () => ({
-    resolveOrCreateUserId: vi.fn().mockResolvedValue({ userId: 'test-user', isNew: false }),
-    COOKIE_NAME: 'pf_user',
-    cookieOptions: () => ({}),
+    getCurrentUser: vi.fn().mockResolvedValue({ userId: 'test-user', isNew: false }),
 }))
 
 const mockedRunOrchestrator = vi.mocked(runOrchestrator)

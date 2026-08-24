@@ -9,8 +9,8 @@ import { unauthorizedResponse } from '@/lib/auth/errors'
 export async function GET() {
   try {
     const user = await getCurrentUser()
-  if (!user) return unauthorizedResponse()
-  const userId = user.userId
+    if (!user) return unauthorizedResponse()
+    const userId = user.userId
 
     const holdings = await db
       .select({

@@ -26,8 +26,8 @@ const OnboardingSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const user = await getCurrentUser()
-  if (!user) return unauthorizedResponse()
-  const userId = user.userId
+    if (!user) return unauthorizedResponse()
+    const userId = user.userId
 
     const body = await req.json().catch(() => null)
     if (!body) {
@@ -86,11 +86,7 @@ export async function POST(req: NextRequest) {
 
     logger.info({ userId, rate: inflation.rate, confidence: inflation.confidence }, 'onboarding completed')
 
-    const response = NextResponse.json(ok({ userId, inflation }))
-    if (isNew) {
-      response.cookies.set(COOKIE_NAME, userId, cookieOptions())
-    }
-    return response
+    return NextResponse.json(ok({ userId, inflation }))
   } catch (e) {
     logger.error({ err: e }, 'onboarding: database error')
     return NextResponse.json(

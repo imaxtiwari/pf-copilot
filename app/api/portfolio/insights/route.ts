@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { COOKIE_NAME } from '@/lib/auth/dev-user'
+import { getCurrentUser } from '@/lib/auth/dev-user'
+import { unauthorizedResponse } from '@/lib/auth/errors'
 import { generateInsight, persistInsight, getLatestInsight } from '@/lib/portfolio/insights'
 
 export type InsightsApiResponse =
@@ -16,15 +16,9 @@ export type InsightsApiResponse =
  */
 export async function GET() {
     try {
-        const cookieStore = await cookies()
-        const userId = cookieStore.get(COOKIE_NAME)?.value
-
-        if (!userId) {
-            return NextResponse.json(
-                { ok: false, error: { code: 'UNAUTHORIZED', message: 'no session' } },
-                { status: 401 },
-            ) as NextResponse<InsightsApiResponse>
-        }
+        const user = await getCurrentUser()
+        if (!user) return unauthorizedResponse() as NextResponse<InsightsApiResponse>
+        const userId = user.userId
 
         let insight = await getLatestInsight(userId)
 

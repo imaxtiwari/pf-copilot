@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as fs from 'fs'
 import * as path from 'path'
-import { resolveOrCreateUserId } from '@/lib/auth/dev-user'
+import { getCurrentUser } from '@/lib/auth/dev-user'
+import { unauthorizedResponse } from '@/lib/auth/errors'
 import logger from '@/lib/logger'
 
 export async function GET(req: NextRequest) {
   try {
     // Authenticate user
-    await resolveOrCreateUserId()
+    const user = await getCurrentUser()
+    if (!user) return unauthorizedResponse()
 
     const filePath = path.join(process.cwd(), 'data', 'macro-bulletin.json')
     if (fs.existsSync(filePath)) {

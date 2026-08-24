@@ -19,15 +19,7 @@ export type ChatAuditChunkApiResponse =
 export async function GET(req: Request) {
     try {
         const user = await getCurrentUser()
-  if (!user) return unauthorizedResponse()
-  const userId = user.userId
-
-        if (!userId) {
-            return NextResponse.json(
-                err('UNAUTHORIZED', 'no session'),
-                { status: 401 },
-            ) as NextResponse<ChatAuditChunkApiResponse>
-        }
+        if (!user) return unauthorizedResponse()
 
         const url = new URL(req.url)
         const id = url.searchParams.get('id')

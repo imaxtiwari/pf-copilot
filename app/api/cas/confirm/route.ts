@@ -29,8 +29,8 @@ const ConfirmPayloadSchema = z.object({
 
 export async function POST(req: NextRequest) {
     const user = await getCurrentUser()
-  if (!user) return unauthorizedResponse()
-  const userId = user.userId
+    if (!user) return unauthorizedResponse()
+    const userId = user.userId
 
     let body: unknown
     try {

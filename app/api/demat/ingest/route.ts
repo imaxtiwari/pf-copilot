@@ -12,8 +12,8 @@ const MAX_BYTES = 10 * 1024 * 1024 // 10 MB
 
 export async function POST(req: NextRequest) {
     const user = await getCurrentUser()
-  if (!user) return unauthorizedResponse()
-  const userId = user.userId
+    if (!user) return unauthorizedResponse()
+    const userId = user.userId
 
     // Per-user upload rate limit: 5 CAS/Demat uploads per hour.
     const uploadLimit = await rateLimit(req, { key: 'upload:user', limit: 5, window: 3600, identifier: `user:${userId}` })

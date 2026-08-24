@@ -1,9 +1,9 @@
-import { cookies } from 'next/headers'
 import { eq, desc, sql } from 'drizzle-orm'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import * as schema from '@/db/schema'
-import { COOKIE_NAME } from '@/lib/auth/dev-user'
+import { getCurrentUser } from '@/lib/auth/dev-user'
 import { computeRealReturns } from '@/lib/inflation/real-returns'
 import { computePersonalInflation } from '@/lib/inflation/compute'
 import { RealVsNominal } from '@/components/real-vs-nominal'
@@ -23,29 +23,14 @@ import type { InflationConfidence } from '@/lib/validation/schemas'
 // ── page ──────────────────────────────────────────────────────────────────────
 
 export default async function PortfolioPage() {
-  const cookieStore = await cookies()
-  const userId = cookieStore.get(COOKIE_NAME)?.value
+  const user = await getCurrentUser()
 
   // ── no session ──────────────────────────────────────────────────────────────
-  if (!userId) {
-    return (
-      <main className="mx-auto max-w-3xl px-4 py-16 text-center">
-        <div className="text-4xl">📊</div>
-        <h1 className="mt-4 text-2xl font-bold tracking-tight text-gray-900">
-          Your real returns view
-        </h1>
-        <p className="mt-2 text-gray-500">
-          Upload your CAS to see how your portfolio performs after personal inflation.
-        </p>
-        <Link
-          href="/portfolio/upload"
-          className="mt-6 inline-block rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white hover:bg-indigo-700"
-        >
-          Upload CAS PDF →
-        </Link>
-      </main>
-    )
+  if (!user) {
+    redirect('/login')
   }
+
+  const userId = user.userId
 
   // ── fetch holdings ──────────────────────────────────────────────────────────
   const holdingRows = await db

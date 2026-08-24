@@ -150,6 +150,65 @@ If the scheduler route is removed in the future, delete the corresponding `crons
 
 ---
 
+## 8. Authentication & Authorization
+
+### 8.1 Identity Provider
+
+PF Copilot uses **Supabase Auth** (GoTrue) for identity. Session cookies are managed by `@supabase/ssr` and are bound to the request lifecycle.
+
+Required environment variables:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` (server-only, for admin operations if needed)
+
+See `docs/AUTH_DECISION.md` for the provider comparison and rationale.
+
+### 8.2 Row Level Security (RLS)
+
+All user-scoped tables have RLS enabled with policies that allow only `auth.uid() = user_id`:
+
+- `cas_uploads`
+- `portfolio_holdings`
+- `portfolio_snapshots`
+- `chat_messages`
+- `demat_holdings`
+- `portfolio_insights`
+- `user_profile`
+
+Production code should rely on `lib/db.ts` → `withAuthContext(userId, callback)` or on the Supabase Data API (PostgREST) so that RLS policies are evaluated. Application-level ownership checks (`lib/auth/authorization.ts`) are used for early failure and clearer error messages.
+
+### 8.3 Legacy user migration
+
+The `users.legacy_user_id` column stores the old dev UUID. After a user signs in via Supabase for the first time, call `linkLegacyUserId(supabaseUserId, legacyUserId)` to associate prior anonymous data with the verified identity.
+
+The legacy dev-user fallback is gated by `ALLOW_LEGACY_DEV_USER=true` and is disabled in production.
+
+### 8.4 Credential rotation
+
+#### Supabase anon / service role keys
+
+1. In the Supabase Dashboard → Project Settings → API, regenerate the affected key.
+2. Update the corresponding environment variable in Vercel.
+3. Redeploy.
+4. If the service role key was exposed, audit any admin operations executed with it.
+
+#### Supabase Auth signing secret / JWT secret
+
+1. In the Supabase Dashboard → Project Settings → Auth, regenerate the JWT secret.
+2. All active sessions will be invalidated; users must sign in again.
+3. Update any server-side JWT verification code if it pins the secret.
+
+### 8.5 Incident response
+
+If unauthorized access is suspected:
+
+1. Rotate the Supabase service role key and JWT secret immediately.
+2. Review Supabase Auth logs for anomalous sign-ins or token usage.
+3. Query affected tables by `user_id` to scope potential data exposure.
+4. If a specific user's session is compromised, revoke refresh tokens for that user in the Supabase Dashboard.
+5. Document findings and rotate any secondary credentials (Azure OpenAI, database) if exposure is confirmed.
+
 ## 7. Trade-off Analysis
 
 ### 7.1 Polling health check vs push-based health metrics

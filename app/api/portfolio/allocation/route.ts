@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { COOKIE_NAME } from '@/lib/auth/dev-user'
+import { getCurrentUser } from '@/lib/auth/dev-user'
+import { unauthorizedResponse } from '@/lib/auth/errors'
 import { getAllocationForUser } from '@/lib/portfolio/get-allocation'
 
 export type AllocationApiResponse = {
@@ -26,15 +26,9 @@ export type AllocationApiResponse = {
 
 export async function GET() {
     try {
-        const cookieStore = await cookies()
-        const userId = cookieStore.get(COOKIE_NAME)?.value
-
-        if (!userId) {
-            return NextResponse.json(
-                { ok: false, error: { code: 'UNAUTHORIZED', message: 'no session' } },
-                { status: 401 },
-            )
-        }
+        const user = await getCurrentUser()
+        if (!user) return unauthorizedResponse()
+        const userId = user.userId
 
         const response = await getAllocationForUser(userId)
         return NextResponse.json(response)

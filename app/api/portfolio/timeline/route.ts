@@ -30,8 +30,8 @@ function computeRollingReturn(
 
 export async function GET() {
     const user = await getCurrentUser()
-  if (!user) return unauthorizedResponse()
-  const userId = user.userId
+    if (!user) return unauthorizedResponse()
+    const userId = user.userId
 
     try {
         const rows = await db
