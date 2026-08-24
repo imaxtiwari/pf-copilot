@@ -218,6 +218,42 @@ export const safetyReviewQueue = pgTable(
   ],
 )
 
+// ── Ingestion job tracking ────────────────────────────────────────────────────
+
+export const ingestionJobEnum = pgEnum('ingestion_job_type', [
+  'ingest.amfi',
+  'ingest.factsheets',
+  'ingest.annualReports',
+])
+
+export const ingestionStatusEnum = pgEnum('ingestion_status', [
+  'pending',
+  'running',
+  'completed',
+  'failed',
+])
+
+export const ingestionRuns = pgTable(
+  'ingestion_runs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    jobType: ingestionJobEnum('job_type').notNull(),
+    payloadHash: text('payload_hash').notNull(),
+    status: ingestionStatusEnum('status').notNull().default('pending'),
+    startedAt: timestamp('started_at'),
+    finishedAt: timestamp('finished_at'),
+    attemptCount: integer('attempt_count').notNull().default(0),
+    errorMessage: text('error_message'),
+    result: jsonb('result'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('ingestion_runs_job_type_idx').on(table.jobType),
+    index('ingestion_runs_status_idx').on(table.status),
+    uniqueIndex('ingestion_runs_unique_idx').on(table.jobType, table.payloadHash),
+  ],
+)
+
 // ── Insights ──────────────────────────────────────────────────────────────────
 
 export const portfolioInsights = pgTable(
