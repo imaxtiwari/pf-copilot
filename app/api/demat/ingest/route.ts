@@ -3,14 +3,17 @@ import { db } from '../../../../lib/db'
 import { casUploads, dematHoldings } from '../../../../db/schema'
 import { ok, err } from '../../../../lib/contracts/error-envelope'
 import { parseDemat } from '../../../../lib/demat/parse'
-import { resolveOrCreateUserId, COOKIE_NAME, cookieOptions } from '../../../../lib/auth/dev-user'
+import { getCurrentUser } from '../../../../lib/auth/dev-user'
+import { unauthorizedResponse } from '@/lib/auth/errors'
 import logger from '../../../../lib/logger'
 import { rateLimit, rateLimitJsonResponse } from '../../../../lib/rate-limit'
 
 const MAX_BYTES = 10 * 1024 * 1024 // 10 MB
 
 export async function POST(req: NextRequest) {
-    const { userId, isNew } = await resolveOrCreateUserId()
+    const user = await getCurrentUser()
+  if (!user) return unauthorizedResponse()
+  const userId = user.userId
 
     // Per-user upload rate limit: 5 CAS/Demat uploads per hour.
     const uploadLimit = await rateLimit(req, { key: 'upload:user', limit: 5, window: 3600, identifier: `user:${userId}` })
@@ -56,7 +59,6 @@ export async function POST(req: NextRequest) {
         const response = NextResponse.json(
             ok({ holdings_count: holdings.length, from_cache: true }),
         )
-        if (isNew) response.cookies.set(COOKIE_NAME, userId, cookieOptions())
         return response
     }
 
@@ -125,6 +127,5 @@ export async function POST(req: NextRequest) {
     const response = NextResponse.json(
         ok({ holdings_count: extraction.holdings.length }),
     )
-    if (isNew) response.cookies.set(COOKIE_NAME, userId, cookieOptions())
     return response
 }

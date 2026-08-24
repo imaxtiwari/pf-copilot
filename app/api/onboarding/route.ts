@@ -4,7 +4,8 @@ import { db } from '../../../lib/db'
 import { userProfile } from '../../../db/schema'
 import { ok, err } from '../../../lib/contracts/error-envelope'
 import { computePersonalInflation } from '../../../lib/inflation/compute'
-import { resolveOrCreateUserId, COOKIE_NAME, cookieOptions } from '../../../lib/auth/dev-user'
+import { getCurrentUser } from '../../../lib/auth/dev-user'
+import { unauthorizedResponse } from '@/lib/auth/errors'
 import { GoalTypeSchema } from '../../../lib/types/goal-types'
 import logger from '../../../lib/logger'
 
@@ -24,7 +25,9 @@ const OnboardingSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, isNew } = await resolveOrCreateUserId()
+    const user = await getCurrentUser()
+  if (!user) return unauthorizedResponse()
+  const userId = user.userId
 
     const body = await req.json().catch(() => null)
     if (!body) {

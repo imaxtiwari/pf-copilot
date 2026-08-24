@@ -3,7 +3,8 @@ import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import * as schema from '@/db/schema'
 import { ok, err } from '@/lib/contracts/error-envelope'
-import { resolveOrCreateUserId, COOKIE_NAME, cookieOptions } from '@/lib/auth/dev-user'
+import { getCurrentUser } from '@/lib/auth/dev-user'
+import { unauthorizedResponse } from '@/lib/auth/errors'
 
 export type ChatAuditChunkApiResponse =
     | { ok: true; data: { chunkText: string; schemeName: string; section: string; factsheetDate: string } }
@@ -17,7 +18,9 @@ export type ChatAuditChunkApiResponse =
  */
 export async function GET(req: Request) {
     try {
-        const { userId, isNew } = await resolveOrCreateUserId()
+        const user = await getCurrentUser()
+  if (!user) return unauthorizedResponse()
+  const userId = user.userId
 
         if (!userId) {
             return NextResponse.json(
@@ -55,7 +58,6 @@ export async function GET(req: Request) {
                 factsheetDate: row.factsheetDate,
             }),
         ) as NextResponse<ChatAuditChunkApiResponse>
-        if (isNew) response.cookies.set(COOKIE_NAME, userId, cookieOptions())
         return response
     } catch (e) {
         const message = e instanceof Error ? e.message : 'database error'

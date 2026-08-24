@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ok, err } from '../../../../lib/contracts/error-envelope'
 import { createReviewSession } from '../../../../lib/cas/review-session'
-import { resolveOrCreateUserId, COOKIE_NAME, cookieOptions } from '../../../../lib/auth/dev-user'
+import { getCurrentUser } from '../../../../lib/auth/dev-user'
+import { unauthorizedResponse } from '@/lib/auth/errors'
 import logger from '../../../../lib/logger'
 
 const MAX_BYTES = 10 * 1024 * 1024 // 10 MB
 
 export async function POST(req: NextRequest) {
-    const { userId, isNew } = await resolveOrCreateUserId()
+    const user = await getCurrentUser()
+  if (!user) return unauthorizedResponse()
+  const userId = user.userId
 
     const contentType = req.headers.get('content-type') ?? ''
     if (!contentType.includes('multipart/form-data')) {
@@ -60,6 +63,5 @@ export async function POST(req: NextRequest) {
             hash: session.hash,
         }),
     )
-    if (isNew) response.cookies.set(COOKIE_NAME, userId, cookieOptions())
     return response
 }
