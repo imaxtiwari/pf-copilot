@@ -47,15 +47,8 @@ export type ChatAuditApiResponse =
 export async function GET(req: Request) {
     try {
         const user = await getCurrentUser()
-  if (!user) return unauthorizedResponse()
-  const userId = user.userId
-
-        if (!userId) {
-            return NextResponse.json(
-                err('UNAUTHORIZED', 'no session'),
-                { status: 401 },
-            ) as NextResponse<ChatAuditApiResponse>
-        }
+        if (!user) return unauthorizedResponse()
+        const userId = user.userId
 
         const url = new URL(req.url)
         const rawPage = Number(url.searchParams.get('page') ?? '1')
