@@ -1,12 +1,15 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
-import { runOrchestratorWithEvents } from '@/lib/orchestrator'
+import { runOrchestratorWithEvents, CostBudgetExceededError } from '@/lib/orchestrator'
 import { buildWorkspaceState } from '@/lib/agent-mapping'
 import { resolveOrCreateUserId, COOKIE_NAME, cookieOptions } from '@/lib/auth/dev-user'
+import { db } from '@/lib/db'
+import * as schema from '@/db/schema'
 import type { SupportedLanguage } from '@/lib/rag/explain-fund'
 import type { OrchestratorAgentEvent, CopilotStatus, AgentEvent } from '@/lib/contracts/agent-events'
 import logger from '@/lib/logger'
 import { randomUUID } from 'node:crypto'
+import { rateLimit, rateLimitSseResponse } from '@/lib/rate-limit'
 
 export const maxDuration = 30
 
@@ -78,6 +81,18 @@ function sseLine(event: string, data: unknown): string {
 export async function POST(req: NextRequest) {
     const { userId, isNew } = await resolveOrCreateUserId()
 
+    // Per-user rate limit: 20 chat messages per minute.
+    const userLimit = await rateLimit(req, { key: 'chat:user', limit: 20, window: 60, identifier: `user:${userId}` })
+    if (!userLimit.success) {
+        return rateLimitSseResponse(userLimit)
+    }
+
+    // Per-IP rate limit: 60 chat messages per minute.
+    const ipLimit = await rateLimit(req, { key: 'chat:ip', limit: 60, window: 60 })
+    if (!ipLimit.success) {
+        return rateLimitSseResponse(ipLimit)
+    }
+
     let body: unknown
     try {
         body = await req.json()
@@ -144,8 +159,33 @@ export async function POST(req: NextRequest) {
             } catch (e) {
                 const msg = e instanceof Error ? e.message : String(e)
                 const requestId = randomUUID()
-                logger.error({ userId, requestId, error: msg }, 'chat/stream: orchestrator threw')
-                send('error', { code: 'ORCHESTRATOR_ERROR', message: 'An unexpected error occurred. Please try again.', request_id: requestId })
+
+                if (e instanceof CostBudgetExceededError) {
+                    logger.warn(
+                        { userId, requestId, cumulativeTokens: e.cumulativeTokens, maxTokens: e.maxTokens },
+                        'chat/stream: cost budget exceeded',
+                    )
+                    try {
+                        await db.insert(schema.chatMessages).values({
+                            userId,
+                            role: 'assistant',
+                            content: `This request exceeded the per-turn token budget (${e.maxTokens}). Please simplify your question and try again.`,
+                            refusalReason: 'cost_budget_exceeded',
+                            requestId,
+                        })
+                    } catch (dbErr) {
+                        logger.error({ userId, requestId, error: dbErr }, 'chat/stream: failed to persist cost budget audit row')
+                    }
+                    send('error', {
+                        code: 'cost_budget_exceeded',
+                        message: 'This request exceeded the per-turn token budget. Please simplify your question and try again.',
+                        details: { max_tokens: e.maxTokens, cumulative_tokens: e.cumulativeTokens },
+                        request_id: requestId,
+                    })
+                } else {
+                    logger.error({ userId, requestId, error: msg }, 'chat/stream: orchestrator threw')
+                    send('error', { code: 'ORCHESTRATOR_ERROR', message: 'An unexpected error occurred. Please try again.', request_id: requestId })
+                }
             } finally {
                 controller.close()
             }

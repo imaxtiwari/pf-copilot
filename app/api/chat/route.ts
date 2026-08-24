@@ -5,11 +5,12 @@ import { db } from '@/lib/db'
 import * as schema from '@/db/schema'
 import { ok, err } from '@/lib/contracts/error-envelope'
 import { resolveOrCreateUserId, COOKIE_NAME, cookieOptions } from '@/lib/auth/dev-user'
-import { runOrchestrator } from '@/lib/orchestrator'
+import { runOrchestrator, CostBudgetExceededError } from '@/lib/orchestrator'
 import { buildWorkspaceState } from '@/lib/agent-mapping'
 import type { SupportedLanguage } from '@/lib/rag/explain-fund'
 import logger from '@/lib/logger'
 import { randomUUID } from 'node:crypto'
+import { rateLimit, rateLimitJsonResponse } from '@/lib/rate-limit'
 
 // ── Next.js timeout hint (respected by Vercel; no-op on localhost) ─────────────
 export const maxDuration = 30
@@ -64,6 +65,18 @@ const ChatRequestSchema = z.object({
 export async function POST(req: NextRequest) {
   const { userId, isNew } = await resolveOrCreateUserId()
 
+  // Per-user rate limit: 20 chat messages per minute.
+  const userLimit = await rateLimit(req, { key: 'chat:user', limit: 20, window: 60, identifier: `user:${userId}` })
+  if (!userLimit.success) {
+    return rateLimitJsonResponse(userLimit)
+  }
+
+  // Per-IP rate limit: 60 chat messages per minute.
+  const ipLimit = await rateLimit(req, { key: 'chat:ip', limit: 60, window: 60 })
+  if (!ipLimit.success) {
+    return rateLimitJsonResponse(ipLimit)
+  }
+
   let body: unknown
   try {
     body = await req.json()
@@ -106,6 +119,34 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     const requestId = randomUUID()
+
+    if (e instanceof CostBudgetExceededError) {
+      logger.warn(
+        { userId, requestId, cumulativeTokens: e.cumulativeTokens, maxTokens: e.maxTokens },
+        'chat: cost budget exceeded',
+      )
+      try {
+        await db.insert(schema.chatMessages).values({
+          userId,
+          role: 'assistant',
+          content: `This request exceeded the per-turn token budget (${e.maxTokens}). Please simplify your question and try again.`,
+          refusalReason: 'cost_budget_exceeded',
+          requestId,
+        })
+      } catch (dbErr) {
+        logger.error({ userId, requestId, error: dbErr }, 'chat: failed to persist cost budget audit row')
+      }
+      return NextResponse.json(
+        err(
+          'cost_budget_exceeded',
+          `This request exceeded the per-turn token budget. Please simplify your question and try again.`,
+          { max_tokens: e.maxTokens, cumulative_tokens: e.cumulativeTokens },
+          requestId,
+        ),
+        { status: 429 },
+      )
+    }
+
     logger.error({ userId, requestId, error: msg }, 'chat: orchestrator threw')
 
     // Persist a traceable error response so the audit log shows the failure.

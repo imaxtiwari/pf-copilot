@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { sql } from 'drizzle-orm'
 import { ok, err } from '@/lib/contracts/error-envelope'
 import { db } from '@/lib/db'
+import { rateLimit, rateLimitJsonResponse } from '@/lib/rate-limit'
 
 export type HealthCheckResult = {
   ok: true
@@ -31,7 +32,13 @@ export type HealthCheckError = {
  * QDRANT_URL is configured, attempts a cheap vector endpoint check.
  * It deliberately does NOT call any LLM, so it is safe for load balancers.
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  // Per-IP rate limit: 60 health checks per minute.
+  const ipLimit = await rateLimit(req, { key: 'health:ip', limit: 60, window: 60 })
+  if (!ipLimit.success) {
+    return rateLimitJsonResponse(ipLimit)
+  }
+
   const checks = {
     db: false,
     vector: null as boolean | null,

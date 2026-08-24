@@ -7,11 +7,18 @@ import { resolveOrCreateUserId, COOKIE_NAME, cookieOptions } from '../../../../l
 import { refreshSnapshots } from '../../../../lib/portfolio/snapshots'
 import { generateInsight, persistInsight } from '../../../../lib/portfolio/insights'
 import logger from '../../../../lib/logger'
+import { rateLimit, rateLimitJsonResponse } from '../../../../lib/rate-limit'
 
 const MAX_BYTES = 10 * 1024 * 1024 // 10 MB
 
 export async function POST(req: NextRequest) {
   const { userId, isNew } = await resolveOrCreateUserId()
+
+  // Per-user upload rate limit: 5 CAS/Demat uploads per hour.
+  const uploadLimit = await rateLimit(req, { key: 'upload:user', limit: 5, window: 3600, identifier: `user:${userId}` })
+  if (!uploadLimit.success) {
+    return rateLimitJsonResponse(uploadLimit)
+  }
 
   const contentType = req.headers.get('content-type') ?? ''
   if (!contentType.includes('multipart/form-data')) {

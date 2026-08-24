@@ -34,7 +34,7 @@ describe('/api/health', () => {
     it('returns healthy when DB ping succeeds and no QDRANT_URL is set', async () => {
         vi.mocked(db.execute).mockResolvedValueOnce([{ '?column?': 1 }] as any)
 
-        const res = await healthGet()
+        const res = await healthGet(createRequest())
         const json = await res.json()
 
         expect(res.status).toBe(200)
@@ -46,7 +46,7 @@ describe('/api/health', () => {
     it('returns 503 when DB ping fails', async () => {
         vi.mocked(db.execute).mockRejectedValueOnce(new Error('connection refused'))
 
-        const res = await healthGet()
+        const res = await healthGet(createRequest())
         const json = await res.json()
 
         expect(res.status).toBe(503)
@@ -59,7 +59,7 @@ describe('/api/health', () => {
         vi.mocked(db.execute).mockResolvedValueOnce([{ '?column?': 1 }] as any)
         global.fetch = vi.fn().mockResolvedValueOnce({ ok: true, status: 200 } as Response)
 
-        const res = await healthGet()
+        const res = await healthGet(createRequest())
         const json = await res.json()
 
         expect(res.status).toBe(200)
@@ -71,7 +71,7 @@ describe('/api/health', () => {
         vi.mocked(db.execute).mockResolvedValueOnce([{ '?column?': 1 }] as any)
         global.fetch = vi.fn().mockRejectedValueOnce(new Error('qdrant down'))
 
-        const res = await healthGet()
+        const res = await healthGet(createRequest())
         const json = await res.json()
 
         expect(res.status).toBe(200)

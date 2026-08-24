@@ -3,6 +3,7 @@ export type RefusalReason =
   | 'no_factsheet_data'
   | 'contract_violation'
   | 'no_retrieval_result'
+  | 'cost_budget_exceeded'
 
 export type Citation = {
   chunk_id: string

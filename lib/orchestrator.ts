@@ -23,7 +23,29 @@ import { randomUUID } from 'node:crypto'
 // ── config ────────────────────────────────────────────────────────────────────
 
 const P95_LATENCY_BUDGET_MS = 12_000
-const MAX_TOOL_ITERATIONS = 5
+
+export type OrchestratorConfig = {
+  /** Maximum number of tool-call iterations allowed in a single turn. */
+  maxToolIterations: number
+  /** Maximum total tokens (prompt + completion) allowed in a single turn. */
+  maxTokensPerTurn: number
+}
+
+export const DEFAULT_ORCHESTRATOR_CONFIG: OrchestratorConfig = {
+  maxToolIterations: 5,
+  maxTokensPerTurn: 4_000,
+}
+
+export class CostBudgetExceededError extends Error {
+  constructor(
+    message: string,
+    public readonly cumulativeTokens: number,
+    public readonly maxTokens: number,
+  ) {
+    super(message)
+    this.name = 'CostBudgetExceededError'
+  }
+}
 
 // Module-level singletons — avoids creating a new HTTP agent on every chat turn
 const _client = getGpt4oMini()
@@ -49,6 +71,7 @@ export type OrchestratorResult = {
 export type OrchestratorOptions = {
   language?: SupportedLanguage
   onEvent?: (event: OrchestratorAgentEvent) => void
+  config?: Partial<OrchestratorConfig>
 }
 
 // ── tool dispatcher ───────────────────────────────────────────────────────────
@@ -107,8 +130,9 @@ export async function runOrchestrator(
   userId: string,
   message: string,
   language?: SupportedLanguage,
+  config?: Partial<OrchestratorConfig>,
 ): Promise<OrchestratorResult> {
-  return runOrchestratorWithOptions(userId, message, { language })
+  return runOrchestratorWithOptions(userId, message, { language, config })
 }
 
 export async function runOrchestratorWithEvents(
@@ -116,8 +140,9 @@ export async function runOrchestratorWithEvents(
   message: string,
   language: SupportedLanguage | undefined,
   onEvent: (event: OrchestratorAgentEvent) => void,
+  config?: Partial<OrchestratorConfig>,
 ): Promise<OrchestratorResult> {
-  return runOrchestratorWithOptions(userId, message, { language, onEvent })
+  return runOrchestratorWithOptions(userId, message, { language, onEvent, config })
 }
 
 async function runOrchestratorWithOptions(
@@ -125,7 +150,11 @@ async function runOrchestratorWithOptions(
   message: string,
   options: OrchestratorOptions,
 ): Promise<OrchestratorResult> {
-  const { language, onEvent } = options
+  const { language, onEvent, config: userConfig } = options
+  const config: OrchestratorConfig = {
+    ...DEFAULT_ORCHESTRATOR_CONFIG,
+    ...userConfig,
+  }
   const emit = (event: OrchestratorAgentEvent) => onEvent?.(event)
   const startedAt = Date.now()
 
@@ -161,15 +190,26 @@ async function runOrchestratorWithOptions(
   const citations: Citation[] = []
   let refusalReason: RefusalReason | null = null
   const requestId = randomUUID()
+  let cumulativeTokens = 0
 
   // 4. Tool-call loop with iteration cap
-  for (let i = 0; i < MAX_TOOL_ITERATIONS; i++) {
+  for (let i = 0; i < config.maxToolIterations; i++) {
     const completion = await _client.chat.completions.create({
       model: _deployment,
       messages,
       tools: TOOL_DEFINITIONS,
       temperature: 0.3,
     })
+
+    const tokensThisCall = completion.usage?.total_tokens ?? 0
+    cumulativeTokens += tokensThisCall
+    if (cumulativeTokens > config.maxTokensPerTurn) {
+      throw new CostBudgetExceededError(
+        `Token budget exceeded: ${cumulativeTokens} > ${config.maxTokensPerTurn}`,
+        cumulativeTokens,
+        config.maxTokensPerTurn,
+      )
+    }
 
     const msg = completion.choices[0].message
 
@@ -277,8 +317,8 @@ async function runOrchestratorWithOptions(
     }
   }
 
-  // Exceeded MAX_TOOL_ITERATIONS — persist fallback so chat history stays coherent
-  logger.warn({ userId, iterations: MAX_TOOL_ITERATIONS }, 'Max tool iterations hit')
+  // Exceeded config.maxToolIterations — persist fallback so chat history stays coherent
+  logger.warn({ userId, iterations: config.maxToolIterations }, 'Max tool iterations hit')
   const fallbackMessage = "I got stuck working through your question. Could you rephrase?"
   await db.insert(schema.chatMessages).values({
     userId,
