@@ -1,10 +1,37 @@
+import { z } from 'zod'
 import { fromBuffer } from 'pdf2pic'
 import type { CASExtraction } from '../contracts/cas-validation'
 import { getGpt4o } from '../azure-openai'
 import { CAS_VISION_PROMPT } from '../prompts/cas-vision'
+import { structuredCall } from '../llm/structured-call'
 import logger from '../logger'
 
 const BATCH_SIZE = 10
+
+const CASHoldingSchema = z.object({
+  folio_number: z.string(),
+  scheme_name: z.string(),
+  units: z.number(),
+  nav: z.number(),
+  market_value: z.number(),
+  scheme_code: z.string().nullish(),
+})
+
+const CASVisionResponseSchema = z.union([
+  z.object({
+    source: z.enum(['NSDL', 'CDSL']),
+    as_of_date: z.string(),
+    total_value_reported: z.number(),
+    holdings: z.array(CASHoldingSchema),
+    _extraction_notes: z.array(z.string()).optional(),
+  }),
+  z.object({
+    error: z.string(),
+    reason: z.string(),
+  }),
+])
+
+type CASVisionResponse = z.infer<typeof CASVisionResponseSchema>
 
 export async function pdfToImageBuffers(buffer: Buffer): Promise<Buffer[]> {
   const convert = fromBuffer(buffer, {
@@ -47,19 +74,27 @@ async function callVisionBatch(
     image_url: { url: `data:image/png;base64,${buf.toString('base64')}`, detail: 'high' as const },
   }))
 
+  const fallback: CASVisionResponse = {
+    error: 'structured_output_failed',
+    reason: 'LLM did not return valid CAS JSON after retries',
+  }
+
   const start = Date.now()
-  let raw: string
+  let parsed: CASVisionResponse
   try {
-    const response = await client.chat.completions.create({
+    parsed = await structuredCall({
+      client,
       model: process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O!,
       messages: [
         { role: 'system', content: CAS_VISION_PROMPT.text },
         { role: 'user', content: imageContent },
       ],
-      response_format: { type: 'json_object' },
+      schema: CASVisionResponseSchema,
+      schemaName: 'cas_vision_response',
+      schemaDescription: 'Extracted mutual fund CAS holdings from document images.',
       temperature: 0,
+      fallback,
     })
-    raw = response.choices[0]?.message?.content ?? ''
     logger.info(
       { batchIndex, pages: imageBuffers.length, durationMs: Date.now() - start },
       'cas vision batch complete',
@@ -69,17 +104,12 @@ async function callVisionBatch(
     return null
   }
 
-  try {
-    const parsed = JSON.parse(raw)
-    if (parsed.error) {
-      logger.warn({ batchIndex, error: parsed.error, reason: parsed.reason }, 'vision returned error')
-      return null
-    }
-    return parsed as CASExtraction
-  } catch {
-    logger.warn({ batchIndex, raw: raw.slice(0, 200) }, 'vision response not valid JSON')
+  if ('error' in parsed) {
+    logger.warn({ batchIndex, error: parsed.error, reason: parsed.reason }, 'vision returned error')
     return null
   }
+
+  return parsed
 }
 
 function mergeBatchResults(results: (CASExtraction | null)[]): CASExtraction | null {

@@ -1,11 +1,37 @@
+import { z } from 'zod'
 import { fromBuffer } from 'pdf2pic'
 import type { DematExtraction } from '../contracts/demat-validation'
 import { getGpt4o } from '../azure-openai'
 import { DEMAT_VISION_PROMPT } from '../prompts/demat-vision'
+import { structuredCall } from '../llm/structured-call'
 import logger from '../logger'
 import { pdfToImageBuffers as casPdfToImageBuffers, chunk } from '../cas/parse-vision'
 
 const BATCH_SIZE = 10
+
+const DematHoldingSchema = z.object({
+  isin: z.string(),
+  company_name: z.string(),
+  quantity: z.number(),
+  price: z.number(),
+  value: z.number(),
+})
+
+const DematVisionResponseSchema = z.union([
+  z.object({
+    source: z.enum(['NSDL', 'CDSL']),
+    as_of_date: z.string(),
+    total_value_reported: z.number(),
+    holdings: z.array(DematHoldingSchema),
+    _extraction_notes: z.array(z.string()).optional(),
+  }),
+  z.object({
+    error: z.string(),
+    reason: z.string(),
+  }),
+])
+
+type DematVisionResponse = z.infer<typeof DematVisionResponseSchema>
 
 export async function pdfToImageBuffers(buffer: Buffer): Promise<Buffer[]> {
     return casPdfToImageBuffers(buffer)
@@ -21,19 +47,27 @@ async function callVisionBatch(
         image_url: { url: `data:image/png;base64,${buf.toString('base64')}`, detail: 'high' as const },
     }))
 
+    const fallback: DematVisionResponse = {
+        error: 'structured_output_failed',
+        reason: 'LLM did not return valid demat JSON after retries',
+    }
+
     const start = Date.now()
-    let raw: string
+    let parsed: DematVisionResponse
     try {
-        const response = await client.chat.completions.create({
+        parsed = await structuredCall({
+            client,
             model: process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O!,
             messages: [
                 { role: 'system', content: DEMAT_VISION_PROMPT.text },
                 { role: 'user', content: imageContent },
             ],
-            response_format: { type: 'json_object' },
+            schema: DematVisionResponseSchema,
+            schemaName: 'demat_vision_response',
+            schemaDescription: 'Extracted demat stock holdings from document images.',
             temperature: 0,
+            fallback,
         })
-        raw = response.choices[0]?.message?.content ?? ''
         logger.info(
             { batchIndex, pages: imageBuffers.length, durationMs: Date.now() - start },
             'demat vision batch complete',
@@ -43,17 +77,12 @@ async function callVisionBatch(
         return null
     }
 
-    try {
-        const parsed = JSON.parse(raw)
-        if (parsed.error) {
-            logger.warn({ batchIndex, error: parsed.error, reason: parsed.reason }, 'demat vision returned error')
-            return null
-        }
-        return parsed as DematExtraction
-    } catch {
-        logger.warn({ batchIndex, raw: raw.slice(0, 200) }, 'demat vision response not valid JSON')
+    if ('error' in parsed) {
+        logger.warn({ batchIndex, error: parsed.error, reason: parsed.reason }, 'demat vision returned error')
         return null
     }
+
+    return parsed
 }
 
 function mergeBatchResults(results: (DematExtraction | null)[]): DematExtraction | null {

@@ -41,6 +41,7 @@ describe('/api/health', () => {
         expect(json.ok).toBe(true)
         expect(json.data.checks.db).toBe(true)
         expect(json.data.checks.vector).toBeNull()
+        expect(json.data.checks.vector_dimension).toBeNull()
     })
 
     it('returns 503 when DB ping fails', async () => {
@@ -57,19 +58,20 @@ describe('/api/health', () => {
     it('includes vector check when QDRANT_URL is configured', async () => {
         process.env.QDRANT_URL = 'http://localhost:6333'
         vi.mocked(db.execute).mockResolvedValueOnce([{ '?column?': 1 }] as any)
-        global.fetch = vi.fn().mockResolvedValueOnce({ ok: true, status: 200 } as Response)
+        global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200 } as Response)
 
         const res = await healthGet(createRequest())
         const json = await res.json()
 
         expect(res.status).toBe(200)
         expect(json.data.checks.vector).toBe(true)
+        expect(json.data.checks.vector_dimension).toBe(true)
     })
 
-    it('still returns healthy if vector check fails but DB is up', async () => {
+    it('still returns healthy if vector connectivity fails but DB is up', async () => {
         process.env.QDRANT_URL = 'http://localhost:6333'
         vi.mocked(db.execute).mockResolvedValueOnce([{ '?column?': 1 }] as any)
-        global.fetch = vi.fn().mockRejectedValueOnce(new Error('qdrant down'))
+        global.fetch = vi.fn().mockRejectedValue(new Error('qdrant down'))
 
         const res = await healthGet(createRequest())
         const json = await res.json()
@@ -77,6 +79,38 @@ describe('/api/health', () => {
         expect(res.status).toBe(200)
         expect(json.data.checks.db).toBe(true)
         expect(json.data.checks.vector).toBe(false)
+        expect(json.data.checks.vector_dimension).toBe(true)
+    })
+
+    it('returns 503 when Qdrant embedding dimension is mismatched', async () => {
+        process.env.QDRANT_URL = 'http://localhost:6333'
+        process.env.QDRANT_COLLECTIONS = 'factsheet_chunks'
+        process.env.EMBEDDING_DIMENSION = '1536'
+        vi.mocked(db.execute).mockResolvedValueOnce([{ '?column?': 1 }] as any)
+        global.fetch = vi.fn().mockImplementation((url: string) => {
+            if (url.endsWith('/collections')) {
+                return Promise.resolve({ ok: true, status: 200 } as Response)
+            }
+            // /collections/factsheet_chunks
+            return Promise.resolve({
+                ok: true,
+                status: 200,
+                json: () => Promise.resolve({
+                    result: { config: { params: { vectors: { size: 3072 } } } },
+                }),
+            } as Response)
+        })
+
+        const res = await healthGet(createRequest())
+        const json = await res.json()
+
+        expect(res.status).toBe(503)
+        expect(json.data.checks.vector).toBe(true)
+        expect(json.data.checks.vector_dimension).toBe(false)
+        expect(json.error.details.errors.some((e: string) => e.includes('3072'))).toBe(true)
+
+        delete process.env.QDRANT_COLLECTIONS
+        delete process.env.EMBEDDING_DIMENSION
     })
 })
 

@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { inArray } from 'drizzle-orm'
 import { db } from '../db'
 import * as schema from '../../db/schema'
@@ -6,7 +7,23 @@ import { COMPARE_FUNDS_PROMPT } from '../prompts/compare-funds'
 import { retrieveChunks, type RetrievedChunk } from './retrieval'
 import { validateRagResponse } from './validate-response'
 import type { RagResponseFormatted, RefusalReason, Citation } from '../contracts/refusal-types'
+import { structuredCall } from '../llm/structured-call'
 import logger from '../logger'
+
+const CompareFundsResponseSchema = z.object({
+  answer: z.string(),
+  citations: z.array(
+    z.object({
+      chunk_id: z.string(),
+      factsheet_date: z.string(),
+      section: z.string(),
+    }),
+  ),
+  refused: z.boolean(),
+  refusal_reason: z.string().nullable(),
+})
+
+type CompareFundsResponse = z.infer<typeof CompareFundsResponseSchema>
 
 // Module-level singleton — avoids creating a new HTTP agent on every RAG call
 const gpt4oClient = getGpt4o()
@@ -89,8 +106,15 @@ export async function compareFunds(
         )
         .join('\n\n---\n\n')
 
-    // 3. LLM call (with one-retry on contract violation)
-    const callLlm = async (extraNudge?: string): Promise<unknown> => {
+    // 3. LLM call (with structured output + one-retry on contract violation)
+    const fallback: CompareFundsResponse = {
+        answer: 'Unable to produce a valid comparison at this time. Please try rephrasing your question.',
+        citations: [],
+        refused: true,
+        refusal_reason: 'contract_violation',
+    }
+
+    const callLlm = async (extraNudge?: string): Promise<CompareFundsResponse> => {
         const schemesHeader = schemeCodes
             .map((code) => `- ${code}: ${schemeNames[code]}`)
             .join('\n')
@@ -101,28 +125,25 @@ export async function compareFunds(
             { role: 'user' as const, content: userContent },
         ]
         const start = Date.now()
-        const completion = await gpt4oClient.chat.completions.create({
+        const parsed = await structuredCall({
+            client: gpt4oClient,
             model: GPT4O_DEPLOYMENT,
             messages,
-            response_format: { type: 'json_object' },
+            schema: CompareFundsResponseSchema,
+            schemaName: 'compare_funds_response',
+            schemaDescription: 'JSON comparison of mutual fund schemes with citations.',
             temperature: 0.0,
+            fallback,
         })
         logger.info(
             {
                 schemeCodes,
                 durationMs: Date.now() - start,
-                tokens: completion.usage?.total_tokens,
                 retry: !!extraNudge,
             },
             'rag: compare-funds llm call complete',
         )
-        const raw = completion.choices[0]?.message?.content ?? '{}'
-        try {
-            return JSON.parse(raw)
-        } catch {
-            logger.warn({ schemeCodes, raw: raw.slice(0, 200) }, 'rag: compare-funds LLM returned non-JSON')
-            return {}
-        }
+        return parsed
     }
 
     const chunksByScheme: Record<string, string[]> = {}
@@ -155,10 +176,5 @@ export async function compareFunds(
         }
     }
 
-    return formatResponse(
-        parsed as { answer: string; citations: Citation[]; refused: boolean; refusal_reason: string | null },
-        allChunks,
-        schemeCodes,
-        schemeNames,
-    )
+    return formatResponse(parsed, allChunks, schemeCodes, schemeNames)
 }

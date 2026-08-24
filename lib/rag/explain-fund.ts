@@ -1,20 +1,37 @@
+import { z } from 'zod'
 import { eq } from 'drizzle-orm'
 import { db } from '../db'
 import * as schema from '../../db/schema'
 import { getGpt4o, getGpt4oMini } from '../azure-openai'
 import { EXPLAIN_FUND_PROMPT } from '../prompts/explain-fund'
 import { EXPLAIN_FUND_TRANSLATE_PROMPT } from '../prompts/explain-fund-translate'
+import { retrieveChunks } from './retrieval'
+import { validateRagResponse } from './validate-response'
+import type { RagResponseFormatted, RefusalReason, Citation } from '../contracts/refusal-types'
+import type { RetrievedChunk } from './retrieval'
+import { structuredCall } from '../llm/structured-call'
+import logger from '../logger'
 
 // Module-level singletons — avoids creating a new HTTP agent on every RAG call
 const gpt4oClient = getGpt4o()
 const gpt4oMiniClient = getGpt4oMini()
 const GPT4O_DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O!
 const GPT4O_MINI_DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O_MINI!
-import { retrieveChunks } from './retrieval'
-import { validateRagResponse } from './validate-response'
-import type { RagResponseFormatted, RefusalReason, Citation } from '../contracts/refusal-types'
-import type { RetrievedChunk } from './retrieval'
-import logger from '../logger'
+
+const ExplainFundResponseSchema = z.object({
+  answer: z.string(),
+  citations: z.array(
+    z.object({
+      chunk_id: z.string(),
+      factsheet_date: z.string(),
+      section: z.string(),
+    }),
+  ),
+  refused: z.boolean(),
+  refusal_reason: z.string().nullable(),
+})
+
+type ExplainFundResponse = z.infer<typeof ExplainFundResponseSchema>
 
 export type SupportedLanguage = 'en' | 'hi-en'
 
@@ -91,8 +108,15 @@ export async function explainFund(
     )
     .join('\n\n---\n\n')
 
-  // 3. LLM call (with one-retry on contract violation)
-  const callLlm = async (extraNudge?: string): Promise<unknown> => {
+  // 3. LLM call (with structured output + one-retry on contract violation)
+  const fallback: ExplainFundResponse = {
+    answer: 'Unable to produce a valid answer at this time. Please try rephrasing your question.',
+    citations: [],
+    refused: true,
+    refusal_reason: 'contract_violation',
+  }
+
+  const callLlm = async (extraNudge?: string): Promise<ExplainFundResponse> => {
     const userContent = `Retrieved chunks:\n\n${chunksFormatted}\n\nUser question: ${question}${extraNudge ? `\n\nCorrection: ${extraNudge}` : ''
       }`
     const messages = [
@@ -100,31 +124,25 @@ export async function explainFund(
       { role: 'user' as const, content: userContent },
     ]
     const start = Date.now()
-    const completion = await gpt4oClient.chat.completions.create({
+    const parsed = await structuredCall({
+      client: gpt4oClient,
       model: GPT4O_DEPLOYMENT,
       messages,
-      response_format: { type: 'json_object' },
+      schema: ExplainFundResponseSchema,
+      schemaName: 'explain_fund_response',
+      schemaDescription: 'JSON answer to a mutual-fund question with citations.',
       temperature: 0.0,
+      fallback,
     })
     logger.info(
       {
         schemeCode: scheme_code,
         durationMs: Date.now() - start,
-        tokens: completion.usage?.total_tokens,
         retry: !!extraNudge,
       },
       'rag: llm call complete',
     )
-    const raw = completion.choices[0]?.message?.content ?? '{}'
-    try {
-      return JSON.parse(raw)
-    } catch {
-      logger.warn(
-        { schemeCode: scheme_code, raw: raw.slice(0, 200) },
-        'rag: LLM returned non-JSON',
-      )
-      return {}  // validateRagResponse will fail this and trigger the refusal path
-    }
+    return parsed
   }
 
   let parsed = await callLlm()
@@ -147,23 +165,14 @@ export async function explainFund(
 
   // 4. Optional Hinglish translation (only the prose; citations preserved exactly)
   if (language === 'hi-en') {
-    const translated = await translateToHinglish(
-      parsed as { answer: string; citations: Citation[]; refused: boolean; refusal_reason: string | null },
-      chunkIds,
-      scheme_code,
-    )
+    const translated = await translateToHinglish(parsed, chunkIds, scheme_code)
     if (translated) {
       return formatResponse(translated, chunks, scheme.schemeName, scheme_code)
     }
     // Fallback: return validated English response if translation fails validation twice
   }
 
-  return formatResponse(
-    parsed as { answer: string; citations: Citation[]; refused: boolean; refusal_reason: string | null },
-    chunks,
-    scheme.schemeName,
-    scheme_code,
-  )
+  return formatResponse(parsed, chunks, scheme.schemeName, scheme_code)
 }
 
 async function translateToHinglish(
@@ -171,34 +180,38 @@ async function translateToHinglish(
   chunkIds: string[],
   schemeCode: string,
 ): Promise<{ answer: string; citations: Citation[]; refused: boolean; refusal_reason: string | null } | null> {
-  const callTranslator = async (extraNudge?: string): Promise<unknown> => {
+  const translatorFallback: ExplainFundResponse = {
+    answer: english.answer,
+    citations: english.citations,
+    refused: english.refused,
+    refusal_reason: english.refusal_reason,
+  }
+
+  const callTranslator = async (extraNudge?: string): Promise<ExplainFundResponse> => {
     const userContent = `Translate the "answer" field of this JSON into simple Hinglish. Preserve all [chunk_...] citations exactly as they are and copy the citations array unchanged.${extraNudge ? `\n\nCorrection: ${extraNudge}` : ''}\n\n${JSON.stringify(english)}`
     const start = Date.now()
-    const completion = await gpt4oMiniClient.chat.completions.create({
+    const parsed = await structuredCall({
+      client: gpt4oMiniClient,
       model: GPT4O_MINI_DEPLOYMENT,
       messages: [
         { role: 'system' as const, content: EXPLAIN_FUND_TRANSLATE_PROMPT.text },
         { role: 'user' as const, content: userContent },
       ],
-      response_format: { type: 'json_object' },
+      schema: ExplainFundResponseSchema,
+      schemaName: 'explain_fund_hinglish_translation',
+      schemaDescription: 'Hinglish translation of a fund explanation with unchanged citations.',
       temperature: 0.0,
+      fallback: translatorFallback,
     })
     logger.info(
       {
         schemeCode,
         durationMs: Date.now() - start,
-        tokens: completion.usage?.total_tokens,
         retry: !!extraNudge,
       },
       'rag: hinglish translation complete',
     )
-    const raw = completion.choices[0]?.message?.content ?? '{}'
-    try {
-      return JSON.parse(raw)
-    } catch {
-      logger.warn({ schemeCode, raw: raw.slice(0, 200) }, 'rag: Hinglish translator returned non-JSON')
-      return {}
-    }
+    return parsed
   }
 
   let translated = await callTranslator()
@@ -217,7 +230,7 @@ async function translateToHinglish(
     }
   }
 
-  const t = translated as { answer: string; citations: Citation[]; refused: boolean; refusal_reason: string | null }
+  const t = translated
   // Extra safety: translated citations must match English citations exactly (order and content).
   const englishCitationsJson = JSON.stringify(english.citations)
   const translatedCitationsJson = JSON.stringify(t.citations)

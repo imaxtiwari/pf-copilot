@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm'
 import { ok, err } from '@/lib/contracts/error-envelope'
 import { db } from '@/lib/db'
 import { rateLimit, rateLimitJsonResponse } from '@/lib/rate-limit'
+import { validateQdrantDimension } from '@/lib/qdrant/dimension-check'
 
 export type HealthCheckResult = {
   ok: true
@@ -11,6 +12,7 @@ export type HealthCheckResult = {
     checks: {
       db: boolean
       vector: boolean | null
+      vector_dimension: boolean | null
     }
   }
 }
@@ -29,7 +31,8 @@ export type HealthCheckError = {
  * GET /api/health
  *
  * Lightweight liveness/readiness probe. It pings the database and, if
- * QDRANT_URL is configured, attempts a cheap vector endpoint check.
+ * QDRANT_URL is configured, attempts a cheap vector endpoint check and, if
+ * QDRANT_COLLECTIONS is configured, verifies embedding dimensions.
  * It deliberately does NOT call any LLM, so it is safe for load balancers.
  */
 export async function GET(req: NextRequest) {
@@ -42,6 +45,7 @@ export async function GET(req: NextRequest) {
   const checks = {
     db: false,
     vector: null as boolean | null,
+    vector_dimension: null as boolean | null,
   }
   const errors: string[] = []
 
@@ -65,9 +69,18 @@ export async function GET(req: NextRequest) {
       checks.vector = false
       errors.push(`vector: ${e instanceof Error ? e.message : String(e)}`)
     }
+
+    // Verify configured collection vector dimensions.
+    const dimCheck = await validateQdrantDimension(qdrantUrl)
+    checks.vector_dimension = dimCheck.ok
+    if (!dimCheck.ok) {
+      errors.push(
+        `vector_dimension: ${dimCheck.mismatches.map((m) => `${m.collection} expected ${m.expected} got ${m.actual}`).join('; ')}`,
+      )
+    }
   }
 
-  if (checks.db) {
+  if (checks.db && checks.vector_dimension !== false) {
     return NextResponse.json(ok({ status: 'healthy', checks }))
   }
 

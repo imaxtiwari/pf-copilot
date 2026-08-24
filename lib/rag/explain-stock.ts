@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { eq } from 'drizzle-orm'
 import { db } from '../db'
 import * as schema from '../../db/schema'
@@ -7,10 +8,26 @@ import { retrieveStockChunks } from './retrieval-stock'
 import { validateRagResponse } from './validate-response'
 import type { RagResponseFormatted, RefusalReason, Citation } from '../contracts/refusal-types'
 import type { RetrievedStockChunk } from './retrieval-stock'
+import { structuredCall } from '../llm/structured-call'
 import logger from '../logger'
 
 const gpt4oClient = getGpt4o()
 const GPT4O_DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O!
+
+const ExplainStockResponseSchema = z.object({
+  answer: z.string(),
+  citations: z.array(
+    z.object({
+      chunk_id: z.string(),
+      factsheet_date: z.string(),
+      section: z.string(),
+    }),
+  ),
+  refused: z.boolean(),
+  refusal_reason: z.string().nullable(),
+})
+
+type ExplainStockResponse = z.infer<typeof ExplainStockResponseSchema>
 
 export type SupportedLanguage = 'en' | 'hi-en'
 
@@ -83,35 +100,39 @@ export async function explainStock(
         )
         .join('\n\n---\n\n')
 
-    const callLlm = async (extraNudge?: string): Promise<unknown> => {
+    const fallback: ExplainStockResponse = {
+        answer: 'Unable to produce a valid stock explanation at this time. Please try rephrasing your question.',
+        citations: [],
+        refused: true,
+        refusal_reason: 'contract_violation',
+    }
+
+    const callLlm = async (extraNudge?: string): Promise<ExplainStockResponse> => {
         const userContent = `Retrieved chunks:\n\n${chunksFormatted}\n\nUser question: ${question}${extraNudge ? `\n\nCorrection: ${extraNudge}` : ''}`
         const messages = [
             { role: 'system' as const, content: EXPLAIN_STOCK_PROMPT.text },
             { role: 'user' as const, content: userContent },
         ]
         const start = Date.now()
-        const completion = await gpt4oClient.chat.completions.create({
+        const parsed = await structuredCall({
+            client: gpt4oClient,
             model: GPT4O_DEPLOYMENT,
             messages,
-            response_format: { type: 'json_object' },
+            schema: ExplainStockResponseSchema,
+            schemaName: 'explain_stock_response',
+            schemaDescription: 'JSON answer to a stock question with citations.',
             temperature: 0.0,
+            fallback,
         })
         logger.info(
             {
                 isin,
                 durationMs: Date.now() - start,
-                tokens: completion.usage?.total_tokens,
                 retry: !!extraNudge,
             },
             'rag: stock llm call complete',
         )
-        const raw = completion.choices[0]?.message?.content ?? '{}'
-        try {
-            return JSON.parse(raw)
-        } catch {
-            logger.warn({ isin, raw: raw.slice(0, 200) }, 'rag: stock LLM returned non-JSON')
-            return {}
-        }
+        return parsed
     }
 
     let parsed = await callLlm()
@@ -132,10 +153,5 @@ export async function explainStock(
         }
     }
 
-    return formatResponse(
-        parsed as { answer: string; citations: Citation[]; refused: boolean; refusal_reason: string | null },
-        chunks,
-        isin,
-        doc.companyName,
-    )
+    return formatResponse(parsed, chunks, isin, doc.companyName)
 }
