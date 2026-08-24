@@ -4,6 +4,8 @@ import { db } from '@/lib/db'
 import * as schema from '@/db/schema'
 import { getGpt4oMini } from '@/lib/azure-openai'
 import { ORCHESTRATOR_PROMPT } from '@/lib/prompts/orchestrator'
+import { getPromptVersion } from '@/lib/prompts/registry'
+import { classifyAssistantOutput, ADVICE_DETECTED_REFUSAL } from '@/lib/safety/classifier'
 import type { SupportedLanguage } from '@/lib/rag/explain-fund'
 import { TOOL_DEFINITIONS } from '@/lib/tools/definitions'
 import { getPortfolio } from '@/lib/tools/get-portfolio'
@@ -214,20 +216,58 @@ async function runOrchestratorWithOptions(
     const msg = completion.choices[0].message
 
     if (!msg.tool_calls || msg.tool_calls.length === 0) {
-      // Final answer — persist and return
+      // Final answer — classify, persist, and return
       const finalContent = msg.content ?? ''
       if (!finalContent.trim()) {
         logger.warn({ userId, iteration: i + 1 }, 'orchestrator: model returned empty content')
       }
-      await db.insert(schema.chatMessages).values({
-        userId,
-        role: 'assistant',
-        content: finalContent,
-        citations,
-        modelVersion: _deployment,
-        refusalReason,
-        requestId,
-      })
+
+      const safety = await classifyAssistantOutput(finalContent)
+      let deliveredContent = finalContent
+      let deliveredRefusalReason = refusalReason
+      let safetyScore = safety.score
+
+      if (safety.label === 'advice') {
+        deliveredContent = ADVICE_DETECTED_REFUSAL
+        deliveredRefusalReason = 'advice_detected'
+        logger.warn(
+          { userId, requestId, score: safety.score, reasoning: safety.reasoning },
+          'orchestrator: advice detected in final output; replacing with refusal',
+        )
+      }
+
+      const [messageRow] = await db
+        .insert(schema.chatMessages)
+        .values({
+          userId,
+          role: 'assistant',
+          content: deliveredContent,
+          citations,
+          modelVersion: _deployment,
+          refusalReason: deliveredRefusalReason,
+          requestId,
+          promptVersion: getPromptVersion('orchestrator'),
+          safetyScore,
+        })
+        .returning({ id: schema.chatMessages.id })
+
+      if (safety.label === 'borderline' && messageRow) {
+        try {
+          await db.insert(schema.safetyReviewQueue).values({
+            userId,
+            messageId: messageRow.id,
+            content: deliveredContent,
+            label: safety.label,
+            score: safety.score,
+            reasoning: safety.reasoning,
+          })
+        } catch (queueErr) {
+          logger.error(
+            { userId, requestId, messageId: messageRow.id, error: queueErr },
+            'orchestrator: failed to insert borderline safety review row',
+          )
+        }
+      }
 
       const elapsed = Date.now() - startedAt
       if (elapsed > P95_LATENCY_BUDGET_MS) {
@@ -238,16 +278,16 @@ async function runOrchestratorWithOptions(
       }
 
       logger.info(
-        { userId, iterations: i + 1, elapsedMs: elapsed, toolsUsed: traces.map((t) => t.tool) },
+        { userId, iterations: i + 1, elapsedMs: elapsed, toolsUsed: traces.map((t) => t.tool), safetyLabel: safety.label },
         'orchestrator: turn complete',
       )
 
       return {
-        assistant_message: finalContent,
+        assistant_message: deliveredContent,
         tool_traces: traces,
         citations,
         model_version: _deployment,
-        refusal_reason: refusalReason,
+        refusal_reason: deliveredRefusalReason,
         request_id: requestId,
       }
     }
@@ -328,6 +368,8 @@ async function runOrchestratorWithOptions(
     modelVersion: _deployment,
     refusalReason: refusalReason ?? 'contract_violation',
     requestId,
+    promptVersion: getPromptVersion('orchestrator'),
+    safetyScore: 0,
   })
   return {
     assistant_message: fallbackMessage,

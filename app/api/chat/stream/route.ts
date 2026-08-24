@@ -159,6 +159,17 @@ export async function POST(req: NextRequest) {
                     workspace_state: workspaceState,
                     timestamp: new Date().toISOString(),
                 })
+
+                // Safety incidents are persisted by the orchestrator; the stream route
+                // only surfaces the final safety state to the client for transparency.
+                if (result.refusal_reason === 'advice_detected') {
+                    send('safety', {
+                        label: 'advice',
+                        message: 'This response was replaced because it contained investment advice.',
+                        request_id: result.request_id,
+                        timestamp: new Date().toISOString(),
+                    })
+                }
             } catch (e) {
                 const msg = e instanceof Error ? e.message : String(e)
                 const requestId = randomUUID()

@@ -90,30 +90,69 @@ export function validateRagResponse(
     }
   }
 
-  // CHECK 6: Numeric claims must carry an inline chunk citation in the same sentence
+  // CHECK 6: Numeric and peer-comparison claims must carry an inline chunk citation
+  // in the same sentence or the immediately preceding sentence (multi-sentence claims).
   if (!r.refused) {
-    const answerBody = answerWithoutUserQuotes
-    // Simple sentence split on . ! ? \n; keep non-empty segments
-    const sentences = answerBody
-      .split(/(?<=[.!?\n])\s+/)
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0)
+    const sentences = splitSentences(answerWithoutUserQuotes)
+    const numericClaimRe = /\d+(?:\.\d+)?\s*(?:%|percent|pct|Cr|crore|lakh|lacs|INR|₹|bps|bp|years?|Y)/gi
+    const peerComparisonRe = /\b(outperform(?:ed|s)?|underperform(?:ed|s)?|better than|worse than|higher than|lower than|best|worst|top|bottom)\b/gi
 
-    // Numeric claim pattern: digits optionally with decimal, followed by a unit
-    const numericClaimRe = /\d+(?:\.\d+)?\s*(?:%|percent|pct|Cr|crore|lakh|lacs|INR|₹|bps|bp)/gi
+    let previousSentenceHadCitation = false
 
     for (const sentence of sentences) {
-      // Ignore sentences that contain chunk-id references inside them (e.g. chunk labels)
-      const numericMatches = [...sentence.matchAll(numericClaimRe)]
-      if (numericMatches.length === 0) continue
-      if (!sentence.includes('[chunk_')) {
-        // The whole sentence has numeric claim(s) but no inline citation at all
+      const hasNumericClaim = numericClaimRe.test(sentence)
+      numericClaimRe.lastIndex = 0
+      const hasPeerComparison = peerComparisonRe.test(sentence)
+      peerComparisonRe.lastIndex = 0
+      const hasCitation = /\[chunk_[\w-]+\]/.test(sentence)
+
+      if (hasCitation) {
+        previousSentenceHadCitation = true
+      }
+
+      if ((hasNumericClaim || hasPeerComparison) && !hasCitation && !previousSentenceHadCitation) {
         errors.push(
-          `Numeric claim "${sentence.slice(0, 80)}${sentence.length > 80 ? '...' : ''}" is not cited with a [chunk_id]`,
+          `Claim "${sentence.slice(0, 80)}${sentence.length > 80 ? '...' : ''}" is not cited with a [chunk_id]`,
         )
+      }
+
+      if (!hasCitation) {
+        previousSentenceHadCitation = false
       }
     }
   }
 
   return errors.length === 0 ? { ok: true } : { ok: false, errors }
+}
+
+/**
+ * Split text into sentences while avoiding common abbreviations and decimal points.
+ * Keeps parenthetical citations attached to their containing sentence.
+ */
+function splitSentences(text: string): string[] {
+  // Match sentence-ending punctuation followed by whitespace/end, but only when
+  // the preceding token is not a known abbreviation.
+  const sentenceEndRe =
+    /(?<![A-Za-z](?:\.|[A-Za-z]{1,3})\.?)(?<![A-Za-z]{1,4})(?<=[.!?])\s+(?=[A-Z])|(?<=[.!?])\s*$/g
+
+  const raw = text
+    .replace(sentenceEndRe, '\n')
+    .split('\n')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+
+  const sentences: string[] = []
+  for (const segment of raw) {
+    const trimmed = segment.trim()
+    if (!trimmed) continue
+    // Merge trailing abbreviation fragments back into the prior sentence.
+    const lastChar = trimmed.charAt(trimmed.length - 1)
+    if (sentences.length > 0 && !['.', '!', '?'].includes(lastChar)) {
+      sentences[sentences.length - 1] += ' ' + trimmed
+    } else {
+      sentences.push(trimmed)
+    }
+  }
+
+  return sentences
 }

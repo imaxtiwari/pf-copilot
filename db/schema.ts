@@ -12,6 +12,7 @@ import {
   index,
   uniqueIndex,
   vector,
+  real,
 } from 'drizzle-orm/pg-core'
 
 import { sql } from 'drizzle-orm'
@@ -168,11 +169,42 @@ export const chatMessages = pgTable(
     modelVersion: text('model_version'),
     refusalReason: text('refusal_reason'),
     requestId: text('request_id'),
+    promptVersion: text('prompt_version').notNull().default('legacy'),
+    safetyScore: real('safety_score').default(0),
   },
   (table) => [
     // DESC ordering applied via raw SQL in db/migrate.ts for exact (user_id, ts DESC) semantics
     index('chat_messages_user_ts_idx').on(table.userId, sql`${table.ts} DESC`),
     index('chat_messages_request_id_idx').on(table.requestId),
+    index('chat_messages_prompt_version_idx').on(table.promptVersion),
+    index('chat_messages_safety_score_idx').on(table.safetyScore),
+  ],
+)
+
+export const safetyReviewQueue = pgTable(
+  'safety_review_queue',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    messageId: uuid('message_id')
+      .notNull()
+      .references(() => chatMessages.id, { onDelete: 'cascade' }),
+    content: text('content').notNull(),
+    label: text('label').notNull(), // 'borderline' | 'advice'
+    score: real('score').notNull(),
+    reasoning: text('reasoning'),
+    reviewed: boolean('reviewed').notNull().default(false),
+    reviewedBy: uuid('reviewed_by'),
+    reviewedAt: timestamp('reviewed_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('safety_review_queue_user_id_idx').on(table.userId),
+    index('safety_review_queue_message_id_idx').on(table.messageId),
+    index('safety_review_queue_reviewed_idx').on(table.reviewed),
+    index('safety_review_queue_created_at_idx').on(table.createdAt),
   ],
 )
 

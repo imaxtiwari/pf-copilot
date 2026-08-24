@@ -4,6 +4,7 @@ export type RefusalReason =
   | 'contract_violation'
   | 'no_retrieval_result'
   | 'cost_budget_exceeded'
+  | 'advice_detected'
 
 export type Citation = {
   chunk_id: string
