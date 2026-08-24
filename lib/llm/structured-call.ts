@@ -1,12 +1,13 @@
 import { z } from 'zod'
 import type { AzureOpenAI } from 'openai'
+import type { ChatCompletionMessageParam } from 'openai/resources/chat'
 import { POLICY } from '@/lib/config/policy'
 import logger from '@/lib/logger'
 
 export type StructuredCallOptions<T> = {
   client: AzureOpenAI
   model: string
-  messages: unknown[]
+  messages: ChatCompletionMessageParam[]
   schema: z.ZodType<T>
   schemaName: string
   schemaDescription?: string

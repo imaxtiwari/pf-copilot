@@ -71,7 +71,9 @@ export async function GET(req: NextRequest) {
     }
 
     // Verify configured collection vector dimensions.
-    const dimCheck = await validateQdrantDimension(qdrantUrl)
+    const expectedDimension = Number.parseInt(process.env.EMBEDDING_DIMENSION ?? '1536', 10)
+    const collections = process.env.QDRANT_COLLECTIONS?.split(',').map((c) => c.trim()).filter(Boolean) ?? []
+    const dimCheck = await validateQdrantDimension(qdrantUrl, expectedDimension, collections)
     checks.vector_dimension = dimCheck.ok
     if (!dimCheck.ok) {
       errors.push(

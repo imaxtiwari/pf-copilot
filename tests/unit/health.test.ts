@@ -105,8 +105,8 @@ describe('/api/health', () => {
         const json = await res.json()
 
         expect(res.status).toBe(503)
-        expect(json.data.checks.vector).toBe(true)
-        expect(json.data.checks.vector_dimension).toBe(false)
+        expect(json.error.details.checks.vector).toBe(true)
+        expect(json.error.details.checks.vector_dimension).toBe(false)
         expect(json.error.details.errors.some((e: string) => e.includes('3072'))).toBe(true)
 
         delete process.env.QDRANT_COLLECTIONS
