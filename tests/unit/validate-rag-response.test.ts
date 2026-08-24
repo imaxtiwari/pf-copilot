@@ -254,6 +254,42 @@ describe('validateRagResponse — numeric claim citation', () => {
     )
     expect(r.ok).toBe(false)
   })
+
+  it('accepts a parenthetical citation on a numeric claim', () => {
+    const r = validateRagResponse(
+      { ...BASE_VALID, answer: 'The expense ratio is 1.42% (see [chunk_1]).' },
+      CHUNK_IDS,
+    )
+    expect(r.ok).toBe(true)
+  })
+
+  it('accepts a multi-sentence claim with citation in the preceding sentence', () => {
+    const r = validateRagResponse(
+      {
+        ...BASE_VALID,
+        answer: 'The fund returned 12.5% annually over 3 years [chunk_1]. This places it in the top quartile.',
+      },
+      CHUNK_IDS,
+    )
+    expect(r.ok).toBe(true)
+  })
+
+  it('flags a peer-comparison claim without citation', () => {
+    const r = validateRagResponse(
+      { ...BASE_VALID, answer: 'This fund outperformed its peers over the last year.' },
+      CHUNK_IDS,
+    )
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.errors.some((e) => e.includes('not cited'))).toBe(true)
+  })
+
+  it('does not split on common abbreviations like Dr. or Mr.', () => {
+    const r = validateRagResponse(
+      { ...BASE_VALID, answer: 'Dr. Patel noted the expense ratio is 1.42% [chunk_1].' },
+      CHUNK_IDS,
+    )
+    expect(r.ok).toBe(true)
+  })
 })
 
 // ── refused response passthrough ─────────────────────────────────────────────

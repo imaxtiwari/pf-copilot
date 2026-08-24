@@ -224,7 +224,7 @@ async function runOrchestratorWithOptions(
 
       const safety = await classifyAssistantOutput(finalContent)
       let deliveredContent = finalContent
-      let deliveredRefusalReason = refusalReason
+      let deliveredRefusalReason: RefusalReason | null = refusalReason
       let safetyScore = safety.score
 
       if (safety.label === 'advice') {

@@ -9,7 +9,11 @@ process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O = 'test-deployment'
 
 vi.mock('@/lib/db', () => ({
   db: {
-    insert: () => ({ values: vi.fn().mockResolvedValue(undefined) }),
+    insert: () => ({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([{ id: 'msg-1' }]),
+      }),
+    }),
     select: () => ({ from: () => ({ where: () => ({ orderBy: () => ({ limit: () => Promise.resolve([]) }) }) }) }),
   },
 }))
