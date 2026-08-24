@@ -19,6 +19,7 @@ import { buildPortfolioWorkspaceState } from '@/lib/portfolio/workspace-state'
 import { AgentActivityPanel } from '@/components/agent-activity-panel'
 import type { UserProfileInput } from '@/lib/inflation/compute'
 import type { InflationConfidence } from '@/lib/validation/schemas'
+import { isStale, formatAge, DEFAULT_FACTSHEET_FRESHNESS_DAYS } from '@/lib/freshness'
 
 // ── page ──────────────────────────────────────────────────────────────────────
 
@@ -95,7 +96,14 @@ export default async function PortfolioPage() {
     ...new Set(holdingRows.filter((h) => h.schemeCode).map((h) => h.schemeCode!)),
   ]
 
-  const returnsChunks: Array<{ schemeCode: string; chunkText: string; factsheetDate: string }> =
+  const returnsChunks: Array<{
+    schemeCode: string
+    chunkText: string
+    factsheetDate: string
+    lastSyncedAt: Date | null
+    freshnessDays: number | null
+    isStale: boolean | null
+  }> =
     schemeCodes.length > 0
       ? (
         await db.execute(
@@ -103,7 +111,10 @@ export default async function PortfolioPage() {
               SELECT DISTINCT ON (scheme_code)
                 scheme_code,
                 chunk_text,
-                factsheet_date
+                factsheet_date,
+                last_synced_at,
+                freshness_days,
+                is_stale
               FROM factsheet_chunks
               WHERE scheme_code = ANY(${schemeCodes}::text[])
                 AND section = 'returns'
@@ -114,8 +125,13 @@ export default async function PortfolioPage() {
         schemeCode: (r as { scheme_code: string }).scheme_code,
         chunkText: (r as { chunk_text: string }).chunk_text,
         factsheetDate: (r as { factsheet_date: string }).factsheet_date,
+        lastSyncedAt: (r as { last_synced_at: Date | null }).last_synced_at,
+        freshnessDays: (r as { freshness_days: number | null }).freshness_days,
+        isStale: (r as { is_stale: boolean | null }).is_stale,
       }))
       : []
+
+  const staleSchemes = returnsChunks.filter((c) => isStale(c)).map((c) => c.schemeCode)
 
   const returnsMap = new Map(
     returnsChunks.map((c) => [c.schemeCode, { chunkText: c.chunkText, factsheetDate: c.factsheetDate }]),
@@ -272,6 +288,23 @@ export default async function PortfolioPage() {
           </Link>
         </div>
       </div>
+
+      {/* Freshness warning */}
+      {staleSchemes.length > 0 && (
+        <div
+          className="mb-6 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+          data-testid="freshness-warning"
+        >
+          <strong>Data freshness:</strong>{' '}
+          {staleSchemes.length} scheme{staleSchemes.length === 1 ? '' : 's'} have stale factsheet data
+          ({staleSchemes.slice(0, 3).join(', ')}{staleSchemes.length > 3 ? '…' : ''}). Returns shown may
+          not reflect the latest available information.{' '}
+          <Link href="/portfolio/upload" className="font-semibold underline underline-offset-2">
+            Re-upload CAS
+          </Link>{' '}
+          after syncing the latest AMFI master.
+        </div>
+      )}
 
       {insight && (
         <section

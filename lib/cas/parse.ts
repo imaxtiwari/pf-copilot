@@ -11,6 +11,7 @@ import { auditTrail, AuditActionType } from '../audit/audit-trail'
 import type { CASExtraction } from '../contracts/cas-validation'
 import type { SchemeCheckResult } from './amfi-master'
 import logger from '../logger'
+import { emitCasParseSuccess, emitCasParseFailure } from '../metrics'
 
 export type ParseResult =
   | {
@@ -38,6 +39,7 @@ export async function parseCAS(buffer: Buffer, userId: string): Promise<ParseRes
   })
   if (recent && recent.status === 'validated') {
     logger.info({ uploadId: recent.id, hash }, 'cas: returning cached result')
+    emitCasParseSuccess('text', { cached: true })
     return { ok: true, fromCache: true, uploadId: recent.id, hash }
   }
 
@@ -50,7 +52,7 @@ export async function parseCAS(buffer: Buffer, userId: string): Promise<ParseRes
         validation.extraction.holdings.map((h) => h.scheme_name),
       )
       const confidence = scoreParseResult(validation.extraction, schemeCheck)
-      
+
       auditTrail.log({
         pipeline_run_id: hash,
         agent_id: 'SYSTEM',
@@ -63,6 +65,7 @@ export async function parseCAS(buffer: Buffer, userId: string): Promise<ParseRes
       })
 
       if (confidence.score >= VISION_FALLBACK_THRESHOLD) {
+        emitCasParseSuccess('text', { confidence: confidence.score })
         return { ok: true, extraction: validation.extraction, source: 'text', schemeCheck, hash }
       }
       logger.info({ hash, score: confidence.score }, 'cas: text confidence too low, falling back to vision')
@@ -81,7 +84,7 @@ export async function parseCAS(buffer: Buffer, userId: string): Promise<ParseRes
         validation.extraction.holdings.map((h) => h.scheme_name),
       )
       const confidence = scoreParseResult(validation.extraction, schemeCheck)
-      
+
       auditTrail.log({
         pipeline_run_id: hash,
         agent_id: 'SYSTEM',
@@ -93,10 +96,13 @@ export async function parseCAS(buffer: Buffer, userId: string): Promise<ParseRes
         }
       })
 
+      emitCasParseSuccess('vision', { confidence: confidence.score })
       return { ok: true, extraction: validation.extraction, source: 'vision', schemeCheck, hash }
     }
+    emitCasParseFailure('vision', { error_count: validation.errors.length })
     return { ok: false, errors: validation.errors, source: 'vision', hash }
   }
 
+  emitCasParseFailure('none')
   return { ok: false, errors: ['Both text and vision extraction failed'], source: 'none', hash }
 }

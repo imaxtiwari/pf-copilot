@@ -44,6 +44,9 @@ export const users = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     legacyUserId: uuid('legacy_user_id'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
+    // Cost tracking — updated after every chat turn. Reset monthly by a cron/job.
+    monthlyTokens: integer('monthly_tokens').notNull().default(0),
+    monthlyCost: numeric('monthly_cost').notNull().default('0'),
   },
   (table) => [
     index('users_created_at_idx').on(table.createdAt),
@@ -126,8 +129,15 @@ export const portfolioSnapshots = pgTable(
     realReturnAnnualized: numeric('real_return_annualized'),
     inflationRateUsed: numeric('inflation_rate_used').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
+    // Freshness tracking
+    lastSyncedAt: timestamp('last_synced_at'),
+    freshnessDays: integer('freshness_days').default(1),
+    isStale: boolean('is_stale').default(false),
   },
-  (table) => [index('portfolio_snapshots_user_date_idx').on(table.userId, table.asOfDate)],
+  (table) => [
+    index('portfolio_snapshots_user_date_idx').on(table.userId, table.asOfDate),
+    index('portfolio_snapshots_stale_idx').on(table.isStale),
+  ],
 )
 
 export const dematHoldings = pgTable(
@@ -259,9 +269,14 @@ export const factsheetChunks = pgTable(
     sourceUrl: text('source_url').notNull(),
     factsheetDate: date('factsheet_date').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
+    // Freshness tracking
+    lastSyncedAt: timestamp('last_synced_at'),
+    freshnessDays: integer('freshness_days').default(7),
+    isStale: boolean('is_stale').default(false),
   },
   (table) => [
     index('factsheet_chunks_scheme_code_idx').on(table.schemeCode),
+    index('factsheet_chunks_stale_idx').on(table.isStale),
     uniqueIndex('factsheet_chunks_unique_idx').on(
       table.schemeCode,
       table.section,
@@ -285,9 +300,14 @@ export const stockDocuments = pgTable(
     embedding: vector('embedding', { dimensions: 3072 }),
     sourceUrl: text('source_url').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
+    // Freshness tracking
+    lastSyncedAt: timestamp('last_synced_at'),
+    freshnessDays: integer('freshness_days').default(7),
+    isStale: boolean('is_stale').default(false),
   },
   (table) => [
     index('stock_documents_isin_idx').on(table.isin),
+    index('stock_documents_stale_idx').on(table.isStale),
     uniqueIndex('stock_documents_unique_idx').on(
       table.isin,
       table.source,

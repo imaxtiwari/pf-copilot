@@ -8,6 +8,7 @@ import { AIWorkspaceShell } from '@/components/ai-workspace-shell'
 import { AgentActivityPanel } from '@/components/agent-activity-panel'
 import type { ToolTrace } from '@/lib/orchestrator'
 import { subscribeToChatStream, type ChatStreamData } from '@/lib/sse-client'
+import { isStale } from '@/lib/freshness'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
@@ -48,20 +49,29 @@ const INTENT_KEYWORDS = ['portfolio', 'inflation', 'fund', 'stock', 'compare']
 // ── sub-components ─────────────────────────────────────────────────────────────
 
 function CitationChip({ citation }: { citation: Citation }) {
+  const stale = isStale({ lastSyncedAt: citation.factsheet_date, freshnessDays: 7, isStale: false })
   return (
     <span
       title={`${citation.section} · ${citation.factsheet_date}`}
-      className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-xs text-indigo-700"
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${stale
+        ? 'border-amber-200 bg-amber-50 text-amber-700'
+        : 'border-indigo-200 bg-indigo-50 text-indigo-700'
+        }`}
     >
       <span className="font-mono">{citation.chunk_id}</span>
-      <span className="text-indigo-400">·</span>
+      <span className={stale ? 'text-amber-400' : 'text-indigo-400'}>·</span>
       <span>{citation.section}</span>
+      {stale && <span>⚠</span>}
     </span>
   )
 }
 
 function ChatBubble({ message }: { message: Message }) {
   const isUser = message.role === 'user'
+  const hasStaleCitations =
+    !isUser &&
+    message.citations &&
+    message.citations.some((c) => isStale({ lastSyncedAt: c.factsheet_date, freshnessDays: 7, isStale: false }))
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
@@ -80,6 +90,13 @@ function ChatBubble({ message }: { message: Message }) {
               <CitationChip key={c.chunk_id} citation={c} />
             ))}
           </div>
+        )}
+
+        {/* Freshness warning */}
+        {hasStaleCitations && (
+          <p className="mt-2 text-xs text-amber-600">
+            ⚠ Some cited factsheets are older than 7 days.
+          </p>
         )}
       </div>
     </div>

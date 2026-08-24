@@ -16,6 +16,30 @@ export function mockEmbedding(text: string): Float32Array {
 
 export function mockChatCompletion(model: string, messages: any[]): string {
   const lastUserMessage = [...messages].reverse().find(m => m.role === 'user')?.content || ''
+  const systemMessage = messages.find(m => m.role === 'system')?.content || ''
+
+  // 0. Safety classifier — deterministic responses for E2E and local dev.
+  if (systemMessage.includes('safety classifier')) {
+    if (/should i (buy|sell)/i.test(lastUserMessage)) {
+      return JSON.stringify({
+        label: 'advice',
+        score: 0.95,
+        reasoning: 'Explicit buy/sell instruction.',
+      })
+    }
+    if (/\b(buy|sell|recommend)\b/i.test(lastUserMessage)) {
+      return JSON.stringify({
+        label: 'borderline',
+        score: 0.72,
+        reasoning: 'Contains buy/sell language.',
+      })
+    }
+    return JSON.stringify({
+      label: 'safe',
+      score: 0.95,
+      reasoning: 'No prescriptive language.',
+    })
+  }
 
   // 1. Oracle internal contradictions check
   if (lastUserMessage.includes('internal contradictions') || lastUserMessage.includes('contradictions')) {
@@ -327,6 +351,22 @@ export function mockChatCompletion(model: string, messages: any[]): string {
       ],
       confidence: 80
     })
+  }
+
+  // Fallback orchestrator responses for E2E / local dev when MOCK_LLM=true.
+  // The classifier is what actually enforces the no-advice policy; these stubs
+  // just give it realistic assistant text to judge.
+  if (systemMessage.includes('educational assistant')) {
+    if (/should i buy/i.test(lastUserMessage)) {
+      return 'You should buy HDFC Top 100 Fund right now.'
+    }
+    if (/should i sell/i.test(lastUserMessage)) {
+      return 'You should sell all your equity funds immediately.'
+    }
+    if (/what does my portfolio look like/i.test(lastUserMessage)) {
+      return 'Your portfolio is currently 60% equity and 40% debt, spread across three funds.'
+    }
+    return "I can explain financial concepts and share factual information, but I can't make investment recommendations."
   }
 
   return '{}'

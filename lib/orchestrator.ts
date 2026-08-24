@@ -1,4 +1,4 @@
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, sql } from 'drizzle-orm'
 import type { ChatCompletionMessageParam, ChatCompletionAssistantMessageParam } from 'openai/resources/chat'
 import { db } from '@/lib/db'
 import * as schema from '@/db/schema'
@@ -21,6 +21,8 @@ import type { OrchestratorAgentEvent, Evidence } from '@/lib/contracts/agent-eve
 import { mapToolNameToAgentName } from '@/lib/agent-mapping'
 import logger from '@/lib/logger'
 import { randomUUID } from 'node:crypto'
+import { startSpan, withCorrelation } from '@/lib/tracing'
+import { emitChatLatencyMs, emitRefusal, emitTokensUsed } from '@/lib/metrics'
 
 // ── config ────────────────────────────────────────────────────────────────────
 
@@ -36,6 +38,32 @@ export type OrchestratorConfig = {
 export const DEFAULT_ORCHESTRATOR_CONFIG: OrchestratorConfig = {
   maxToolIterations: 5,
   maxTokensPerTurn: 4_000,
+}
+
+// Blended USD cost per 1k tokens (input + output) for the default GPT-4o-mini
+// orchestrator deployment. Override via TOKEN_COST_PER_1K_USD for other models/pricing.
+const TOKEN_COST_PER_1K_USD = Number(process.env.TOKEN_COST_PER_1K_USD ?? 0.000375)
+
+function estimateCostUsd(tokens: number): string {
+  return (tokens * TOKEN_COST_PER_1K_USD / 1000).toFixed(8)
+}
+
+async function incrementUserCost(userId: string, tokens: number): Promise<void> {
+  const costUsd = estimateCostUsd(tokens)
+  try {
+    await db
+      .update(schema.users)
+      .set({
+        monthlyTokens: sql`${schema.users.monthlyTokens} + ${tokens}`,
+        monthlyCost: sql`${schema.users.monthlyCost} + ${costUsd}::numeric`,
+      })
+      .where(eq(schema.users.id, userId))
+  } catch (error) {
+    logger.warn(
+      withCorrelation({ userId, tokens, error: error instanceof Error ? error.message : String(error) }),
+      'orchestrator: failed to increment user cost',
+    )
+  }
 }
 
 export class CostBudgetExceededError extends Error {
@@ -89,27 +117,32 @@ async function dispatchTool(
   userId: string,
   language: SupportedLanguage,
 ): Promise<unknown> {
-  // Args are validated by the call site (parsedArgs block) before reaching here.
-  switch (toolName) {
-    case 'get_portfolio':
-      return getPortfolio(userId)
-    case 'compute_personal_inflation':
-      return computePersonalInflationTool(userId)
-    case 'compute_real_returns':
-      return computeRealReturns(args.scheme_code, userId)
-    case 'lookup_chat_history':
-      return lookupChatHistory(userId)
-    case 'explain_fund':
-      return explainFundTool(args.scheme_code, args.question, language)
-    case 'explain_stock':
-      return explainStockTool(args.isin, args.question, language)
-    case 'compare_funds':
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return compareFundsTool((args as any).scheme_codes, args.question)
-    default:
-      logger.warn({ toolName }, 'orchestrator: unknown tool called')
-      return { error: `Unknown tool: ${toolName}` }
-  }
+  return startSpan(
+    'orchestrator.tool_dispatch',
+    async () => {
+      // Args are validated by the call site (parsedArgs block) before reaching here.
+      switch (toolName) {
+        case 'get_portfolio':
+          return getPortfolio(userId)
+        case 'compute_personal_inflation':
+          return computePersonalInflationTool(userId)
+        case 'compute_real_returns':
+          return computeRealReturns(args.scheme_code, userId)
+        case 'lookup_chat_history':
+          return lookupChatHistory(userId)
+        case 'explain_fund':
+          return explainFundTool(args.scheme_code, args.question, language)
+        case 'explain_stock':
+          return explainStockTool(args.isin, args.question, language)
+        case 'compare_funds':
+          return compareFundsTool((args as any).scheme_codes, args.question)
+        default:
+          logger.warn({ toolName }, 'orchestrator: unknown tool called')
+          return { error: `Unknown tool: ${toolName}` }
+      }
+    },
+    { attributes: { tool: toolName, user_id: userId, language } },
+  )
 }
 
 function collectToolMetadata(
@@ -152,6 +185,34 @@ async function runOrchestratorWithOptions(
   message: string,
   options: OrchestratorOptions,
 ): Promise<OrchestratorResult> {
+  const requestId = randomUUID()
+  return startSpan(
+    'orchestrator.turn',
+    async (span) => {
+      span.setAttribute('request_id', requestId)
+      span.setAttribute('user_id', userId)
+      span.setAttribute('language', options.language ?? 'auto')
+      try {
+        const { result, cumulativeTokens } = await runOrchestratorTurn(userId, message, options, requestId)
+        await incrementUserCost(userId, cumulativeTokens)
+        return result
+      } catch (error) {
+        if (error instanceof CostBudgetExceededError) {
+          await incrementUserCost(userId, error.cumulativeTokens)
+        }
+        throw error
+      }
+    },
+    { requestId, attributes: { user_id: userId, language: options.language ?? 'auto' } },
+  )
+}
+
+async function runOrchestratorTurn(
+  userId: string,
+  message: string,
+  options: OrchestratorOptions,
+  requestId: string,
+): Promise<{ result: OrchestratorResult; cumulativeTokens: number }> {
   const { language, onEvent, config: userConfig } = options
   const config: OrchestratorConfig = {
     ...DEFAULT_ORCHESTRATOR_CONFIG,
@@ -191,17 +252,26 @@ async function runOrchestratorWithOptions(
   const traces: ToolTrace[] = []
   const citations: Citation[] = []
   let refusalReason: RefusalReason | null = null
-  const requestId = randomUUID()
   let cumulativeTokens = 0
 
   // 4. Tool-call loop with iteration cap
   for (let i = 0; i < config.maxToolIterations; i++) {
-    const completion = await _client.chat.completions.create({
-      model: _deployment,
-      messages,
-      tools: TOOL_DEFINITIONS,
-      temperature: 0.3,
-    })
+    const completion = await startSpan(
+      'azure_openai.chat_completion',
+      async (span) => {
+        const response = await _client.chat.completions.create({
+          model: _deployment,
+          messages,
+          tools: TOOL_DEFINITIONS,
+          temperature: 0.3,
+        })
+        span.setAttribute('deployment', _deployment)
+        span.setAttribute('iteration', i + 1)
+        span.setAttribute('tokens_used', response.usage?.total_tokens ?? 0)
+        return response
+      },
+      { attributes: { deployment: _deployment, iteration: i + 1 } },
+    )
 
     const tokensThisCall = completion.usage?.total_tokens ?? 0
     cumulativeTokens += tokensThisCall
@@ -278,17 +348,26 @@ async function runOrchestratorWithOptions(
       }
 
       logger.info(
-        { userId, iterations: i + 1, elapsedMs: elapsed, toolsUsed: traces.map((t) => t.tool), safetyLabel: safety.label },
+        withCorrelation({ userId, iterations: i + 1, elapsedMs: elapsed, toolsUsed: traces.map((t) => t.tool), safetyLabel: safety.label }, requestId),
         'orchestrator: turn complete',
       )
 
+      emitChatLatencyMs(elapsed, { user_id: userId, refusal_reason: deliveredRefusalReason ?? 'none' })
+      emitTokensUsed(cumulativeTokens, userId)
+      if (deliveredRefusalReason) {
+        emitRefusal({ user_id: userId, refusal_reason: deliveredRefusalReason })
+      }
+
       return {
-        assistant_message: deliveredContent,
-        tool_traces: traces,
-        citations,
-        model_version: _deployment,
-        refusal_reason: deliveredRefusalReason,
-        request_id: requestId,
+        result: {
+          assistant_message: deliveredContent,
+          tool_traces: traces,
+          citations,
+          model_version: _deployment,
+          refusal_reason: deliveredRefusalReason,
+          request_id: requestId,
+        },
+        cumulativeTokens,
       }
     }
 
@@ -371,13 +450,19 @@ async function runOrchestratorWithOptions(
     promptVersion: getPromptVersion('orchestrator'),
     safetyScore: 0,
   })
+  emitChatLatencyMs(Date.now() - startedAt, { user_id: userId, refusal_reason: refusalReason ?? 'contract_violation' })
+  emitTokensUsed(cumulativeTokens, userId)
+  emitRefusal({ user_id: userId, refusal_reason: refusalReason ?? 'contract_violation' })
   return {
-    assistant_message: fallbackMessage,
-    tool_traces: traces,
-    citations,
-    model_version: _deployment,
-    refusal_reason: refusalReason ?? 'contract_violation',
-    request_id: requestId,
+    result: {
+      assistant_message: fallbackMessage,
+      tool_traces: traces,
+      citations,
+      model_version: _deployment,
+      refusal_reason: refusalReason ?? 'contract_violation',
+      request_id: requestId,
+    },
+    cumulativeTokens,
   }
 }
 

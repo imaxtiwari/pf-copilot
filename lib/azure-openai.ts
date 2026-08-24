@@ -1,6 +1,7 @@
 import { AzureOpenAI } from 'openai'
 import logger from './logger'
 import { mockChatCompletion, mockEmbedding } from './azure-openai-mock-impl'
+import { startSpan } from './tracing'
 
 function requireEnv(name: string): string {
   const val = process.env[name]
@@ -115,49 +116,58 @@ export async function getEmbedding(text: string): Promise<number[]> {
   }
   const deployment = requireEnv('AZURE_OPENAI_DEPLOYMENT_EMBEDDING')
   const client = makeClient(deployment)
-  const start = Date.now()
 
-  const retries = 6
-  let lastError: any
+  return startSpan(
+    'azure_openai.embedding',
+    async (span) => {
+      const start = Date.now()
+      const retries = 6
+      let lastError: any
 
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const response = await client.embeddings.create({
-        model: deployment,
-        input: text,
-      })
-      const embeddingData = response.data[0].embedding
-      let vector: number[]
-      if (typeof embeddingData === 'string') {
-        const buf = Buffer.from(embeddingData, 'base64')
-        vector = Array.from(new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4))
-      } else {
-        vector = embeddingData
+      for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+          const response = await client.embeddings.create({
+            model: deployment,
+            input: text,
+          })
+          const embeddingData = response.data[0].embedding
+          let vector: number[]
+          if (typeof embeddingData === 'string') {
+            const buf = Buffer.from(embeddingData, 'base64')
+            vector = Array.from(new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4))
+          } else {
+            vector = embeddingData
+          }
+          span.setAttribute('deployment', deployment)
+          span.setAttribute('tokens_used', response.usage?.prompt_tokens ?? 0)
+          span.setAttribute('attempt', attempt)
+          logger.info(
+            { deployment, durationMs: Date.now() - start, tokensUsed: response.usage?.prompt_tokens, attempt },
+            'embedding created',
+          )
+          return vector
+        } catch (error) {
+          lastError = error
+          // Exponential delay: 1s, 2s, 4s, 8s, 16s...
+          const delayMs = Math.pow(2, attempt - 1) * 1000
+          logger.warn(
+            { deployment, attempt, error: error instanceof Error ? error.message : String(error), nextRetryDelayMs: delayMs },
+            'embedding attempt failed, retrying...',
+          )
+          if (attempt < retries) {
+            await new Promise(resolve => setTimeout(resolve, delayMs))
+          }
+        }
       }
-      logger.info(
-        { deployment, durationMs: Date.now() - start, tokensUsed: response.usage?.prompt_tokens, attempt },
-        'embedding created',
-      )
-      return vector
-    } catch (error) {
-      lastError = error
-      // Exponential delay: 1s, 2s, 4s, 8s, 16s...
-      const delayMs = Math.pow(2, attempt - 1) * 1000
-      logger.warn(
-        { deployment, attempt, error: error instanceof Error ? error.message : String(error), nextRetryDelayMs: delayMs },
-        'embedding attempt failed, retrying...',
-      )
-      if (attempt < retries) {
-        await new Promise(resolve => setTimeout(resolve, delayMs))
-      }
-    }
-  }
 
-  logger.error(
-    { deployment, durationMs: Date.now() - start, error: lastError instanceof Error ? lastError.message : String(lastError) },
-    'embedding failed after all retries',
+      logger.error(
+        { deployment, durationMs: Date.now() - start, error: lastError instanceof Error ? lastError.message : String(lastError) },
+        'embedding failed after all retries',
+      )
+      throw lastError
+    },
+    { attributes: { deployment, input_length: text.length } },
   )
-  throw lastError
 }
 
 

@@ -1,5 +1,6 @@
 import { FORBIDDEN_IN_ASSISTANT_OUTPUT } from '@/lib/contracts/no-advice'
 import { z } from 'zod'
+import { emitCitationViolation } from '@/lib/metrics'
 
 type ValidationResult = { ok: true } | { ok: false; errors: string[] }
 
@@ -122,7 +123,11 @@ export function validateRagResponse(
     }
   }
 
-  return errors.length === 0 ? { ok: true } : { ok: false, errors }
+  if (errors.length > 0) {
+    emitCitationViolation({ error_count: errors.length })
+    return { ok: false, errors }
+  }
+  return { ok: true }
 }
 
 /**

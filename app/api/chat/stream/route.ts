@@ -11,6 +11,7 @@ import type { OrchestratorAgentEvent, CopilotStatus, AgentEvent } from '@/lib/co
 import logger from '@/lib/logger'
 import { randomUUID } from 'node:crypto'
 import { rateLimit, rateLimitSseResponse } from '@/lib/rate-limit'
+import { withCorrelation } from '@/lib/tracing'
 
 export const maxDuration = 30
 
@@ -176,7 +177,7 @@ export async function POST(req: NextRequest) {
 
                 if (e instanceof CostBudgetExceededError) {
                     logger.warn(
-                        { userId, requestId, cumulativeTokens: e.cumulativeTokens, maxTokens: e.maxTokens },
+                        withCorrelation({ userId, cumulativeTokens: e.cumulativeTokens, maxTokens: e.maxTokens }, requestId),
                         'chat/stream: cost budget exceeded',
                     )
                     try {
@@ -188,7 +189,10 @@ export async function POST(req: NextRequest) {
                             requestId,
                         })
                     } catch (dbErr) {
-                        logger.error({ userId, requestId, error: dbErr }, 'chat/stream: failed to persist cost budget audit row')
+                        logger.error(
+                            withCorrelation({ userId, error: dbErr }, requestId),
+                            'chat/stream: failed to persist cost budget audit row',
+                        )
                     }
                     send('error', {
                         code: 'cost_budget_exceeded',
@@ -197,7 +201,10 @@ export async function POST(req: NextRequest) {
                         request_id: requestId,
                     })
                 } else {
-                    logger.error({ userId, requestId, error: msg }, 'chat/stream: orchestrator threw')
+                    logger.error(
+                        withCorrelation({ userId, error: msg }, requestId),
+                        'chat/stream: orchestrator threw',
+                    )
                     send('error', { code: 'ORCHESTRATOR_ERROR', message: 'An unexpected error occurred. Please try again.', request_id: requestId })
                 }
             } finally {

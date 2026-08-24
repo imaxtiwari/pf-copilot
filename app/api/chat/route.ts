@@ -12,6 +12,7 @@ import type { SupportedLanguage } from '@/lib/rag/explain-fund'
 import logger from '@/lib/logger'
 import { randomUUID } from 'node:crypto'
 import { rateLimit, rateLimitJsonResponse } from '@/lib/rate-limit'
+import { withCorrelation } from '@/lib/tracing'
 
 // ── Next.js timeout hint (respected by Vercel; no-op on localhost) ─────────────
 export const maxDuration = 30
@@ -96,10 +97,13 @@ export async function POST(req: NextRequest) {
   }
 
   const { message, language } = parsed.data
-  logger.info({ userId, messageLength: message.length, language }, 'chat: incoming message')
 
   try {
     const result = await runOrchestrator(userId, message, language as SupportedLanguage | undefined)
+    logger.info(
+      withCorrelation({ userId, messageLength: message.length, language }, result.request_id),
+      'chat: incoming message',
+    )
     const workspaceState = buildWorkspaceState(
       result.tool_traces,
       result.assistant_message,
@@ -124,7 +128,7 @@ export async function POST(req: NextRequest) {
 
     if (e instanceof CostBudgetExceededError) {
       logger.warn(
-        { userId, requestId, cumulativeTokens: e.cumulativeTokens, maxTokens: e.maxTokens },
+        withCorrelation({ userId, cumulativeTokens: e.cumulativeTokens, maxTokens: e.maxTokens }, requestId),
         'chat: cost budget exceeded',
       )
       try {
@@ -136,7 +140,10 @@ export async function POST(req: NextRequest) {
           requestId,
         })
       } catch (dbErr) {
-        logger.error({ userId, requestId, error: dbErr }, 'chat: failed to persist cost budget audit row')
+        logger.error(
+          withCorrelation({ userId, error: dbErr }, requestId),
+          'chat: failed to persist cost budget audit row',
+        )
       }
       return NextResponse.json(
         err(
@@ -149,7 +156,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    logger.error({ userId, requestId, error: msg }, 'chat: orchestrator threw')
+    logger.error(withCorrelation({ userId, error: msg }, requestId), 'chat: orchestrator threw')
 
     // Persist a traceable error response so the audit log shows the failure.
     try {
@@ -161,7 +168,10 @@ export async function POST(req: NextRequest) {
         requestId,
       })
     } catch (dbErr) {
-      logger.error({ userId, requestId, error: dbErr }, 'chat: failed to persist error audit row')
+      logger.error(
+        withCorrelation({ userId, error: dbErr }, requestId),
+        'chat: failed to persist error audit row',
+      )
     }
 
     return NextResponse.json(
