@@ -52,4 +52,22 @@ describe('mock LLM guards in production', () => {
         })
         expect(response.choices[0].message.content).toBeDefined()
     })
+
+    it('qdrant throws in production when MOCK_LLM=true on first use', async () => {
+        ; (process.env as Record<string, string | undefined>).NODE_ENV = 'production'
+        process.env.MOCK_LLM = 'true'
+        process.env.QDRANT_URL = 'http://real-qdrant.example.com'
+
+        const { qdrant } = await import('@/lib/memory/memory-store')
+        expect(() => qdrant.getCollections()).toThrow(/Mock Qdrant client selection attempted in production/)
+    })
+
+    it('qdrant throws in production when QDRANT_URL defaults to localhost', async () => {
+        ; (process.env as Record<string, string | undefined>).NODE_ENV = 'production'
+        delete process.env.MOCK_LLM
+        delete process.env.QDRANT_URL
+
+        const { qdrant } = await import('@/lib/memory/memory-store')
+        expect(() => qdrant.getCollections()).toThrow(/QDRANT_URL is not configured in production/)
+    })
 })

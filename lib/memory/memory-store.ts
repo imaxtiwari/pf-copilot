@@ -77,7 +77,21 @@ function isProduction(): boolean {
   return process.env.NODE_ENV === 'production'
 }
 
-function makeQdrantClient() {
+/**
+ * Minimal interface for the Qdrant operations used by this module.
+ * Keeps typing loose enough for both the real REST client and the in-memory
+ * mock while still preventing accidental method-name drift.
+ */
+interface QdrantClientLike {
+  getCollections(): Promise<{ collections: Array<{ name: string }> }>
+  createCollection(name: string, config?: Record<string, unknown>): Promise<unknown>
+  upsert(name: string, data: Record<string, unknown>): Promise<unknown>
+  search(name: string, data: Record<string, unknown>): Promise<Array<{ id: string | number; score?: number; payload?: unknown }>>
+  setPayload(name: string, data: Record<string, unknown>): Promise<unknown>
+  scroll(name: string, data: Record<string, unknown>): Promise<{ points: Array<{ id: string | number; payload?: unknown }>; next_page_offset?: unknown }>
+}
+
+function makeQdrantClient(): QdrantClientLike {
   if (isProduction() && process.env.MOCK_LLM === 'true') {
     throw new Error(
       'Mock Qdrant client selection attempted in production. ' +
@@ -86,7 +100,7 @@ function makeQdrantClient() {
   }
   if (process.env.MOCK_LLM === 'true' && process.env.VITEST !== 'true') {
     logger.info('AgentMemoryStore: Initialising mock Qdrant client')
-    return new MockQdrantClient() as any
+    return new MockQdrantClient() as QdrantClientLike
   }
   const qdrantUrl = process.env.QDRANT_URL || 'http://localhost:6333'
   if (isProduction() && qdrantUrl === 'http://localhost:6333') {
@@ -96,10 +110,30 @@ function makeQdrantClient() {
   }
   return new QdrantClient({
     url: qdrantUrl,
+  }) as unknown as QdrantClientLike
+}
+
+/**
+ * Lazy Qdrant client proxy.
+ *
+ * The client is only constructed on first use. This avoids failing Next.js
+ * builds (which run with NODE_ENV=production but no real QDRANT_URL) while
+ * still enforcing production guards at runtime.
+ */
+function createLazyQdrantClient(): QdrantClientLike {
+  let client: QdrantClientLike | undefined
+  return new Proxy({} as QdrantClientLike, {
+    get(_target, prop) {
+      if (!client) {
+        client = makeQdrantClient()
+      }
+      const value = (client as Record<string | symbol, unknown>)[prop]
+      return typeof value === 'function' ? (value as (...args: unknown[]) => unknown).bind(client) : value
+    },
   })
 }
 
-export const qdrant = makeQdrantClient()
+export const qdrant = createLazyQdrantClient()
 
 export type ConfidenceTier = 'VERIFIED' | 'INFERRED' | 'ASSUMED'
 export type MemoryStatus = 'ACTIVE' | 'STALE' | 'ARCHIVED'
