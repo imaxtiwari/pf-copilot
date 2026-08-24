@@ -39,3 +39,7 @@ yarn-error.log*
 next-env.d.ts
 .vercel
 .env*
+
+# SQLite WAL/shm runtime files (audit trail DB)
+*.db-shm
+*.db-wal

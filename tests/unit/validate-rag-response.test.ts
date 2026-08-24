@@ -14,7 +14,7 @@ const BASE_VALID = {
 
 describe('validateRagResponse — shape', () => {
   it('accepts a valid response', () => {
-    expect(validateRagResponse(BASE_VALID, CHUNK_IDS)).toEqual({ ok: true, warnings: [] })
+    expect(validateRagResponse(BASE_VALID, CHUNK_IDS)).toEqual({ ok: true })
   })
 
   it('rejects null', () => {
