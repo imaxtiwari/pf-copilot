@@ -13,8 +13,8 @@ Every output — committee votes, portfolio drafts, backtests, and final packets
 1. User uploads a CAS PDF via `POST /api/cas/ingest`.
 2. After holdings are persisted, the ingest route sends `pipeline.start` to Inngest.
 3. Inngest function creates a `pipeline_runs` row and advances through stages.
-4. Stitch frontend polls status via REST or MCP `pipeline_status` tool.
-5. When complete, frontend fetches result via REST or MCP `pipeline_result` tool/resource.
+4. Stitch frontend polls status via REST `GET /api/pipeline/{runId}/status`.
+5. When complete, frontend fetches result via REST `GET /api/pipeline/{runId}/result`.
 6. Chat remains independent and unaffected by pipeline failures.
 
 ## 3. Agents & Responsibilities
@@ -76,32 +76,28 @@ Rate limit: one `pipeline.start` per user per 10 minutes.
 
 If a second CAS upload arrives while a pipeline is active, the new upload still ingests holdings but does not start a second pipeline until the active one completes.
 
-## 5. MCP Server Surface
+## 5. Frontend API Surface
 
-Protocol: Model Context Protocol `2024-11-05` over Server-Sent Events (SSE).
-
-Endpoint: `GET /api/mcp` (SSE), `POST /api/mcp` (message ingress).
+The frontend integrates with the pipeline exclusively through REST endpoints. There is no MCP server.
 
 Authentication: Supabase session cookie / bearer token via `getCurrentUser()`.
 
-### 5.1 Tools
+### 5.1 Endpoints
 
-| Tool | Input | Output |
-|------|-------|--------|
-| `pipeline_start` | `{ uploadId?: string }` | `{ runId, status }` |
-| `pipeline_status` | `{ runId }` | `{ runId, status, stage, revisionCycle, startedAt }` |
-| `pipeline_result` | `{ runId }` | Simulation packet or not-ready status |
-| `pipeline_deliberation` | `{ runId, limit? }` | List of deliberation messages |
+| Method | Path | Purpose |
+|--------|------|---------|
+| `POST` | `/api/pipeline/start` | Start a new run for the current upload. |
+| `GET` | `/api/pipeline/{runId}/status` | Poll run status, stage, revision cycle. |
+| `GET` | `/api/pipeline/{runId}/result` | Fetch the simulation packet or not-ready status. |
+| `GET` | `/api/pipeline/{runId}/deliberation` | Fetch deliberation messages. |
+| `GET` | `/api/pipeline/{runId}/comparison` | Fetch comparison reports (P1). |
+| `GET` | `/api/pipeline/{runId}/pdf` | Download generated PDF (P1). |
 
-### 5.2 Resources
+### 5.2 Standard Disclaimer
 
-- `pipeline://{runId}/status`
-- `pipeline://{runId}/result`
-- `pipeline://{runId}/deliberation`
+All simulation endpoints and UI surfaces prepend or include:
 
-### 5.3 Prompts
-
-- `educational-simulation-disclaimer`: returns the standard disclaimer.
+> "This is an educational simulation. It is not investment advice. Please consult a SEBI-registered investment advisor before acting."
 
 ## 6. Database & Audit Trail
 
@@ -157,7 +153,7 @@ Immutability enforced via PostgreSQL triggers that reject UPDATE/DELETE.
 ## 8. Security Boundaries
 
 - All pipeline tables have RLS enabled with `auth.uid()` = `user_id`/`client_id`.
-- API routes and MCP endpoint verify `getCurrentUser()`.
+- API routes verify `getCurrentUser()`.
 - Service-role operations (Inngest function) bypass RLS by using the service client; they must validate that the `userId` in the event payload is consistent with the pipeline run owner.
 - Audit logs are immutable at the database level.
 - Web research tool must use an allowlisted domain set (e.g., `amfiindia.com`, `sebi.gov.in`, RBI, NSC) and never call arbitrary URLs.
@@ -225,12 +221,9 @@ Portfolio drafts are labeled as "hypothetical allocation for educational discuss
 | app/api/pipeline/[runId]/comparison/route.ts | Comparison REST | P1 | |
 | app/api/pipeline/[runId]/pdf/route.ts | PDF REST | P1 | |
 | app/api/portfolio/drift/route.ts | Drift REST | P2 | |
-| app/api/mcp/route.ts | MCP SSE endpoint | P0 | |
-| lib/mcp/server.ts | MCP server implementation | P0 | |
 | tests/unit/* | Unit tests | P0 | |
 | tests/integration/pipeline-inngest.test.ts | Inngest integration | P0 | |
 | tests/integration/pipeline-api.test.ts | API integration | P0 | |
-| tests/integration/mcp-server.test.ts | MCP integration | P0 | |
 | tests/e2e/pipeline-happy-path.spec.ts | E2E simulation flow | P1 | Rewrite existing |
 
 ## 11. Risk Register

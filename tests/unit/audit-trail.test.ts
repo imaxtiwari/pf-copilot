@@ -33,15 +33,13 @@ describe('PostgreSQL audit trail', () => {
   })
 
   it('writes and queries a single log event', async () => {
-    auditTrail.log({
+    await auditTrail.log({
       pipeline_run_id: runId,
       user_id: userId,
       agent_id: 'SYSTEM',
       action_type: AuditActionType.PIPELINE_START,
       payload: { event: 'started', client: 'Alice' },
     })
-
-    await new Promise((resolve) => setTimeout(resolve, 200))
 
     const results = await auditTrail.query({ pipeline_run_id: runId })
     expect(results.length).toBeGreaterThanOrEqual(1)
@@ -53,15 +51,13 @@ describe('PostgreSQL audit trail', () => {
 
   it('verifies payload_hash matches SHA-256 of payload_json', async () => {
     const payload = { action: 'vote', count: 3 }
-    auditTrail.log({
+    await auditTrail.log({
       pipeline_run_id: runId,
       user_id: userId,
       agent_id: 'ORACLE',
       action_type: AuditActionType.COMMITTEE_VOTE_CAST,
       payload,
     })
-
-    await new Promise((resolve) => setTimeout(resolve, 200))
 
     const results = await auditTrail.query({ pipeline_run_id: runId, agent_id: 'ORACLE' })
     const entry = results.find((r) => r.action_type === AuditActionType.COMMITTEE_VOTE_CAST)

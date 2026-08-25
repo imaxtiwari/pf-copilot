@@ -69,10 +69,10 @@ This plan is delivered as 12 self-contained SOP prompts. Each prompt assumes the
 - **Deliverables:** `app/api/pipeline/*`, `app/api/portfolio/drift/route.ts`, integration tests
 - **Summary:** Restore pipeline REST endpoints with auth, RLS, validation, rate limiting, and disclaimers.
 
-### Prompt 11: MCP Server Implementation
-- **Role:** Staff Software Engineer + MCP Protocol Specialist + API Security Reviewer
-- **Deliverables:** `lib/mcp/server.ts`, `app/api/mcp/route.ts`, integration tests
-- **Summary:** Implement MCP server over SSE exposing pipeline tools/resources/prompts to Stitch frontend.
+### Prompt 11: Frontend REST Integration & Polling
+- **Role:** Staff Software Engineer + Frontend Engineer + API Security Reviewer
+- **Deliverables:** React hooks/components polling `GET /api/pipeline/{runId}/status`, fetching `GET /api/pipeline/{runId}/result`, displaying simulation packets with disclaimers.
+- **Summary:** Wire the educational-simulation UI to the REST pipeline surface; no MCP server.
 
 ### Prompt 12: Educational Framing, Security Hardening, Observability & Final CI
 - **Role:** Staff Software Engineer + Security Reviewer + SRE + Prompt Engineer + QA Engineer
@@ -82,7 +82,6 @@ This plan is delivered as 12 self-contained SOP prompts. Each prompt assumes the
 ## Dependencies
 
 - Existing: `inngest`, `drizzle-orm`, `pg`, `zod`, `openai`, `pino`, `@supabase/supabase-js`, `@upstash/redis`
-- Likely new: `@modelcontextprotocol/sdk` for MCP server
 - Optional: `@tavily/core` for web research (fallback stub if unavailable)
 
 ## Files Already Present (Survived Deletion)
@@ -102,7 +101,7 @@ These can be reused/updated rather than restored from git:
 ## Testing Strategy
 
 - Unit tests for every restored module
-- Integration tests for Inngest, API routes, and MCP server
+- Integration tests for Inngest and API routes
 - Updated E2E test for pipeline happy path
 - Full CI: `npx tsc --noEmit`, `npm run lint`, `npm run test:coverage -- --run`, `npm run build`
 

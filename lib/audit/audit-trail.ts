@@ -83,13 +83,16 @@ export interface AuditRunSummary {
 class AuditTrail {
   /**
    * Write an immutable audit entry to PostgreSQL.
-   * Failures are logged but never thrown, so the pipeline cannot be crashed by audit pressure.
+   * Returns a promise that resolves when the row is persisted. Callers may
+   * fire-and-forget (the promise rejection is caught and logged) or await in
+   * tests/critical paths to guarantee durability.
    */
-  public log(entry: AuditEntry): void {
-    // Fire-and-forget: callers should not await logging.
-    void this.write(entry).catch((err) => {
+  public log(entry: AuditEntry): Promise<void> {
+    const promise = this.write(entry).catch((err) => {
       logger.error({ err, entry }, 'Failed to write to immutable audit trail')
     })
+    // Returning the promise lets callers await it; ignoring it keeps the previous fire-and-forget behaviour.
+    return promise as Promise<void>
   }
 
   private async write(entry: AuditEntry): Promise<void> {
