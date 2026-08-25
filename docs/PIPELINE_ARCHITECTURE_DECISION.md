@@ -233,7 +233,7 @@ Portfolio drafts are labeled as "hypothetical allocation for educational discuss
 | Old prompts contain advisory language | High | High | Regex scan + rewrite in Prompt 12 |
 | Backtest data incomplete | High | Medium | Category proxies + disclosure |
 | DHRUV class too large | Medium | Medium | Refactor into sub-modules in Prompt 8 |
-| MCP auth/transport complexity | Medium | Medium | Reuse Supabase auth; SSE over HTTP |
+| REST polling latency for long runs | Medium | Low | Status endpoint is cheap; consider SSE push later |
 | SQLite audit trail not durable | High | High | Migrate to PostgreSQL in Prompts 2-3 |
 | Pipeline failure affects chat | Low | High | Isolate pipeline; failures logged, chat unaffected |
 | Cross-user data leakage | Low | High | RLS + auth checks on every route/tool |
@@ -242,7 +242,7 @@ Portfolio drafts are labeled as "hypothetical allocation for educational discuss
 
 - [x] Scope defined as educational simulation.
 - [x] Inngest event schema documented.
-- [x] MCP tools/resources/prompts listed.
+- [x] REST API surface documented.
 - [x] PostgreSQL audit trail migration justified.
 - [x] Data fallback strategy documented.
 - [x] RLS and auth boundaries documented.

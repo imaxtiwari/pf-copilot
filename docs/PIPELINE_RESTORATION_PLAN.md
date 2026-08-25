@@ -11,7 +11,7 @@
 | Historical data | Backtesting will use available AMFI NAV history + factsheet-derived category/regime assumptions. Where long-dated fund-level history is missing, the simulation will disclose the limitation instead of blocking. |
 | No-advice framing | All agent prompts, committee votes, and final packet outputs rewritten as educational/simulation language with prominent disclaimers. |
 | Integration | Pipeline is a **separate system** from chat. Chat may later expose a read-only summary tool, but the pipeline does not depend on chat. |
-| Frontend | The user has a separate Stitch UI/MCP frontend. This codebase exposes REST + Inngest endpoints for that frontend to consume. |
+| Frontend | The user has a separate Stitch UI. This codebase exposes REST + Inngest endpoints for that frontend to consume. |
 
 ## Educational framing rules
 

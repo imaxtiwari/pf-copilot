@@ -1,8 +1,8 @@
-# Implementation Plan: Restore DHRUV Educational Simulation Pipeline + MCP Server
+# Implementation Plan: Restore DHRUV Educational Simulation Pipeline
 
 ## Overview
 
-Restore the deleted multi-agent portfolio committee pipeline as an **educational simulation** that runs asynchronously after CAS upload, and expose it to the Stitch frontend via an MCP server. The pipeline will not give investment advice; all outputs will be clearly labeled as simulations with SEBI disclaimers. The audit trail will be migrated from SQLite to PostgreSQL for production-grade durability.
+Restore the deleted multi-agent portfolio committee pipeline as an **educational simulation** that runs asynchronously after CAS upload, and expose it to the Stitch frontend via REST endpoints. The pipeline will not give investment advice; all outputs will be clearly labeled as simulations with SEBI disclaimers. The audit trail will be migrated from SQLite to PostgreSQL for production-grade durability.
 
 ## Key Decisions
 
@@ -12,7 +12,7 @@ Restore the deleted multi-agent portfolio committee pipeline as an **educational
 | Trigger | Background job after successful CAS upload |
 | Runtime | Inngest async with `/api/pipeline/[runId]/status` polling |
 | Audit trail | Migrate from SQLite (`lib/audit/audit-trail.ts`) to PostgreSQL `pipeline_audit_logs` |
-| Frontend integration | MCP server (SSE) + REST API |
+| Frontend integration | REST API (with optional SSE push later) |
 | Agents restored | DHRUV, ARIA, KIRAN, VIKRAM, SOMA, PRIYA, RIYA, ATLAS, SEBI, MENTOR, ORACLE |
 
 ## Execution Sequence
@@ -22,7 +22,7 @@ This plan is delivered as 12 self-contained SOP prompts. Each prompt assumes the
 ### Prompt 1: Discovery, Scope & Architecture Decision
 - **Role:** Staff Software Engineer + Systems Architect + Security Reviewer + API/Product Strategist
 - **Deliverable:** `docs/PIPELINE_ARCHITECTURE_DECISION.md`
-- **Summary:** Inspect codebase, inventory deleted files, decide Inngest event schema, define MCP tools/resources/prompts, document security boundaries and educational framing rules.
+- **Summary:** Inspect codebase, inventory deleted files, decide Inngest event schema, define REST API surface, document security boundaries and educational framing rules.
 
 ### Prompt 2: Database Schema & Migration Restoration
 - **Role:** Staff Software Engineer + Database Architect + Security Reviewer
@@ -109,7 +109,7 @@ These can be reused/updated rather than restored from git:
 
 - Old pipeline was advisory; all prompts/outputs must be rewritten for educational framing.
 - Backtesting depends on historical NAV data that may be incomplete; fallback strategy required.
-- MCP server adds authentication/transport complexity.
+- REST polling requires careful UX for long-running simulations; SSE push may be added later if needed.
 - Pipeline is large; refactoring DHRUV monolith is essential.
 
 ## Next Step
