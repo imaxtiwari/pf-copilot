@@ -130,13 +130,30 @@ const close = subscribeToChatStream(
 )
 ```
 
-### Module-level singletons
+### Lazy initialization
 
-Azure OpenAI clients and deployment names are created once at module load, not per request:
+Azure OpenAI clients and the database pool are created lazily on first use, not at module load. This keeps `next build` from failing when `DATABASE_URL` or Azure credentials are unavailable during static page-data collection.
 
 ```typescript
-const _client = getGpt4oMini()
-const _deployment = process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O_MINI!
+// lib/orchestrator.ts
+let _client: ReturnType<typeof getGpt4oMini> | null = null
+function getOrchestratorClient(): ReturnType<typeof getGpt4oMini> {
+  if (!_client) {
+    _client = getGpt4oMini()
+  }
+  return _client
+}
+```
+
+`lib/db.ts` exports `db` and `pool` as Proxies that initialize the real Drizzle client / pg `Pool` on first property access. The Proxies preserve the typed API and support `vi.spyOn(db, 'update')` overrides.
+
+### Standardized API responses
+
+All API routes must use the `ok` / `err` helpers from `lib/contracts/error-envelope.ts`:
+
+```typescript
+return NextResponse.json(ok(data))
+return NextResponse.json(err('CODE', 'message'), { status: 500 })
 ```
 
 ### Zod arg validation in the orchestrator

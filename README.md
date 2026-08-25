@@ -186,7 +186,13 @@ npm run eval:setup          # generate golden CAS PDFs (run once)
 npm run eval                # LLM eval suite (requires .env.local + running DB)
 ```
 
-CI runs typecheck, lint, a TruffleHog secret scan, the full test suite with coverage thresholds, and a production build on every push and PR.
+CI runs typecheck, lint, a TruffleHog secret scan, the full test suite with coverage thresholds, and a production build on every push and PR. See `docs/PRODUCTION_HANDOFF.md` for runbooks, deployment details, and monitoring guidance.
+
+> **Note:** `DATABASE_URL` and Azure OpenAI credentials are no longer required at build time. `lib/db.ts` and the Azure OpenAI client factories initialize lazily on first use, so static page generation during `next build` does not evaluate these environment variables.
+>
+> **CI maintenance:** GitHub Actions currently emits non-blocking Node.js 20 deprecation warnings for `actions/checkout@v4`, `actions/setup-node@v4`, and `actions/upload-artifact@v4`. These should be bumped in a follow-up.
+>
+> **Local migrations:** If `npm run db:migrate` fails because `__drizzle_migrations` is empty, the local database was likely created via `drizzle-kit push`. Seed the migration table with entries for `0000`–`0002`, then rerun migrations to apply `0003` and `0004`.
 
 Coverage targets (enforced in `vitest.config.ts`):
 

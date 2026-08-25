@@ -2,10 +2,13 @@ import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth/dev-user'
 import { unauthorizedResponse } from '@/lib/auth/errors'
 import { generateInsight, persistInsight, getLatestInsight } from '@/lib/portfolio/insights'
+import { ok, err } from '@/lib/contracts/error-envelope'
+import logger from '@/lib/logger'
+import { withCorrelation } from '@/lib/tracing'
 
 export type InsightsApiResponse =
-    | { ok: true; insight: Awaited<ReturnType<typeof getLatestInsight>> }
-    | { ok: false; error: { code: string; message: string } }
+    | { ok: true; data: NonNullable<Awaited<ReturnType<typeof getLatestInsight>>> }
+    | { ok: false; error: { code: string; message: string; details?: unknown; request_id: string } }
 
 /**
  * GET /api/portfolio/insights
@@ -29,8 +32,15 @@ export async function GET() {
             insight = await persistInsight(generated)
         }
 
+        if (!insight) {
+            return NextResponse.json(
+                err('insight_not_found', 'Unable to generate or retrieve an insight.'),
+                { status: 404 },
+            ) as NextResponse<InsightsApiResponse>
+        }
+
         return NextResponse.json(
-            { ok: true, insight },
+            ok(insight),
             {
                 headers: {
                     // Small cache window: insights update only on upload.
@@ -39,12 +49,9 @@ export async function GET() {
             },
         ) as NextResponse<InsightsApiResponse>
     } catch (e) {
-        console.error('insights api error', e)
+        logger.error(withCorrelation({ error: e instanceof Error ? e.message : String(e) }), 'insights api error')
         return NextResponse.json(
-            {
-                ok: false,
-                error: { code: 'DB_ERROR', message: e instanceof Error ? e.message : 'database error' },
-            },
+            err('DB_ERROR', e instanceof Error ? e.message : 'database error'),
             { status: 500 },
         ) as NextResponse<InsightsApiResponse>
     }

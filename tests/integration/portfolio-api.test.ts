@@ -81,7 +81,7 @@ describe('Portfolio API routes', () => {
     expect(response.status).toBe(200)
     const body = await response.json()
     expect(body.ok).toBe(true)
-    expect(body.insight.title).toBe('Insight')
+    expect(body.data.title).toBe('Insight')
     expect(mockGenerateInsight).not.toHaveBeenCalled()
   })
 
