@@ -115,8 +115,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS "behavioral_fingerprints_run_id_unique_idx" ON
 -- ── Audit trail (PostgreSQL replacement for SQLite audit-trail.ts) ────────────
 CREATE TABLE IF NOT EXISTS "pipeline_audit_logs" (
   "log_id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-  "pipeline_run_id" uuid NOT NULL REFERENCES "public"."pipeline_runs"("run_id") ON DELETE cascade,
-  "user_id" uuid NOT NULL REFERENCES "public"."users"("id") ON DELETE cascade,
+  "pipeline_run_id" uuid NOT NULL REFERENCES "public"."pipeline_runs"("run_id") ON DELETE no action,
+  "user_id" uuid NOT NULL REFERENCES "public"."users"("id") ON DELETE no action,
   "timestamp" timestamp DEFAULT now() NOT NULL,
   "agent_id" text NOT NULL,
   "action_type" text NOT NULL,

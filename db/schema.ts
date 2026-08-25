@@ -506,8 +506,8 @@ export const pipelineAuditLogs = pgTable(
   'pipeline_audit_logs',
   {
     logId: uuid('log_id').primaryKey().defaultRandom(),
-    pipelineRunId: uuid('pipeline_run_id').notNull().references(() => pipelineRuns.runId, { onDelete: 'cascade' }),
-    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    pipelineRunId: uuid('pipeline_run_id').notNull().references(() => pipelineRuns.runId, { onDelete: 'no action' }),
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'no action' }),
     timestamp: timestamp('timestamp').defaultNow().notNull(),
     agentId: text('agent_id').notNull(),
     actionType: text('action_type').notNull(),

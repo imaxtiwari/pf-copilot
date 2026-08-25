@@ -1,6 +1,6 @@
 {
-  "id": "fef0f334-6b3b-4e2b-8f47-10c3da038696",
-  "prevId": "cd271c13-554a-40ed-940b-ddfd02388564",
+  "id": "73b52d56-9429-4ef9-878a-371f785dfa6d",
+  "prevId": "fef0f334-6b3b-4e2b-8f47-10c3da038696",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2041,7 +2041,7 @@
           "columnsTo": [
             "run_id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "no action",
           "onUpdate": "no action"
         },
         "pipeline_audit_logs_user_id_users_id_fk": {
@@ -2054,7 +2054,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
