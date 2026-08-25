@@ -36,6 +36,13 @@
       "when": 1787570061191,
       "tag": "0004_ingestion_job_queue",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787666601970,
+      "tag": "0005_restore_pipeline_schema",
+      "breakpoints": true
     }
   ]
 }

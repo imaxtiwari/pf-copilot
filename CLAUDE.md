@@ -17,6 +17,9 @@ Production deployment: https://pf-copilot-eight.vercel.app
 5. **CAS PDF buffers are memory-only.** Never persist the raw PDF to disk or blob. Free buffer after extraction completes.
 6. **Deployment is public.** The app is deployed on Vercel; environment variables must be configured in the Vercel dashboard. Local development still uses `.env.local`.
 7. **No advice in UI copy either.** Buttons, labels, empty states, and insights must be descriptive or educational, never prescriptive.
+8. **Pipeline is educational simulation only.** The DHRUV committee pipeline (`/lib/agents/`, `/lib/pipeline/`, `/app/api/pipeline/`) produces "simulation packets", not recommendations. All prompts and outputs must use educational framing. See `/docs/PIPELINE_RESTORATION_PLAN.md`.
+9. **Pipeline does not block chat.** A pipeline failure must not break the existing chat/portfolio experience. It is a background job that enriches the user profile with a read-only simulation result.
+10. **Pipeline runs are private.** Users can only read pipeline runs, drafts, and deliberation messages they own. RLS policies are mandatory for every restored pipeline table.
 
 ---
 
