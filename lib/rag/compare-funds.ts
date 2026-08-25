@@ -25,9 +25,17 @@ const CompareFundsResponseSchema = z.object({
 
 type CompareFundsResponse = z.infer<typeof CompareFundsResponseSchema>
 
-// Module-level singleton — avoids creating a new HTTP agent on every RAG call
-const gpt4oClient = getGpt4o()
+// Lazy singletons — avoids creating a new HTTP agent on every RAG call
+// and avoids evaluating Azure env vars during `next build` static page-data collection.
+let gpt4oClient: ReturnType<typeof getGpt4o> | null = null
 const GPT4O_DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O!
+
+function getGpt4oClient(): ReturnType<typeof getGpt4o> {
+  if (!gpt4oClient) {
+    gpt4oClient = getGpt4o()
+  }
+  return gpt4oClient
+}
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -126,7 +134,7 @@ export async function compareFunds(
         ]
         const start = Date.now()
         const parsed = await structuredCall({
-            client: gpt4oClient,
+            client: getGpt4oClient(),
             model: GPT4O_DEPLOYMENT,
             messages,
             schema: CompareFundsResponseSchema,

@@ -77,9 +77,17 @@ export class CostBudgetExceededError extends Error {
   }
 }
 
-// Module-level singletons — avoids creating a new HTTP agent on every chat turn
-const _client = getGpt4oMini()
+// Lazy singletons — avoids creating a new HTTP agent on every chat turn
+// and avoids evaluating Azure env vars during `next build` static page-data collection.
+let _client: ReturnType<typeof getGpt4oMini> | null = null
 const _deployment = process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O_MINI!
+
+function getOrchestratorClient(): ReturnType<typeof getGpt4oMini> {
+  if (!_client) {
+    _client = getGpt4oMini()
+  }
+  return _client
+}
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
@@ -259,7 +267,7 @@ async function runOrchestratorTurn(
     const completion = await startSpan(
       'azure_openai.chat_completion',
       async (span) => {
-        const response = await _client.chat.completions.create({
+        const response = await getOrchestratorClient().chat.completions.create({
           model: _deployment,
           messages,
           tools: TOOL_DEFINITIONS,

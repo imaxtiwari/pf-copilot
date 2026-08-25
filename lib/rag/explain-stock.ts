@@ -11,8 +11,17 @@ import type { RetrievedStockChunk } from './retrieval-stock'
 import { structuredCall } from '../llm/structured-call'
 import logger from '../logger'
 
-const gpt4oClient = getGpt4o()
+// Lazy singleton — avoids creating a new HTTP agent on every RAG call
+// and avoids evaluating Azure env vars during `next build` static page-data collection.
+let gpt4oClient: ReturnType<typeof getGpt4o> | null = null
 const GPT4O_DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O!
+
+function getGpt4oClient(): ReturnType<typeof getGpt4o> {
+  if (!gpt4oClient) {
+    gpt4oClient = getGpt4o()
+  }
+  return gpt4oClient
+}
 
 const ExplainStockResponseSchema = z.object({
   answer: z.string(),
@@ -115,7 +124,7 @@ export async function explainStock(
         ]
         const start = Date.now()
         const parsed = await structuredCall({
-            client: gpt4oClient,
+            client: getGpt4oClient(),
             model: GPT4O_DEPLOYMENT,
             messages,
             schema: ExplainStockResponseSchema,

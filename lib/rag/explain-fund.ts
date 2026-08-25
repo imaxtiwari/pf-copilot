@@ -12,11 +12,26 @@ import type { RetrievedChunk } from './retrieval'
 import { structuredCall } from '../llm/structured-call'
 import logger from '../logger'
 
-// Module-level singletons — avoids creating a new HTTP agent on every RAG call
-const gpt4oClient = getGpt4o()
-const gpt4oMiniClient = getGpt4oMini()
+// Lazy singletons — avoids creating a new HTTP agent on every RAG call
+// and avoids evaluating Azure env vars during `next build` static page-data collection.
+let gpt4oClient: ReturnType<typeof getGpt4o> | null = null
+let gpt4oMiniClient: ReturnType<typeof getGpt4oMini> | null = null
 const GPT4O_DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O!
 const GPT4O_MINI_DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O_MINI!
+
+function getGpt4oClient(): ReturnType<typeof getGpt4o> {
+  if (!gpt4oClient) {
+    gpt4oClient = getGpt4o()
+  }
+  return gpt4oClient
+}
+
+function getGpt4oMiniClient(): ReturnType<typeof getGpt4oMini> {
+  if (!gpt4oMiniClient) {
+    gpt4oMiniClient = getGpt4oMini()
+  }
+  return gpt4oMiniClient
+}
 
 const ExplainFundResponseSchema = z.object({
   answer: z.string(),
@@ -125,7 +140,7 @@ export async function explainFund(
     ]
     const start = Date.now()
     const parsed = await structuredCall({
-      client: gpt4oClient,
+      client: getGpt4oClient(),
       model: GPT4O_DEPLOYMENT,
       messages,
       schema: ExplainFundResponseSchema,
@@ -191,7 +206,7 @@ async function translateToHinglish(
     const userContent = `Translate the "answer" field of this JSON into simple Hinglish. Preserve all [chunk_...] citations exactly as they are and copy the citations array unchanged.${extraNudge ? `\n\nCorrection: ${extraNudge}` : ''}\n\n${JSON.stringify(english)}`
     const start = Date.now()
     const parsed = await structuredCall({
-      client: gpt4oMiniClient,
+      client: getGpt4oMiniClient(),
       model: GPT4O_MINI_DEPLOYMENT,
       messages: [
         { role: 'system' as const, content: EXPLAIN_FUND_TRANSLATE_PROMPT.text },
