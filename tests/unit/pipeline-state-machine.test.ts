@@ -8,7 +8,7 @@ import { PipelineStateMachine, LEGAL_TRANSITIONS } from '@/lib/pipeline/pipeline
 
 const DATABASE_URL = process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@localhost:5432/pfcopilot'
 
-describe('PipelineStateMachine', () => {
+describe.sequential('PipelineStateMachine', () => {
   let pool: Pool
   let db: TestDb
   let userId: string
@@ -31,9 +31,7 @@ describe('PipelineStateMachine', () => {
   })
 
   afterAll(async () => {
-    await db.delete(schema.pipelineAuditLogs).where(eq(schema.pipelineAuditLogs.pipelineRunId, runId))
-    await db.delete(schema.pipelineRuns).where(eq(schema.pipelineRuns.runId, runId))
-    await db.delete(schema.users).where(eq(schema.users.id, userId))
+    // cleanup intentionally skipped — local test DB accumulates rows but UUIDs keep assertions stable
     await pool.end()
   })
 
@@ -52,9 +50,16 @@ describe('PipelineStateMachine', () => {
   })
 
   it('rejects illegal transitions', async () => {
+    const [freshRun] = await db
+      .insert(schema.pipelineRuns)
+      .values({ clientId: userId, status: 'PENDING', stage: 'INTAKE' })
+      .returning({ runId: schema.pipelineRuns.runId })
+
     await expect(
-      sm.transition('INTAKE', 'COMPLETED', { pipelineRunId: runId, userId }),
+      sm.transition('INTAKE', 'COMPLETED', { pipelineRunId: freshRun.runId, userId }),
     ).rejects.toThrow('Illegal stage transition')
+
+    // cleanup intentionally skipped — local test DB accumulates rows but UUIDs keep assertions stable
   })
 
   it('rejects transitions from wrong current stage', async () => {

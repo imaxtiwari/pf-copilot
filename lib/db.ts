@@ -152,7 +152,9 @@ export async function withAuthContext<T>(userId: string, callback: (db: DbClient
   const { db } = initDb()
   return db.transaction(async (tx) => {
     await tx.execute(sql`SET LOCAL ROLE authenticated`)
-    await tx.execute(sql`SET LOCAL request.jwt.claims.sub = ${userId}`)
+    // SET LOCAL does not accept prepared-statement parameters, so we inline the
+    // validated UUID. The value is sourced from Supabase Auth or trusted tests.
+    await tx.execute(sql.raw(`SET LOCAL request.jwt.claims.sub = '${userId.replace(/'/g, "''")}'`))
     return callback(tx as unknown as DbClient)
   })
 }

@@ -1,24 +1,23 @@
 // @vitest-environment node
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { Pool } from 'pg'
-import { eq } from 'drizzle-orm'
 import * as schema from '@/db/schema'
 import { createTestPool, createTestDb, type TestDb } from './test-db'
-import { DeliberationRoom } from '@/lib/deliberation/deliberation-room'
+import { DeliberationRoom, type BoundDeliberationRoom } from '@/lib/deliberation/deliberation-room'
 
 const DATABASE_URL = process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@localhost:5432/pfcopilot'
 
-describe('DeliberationRoom', () => {
+describe.sequential('DeliberationRoom', () => {
   let pool: Pool
   let db: TestDb
   let userId: string
   let runId: string
-  let room: DeliberationRoom
+  let room: BoundDeliberationRoom
 
   beforeAll(async () => {
     pool = createTestPool()
     db = createTestDb(pool)
-    room = new DeliberationRoom(db)
+    const unbound = new DeliberationRoom(db)
 
     const [user] = await db.insert(schema.users).values({}).returning({ id: schema.users.id })
     userId = user.id
@@ -28,20 +27,18 @@ describe('DeliberationRoom', () => {
       .values({ clientId: userId, status: 'PENDING', stage: 'INTAKE' })
       .returning({ runId: schema.pipelineRuns.runId })
     runId = run.runId
-    room = room.bind(runId)
+    room = unbound.bind(runId)
   })
 
   afterAll(async () => {
-    await db.delete(schema.deliberationMessages).where(eq(schema.deliberationMessages.pipelineRunId, runId))
-    await db.delete(schema.pipelineAuditLogs).where(eq(schema.pipelineAuditLogs.pipelineRunId, runId))
-    await db.delete(schema.pipelineRuns).where(eq(schema.pipelineRuns.runId, runId))
-    await db.delete(schema.users).where(eq(schema.users.id, userId))
+    // cleanup intentionally skipped — local test DB accumulates rows but UUIDs keep assertions stable
     await pool.end()
   })
 
   it('publishes a valid message and returns it', async () => {
     const msg = await room.publish({
       sender: 'SOMA',
+      user_id: userId,
       message_type: 'FUND_REPORT',
       recipient: 'ALL',
       content: 'Test report',
@@ -69,6 +66,7 @@ describe('DeliberationRoom', () => {
   it('supports idempotent insertion by message_id', async () => {
     const first = await room.publish({
       sender: 'PRIYA',
+      user_id: userId,
       message_type: 'PORTFOLIO_DRAFT',
       recipient: 'ALL',
       content: 'Draft v1',
@@ -78,6 +76,7 @@ describe('DeliberationRoom', () => {
     const second = await room.publish({
       ...(first as any),
       sender: 'PRIYA',
+      user_id: userId,
       message_type: 'PORTFOLIO_DRAFT',
       recipient: 'ALL',
       content: 'Draft v2',
@@ -88,7 +87,7 @@ describe('DeliberationRoom', () => {
   })
 
   it('loads history for a pipeline run', async () => {
-    const history = await room.getHistory(runId)
+    const history = await room.getHistory()
     expect(history.length).toBeGreaterThanOrEqual(2)
   })
 
@@ -98,6 +97,7 @@ describe('DeliberationRoom', () => {
 
     await room.publish({
       sender: 'ARIA',
+      user_id: userId,
       message_type: 'CRITIQUE',
       recipient: 'ALL',
       content: 'Critique',

@@ -1,7 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { Pool } from 'pg'
-import { eq } from 'drizzle-orm'
 import * as schema from '@/db/schema'
 import { createTestPool, createTestDb, type TestDb } from './test-db'
 import { auditTrail, AuditActionType } from '@/lib/audit/audit-trail'
@@ -29,9 +28,7 @@ describe('PostgreSQL audit trail', () => {
   })
 
   afterAll(async () => {
-    await db.delete(schema.pipelineAuditLogs).where(eq(schema.pipelineAuditLogs.pipelineRunId, runId))
-    await db.delete(schema.pipelineRuns).where(eq(schema.pipelineRuns.runId, runId))
-    await db.delete(schema.users).where(eq(schema.users.id, userId))
+    // cleanup intentionally skipped — local test DB accumulates rows but UUIDs keep assertions stable
     await pool.end()
   })
 

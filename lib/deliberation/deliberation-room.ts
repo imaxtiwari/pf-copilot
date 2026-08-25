@@ -191,6 +191,7 @@ export class DeliberationRoom extends EventEmitter {
     // Auto-generate system fields
     const assembled: DeliberationMessage = {
       ...rawMsg,
+      pipeline_run_id: pipelineRunId,
       message_id: messageId,
       timestamp: (rawMsg as any).timestamp || new Date().toISOString(),
       oracle_validation: (rawMsg as any).oracle_validation || { status: 'PENDING', flags: [] },
