@@ -1,62 +1,16 @@
-import Database from 'better-sqlite3'
 import { randomUUID, createHash } from 'crypto'
-import logger from '../logger'
-import * as fs from 'fs'
-import * as path from 'path'
+import { eq, and, gte, lte } from 'drizzle-orm'
+import type { SQL } from 'drizzle-orm/sql'
+import { db } from '@/lib/db'
+import { pipelineAuditLogs } from '@/db/schema'
+import logger from '@/lib/logger'
 
-// Ensure DB directory exists
-const dbPath = process.env.AUDIT_TRAIL_DB_PATH || './data/audit_trail.db'
-const dbDir = path.dirname(dbPath)
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true })
-}
+// ─── Actions ──────────────────────────────────────────────────────────────────
 
-const db = new Database(dbPath)
-
-db.pragma('journal_mode = WAL')
-
-// 1. Create table
-db.exec(`
-  CREATE TABLE IF NOT EXISTS audit_logs (
-    log_id TEXT PRIMARY KEY,
-    pipeline_run_id TEXT NOT NULL,
-    timestamp TEXT NOT NULL,
-    agent_id TEXT NOT NULL,
-    action_type TEXT NOT NULL,
-    oracle_confidence REAL,
-    payload_hash TEXT NOT NULL,
-    payload_json TEXT NOT NULL
-  )
-`)
-
-try {
-  db.exec(`ALTER TABLE audit_logs ADD COLUMN oracle_confidence REAL;`)
-} catch (e) {
-  // Column already exists
-}
-
-// 2. Create triggers for immutability
-// In SQLite, RAISING an ABORT inside a trigger rolls back the operation
-db.exec(`
-  CREATE TRIGGER IF NOT EXISTS prevent_update_audit_logs
-  BEFORE UPDATE ON audit_logs
-  BEGIN
-    SELECT RAISE(ABORT, 'AUDIT TRAIL IS IMMUTABLE — NO MODIFICATIONS PERMITTED');
-  END;
-`)
-
-db.exec(`
-  CREATE TRIGGER IF NOT EXISTS prevent_delete_audit_logs
-  BEFORE DELETE ON audit_logs
-  BEGIN
-    SELECT RAISE(ABORT, 'AUDIT TRAIL IS IMMUTABLE — NO MODIFICATIONS PERMITTED');
-  END;
-`)
-
-// 3. Export Actions
 export enum AuditActionType {
   PIPELINE_START = 'PIPELINE_START',
   PIPELINE_END = 'PIPELINE_END',
+  PIPELINE_STAGE_TRANSITION = 'PIPELINE_STAGE_TRANSITION',
   PIPELINE_DEADLOCK = 'PIPELINE_DEADLOCK',
   ARIA_PREFLIGHT_COMPLETE = 'ARIA_PREFLIGHT_COMPLETE',
   DELIBERATION_MESSAGE_SENT = 'DELIBERATION_MESSAGE_SENT',
@@ -82,13 +36,14 @@ export enum AuditActionType {
   ORACLE_CROSS_RUN_ANOMALY = 'ORACLE_CROSS_RUN_ANOMALY',
   ARIA_MINOR_ACCUMULATION_REJECT = 'ARIA_MINOR_ACCUMULATION_REJECT',
   DEADLOCK_STAGE_CORRECTION = 'DEADLOCK_STAGE_CORRECTION',
-  FORCE_STAGE_SET = 'FORCE_STAGE_SET'
+  FORCE_STAGE_SET = 'FORCE_STAGE_SET',
 }
 
 export type AgentId = 'ARIA' | 'KIRAN' | 'SOMA' | 'VIKRAM' | 'PRIYA' | 'DHRUV' | 'ORACLE' | 'SYSTEM' | 'RIYA'
 
 export interface AuditEntry {
   pipeline_run_id: string
+  user_id?: string
   agent_id: AgentId
   action_type: AuditActionType
   oracle_confidence?: number
@@ -98,6 +53,7 @@ export interface AuditEntry {
 export interface AuditLog {
   log_id: string
   pipeline_run_id: string
+  user_id: string
   timestamp: string
   agent_id: AgentId
   action_type: AuditActionType
@@ -108,6 +64,7 @@ export interface AuditLog {
 
 export interface AuditQueryFilters {
   pipeline_run_id?: string
+  user_id?: string
   agent_id?: AgentId
   action_type?: AuditActionType
   from_timestamp?: string
@@ -121,90 +78,105 @@ export interface AuditRunSummary {
   events: AuditLog[]
 }
 
-const insertStmt = db.prepare(`
-  INSERT INTO audit_logs (log_id, pipeline_run_id, timestamp, agent_id, action_type, oracle_confidence, payload_hash, payload_json)
-  VALUES (@log_id, @pipeline_run_id, @timestamp, @agent_id, @action_type, @oracle_confidence, @payload_hash, @payload_json)
-`)
+// ─── Singleton ─────────────────────────────────────────────────────────────────
 
-// 4. Singleton class
 class AuditTrail {
+  /**
+   * Write an immutable audit entry to PostgreSQL.
+   * Failures are logged but never thrown, so the pipeline cannot be crashed by audit pressure.
+   */
   public log(entry: AuditEntry): void {
-    try {
-      const payload_json = JSON.stringify(entry.payload)
-      const payload_hash = createHash('sha256').update(payload_json).digest('hex')
-
-      insertStmt.run({
-        log_id: randomUUID(),
-        pipeline_run_id: entry.pipeline_run_id,
-        timestamp: new Date().toISOString(),
-        agent_id: entry.agent_id,
-        action_type: entry.action_type,
-        oracle_confidence: entry.oracle_confidence ?? null,
-        payload_hash,
-        payload_json
-      })
-    } catch (err) {
-      // Must NEVER crash the pipeline
+    // Fire-and-forget: callers should not await logging.
+    void this.write(entry).catch((err) => {
       logger.error({ err, entry }, 'Failed to write to immutable audit trail')
-    }
+    })
   }
 
-  public query(filters: AuditQueryFilters): AuditLog[] {
-    let sql = 'SELECT * FROM audit_logs WHERE 1=1'
-    const params: Record<string, unknown> = {}
+  private async write(entry: AuditEntry): Promise<void> {
+    const payload_json = JSON.stringify(entry.payload)
+    const payload_hash = createHash('sha256').update(payload_json).digest('hex')
+
+    await db.insert(pipelineAuditLogs).values({
+      logId: randomUUID(),
+      pipelineRunId: entry.pipeline_run_id,
+      userId: entry.user_id ?? '00000000-0000-0000-0000-000000000000',
+      agentId: entry.agent_id,
+      actionType: entry.action_type,
+      oracleConfidence: entry.oracle_confidence ?? null,
+      payloadHash: payload_hash,
+      payloadJson: payload_json,
+    })
+  }
+
+  public async query(filters: AuditQueryFilters): Promise<AuditLog[]> {
+    const conditions: SQL<unknown>[] = []
 
     if (filters.pipeline_run_id) {
-      sql += ' AND pipeline_run_id = @pipeline_run_id'
-      params.pipeline_run_id = filters.pipeline_run_id
+      conditions.push(eq(pipelineAuditLogs.pipelineRunId, filters.pipeline_run_id))
+    }
+    if (filters.user_id) {
+      conditions.push(eq(pipelineAuditLogs.userId, filters.user_id))
     }
     if (filters.agent_id) {
-      sql += ' AND agent_id = @agent_id'
-      params.agent_id = filters.agent_id
+      conditions.push(eq(pipelineAuditLogs.agentId, filters.agent_id))
     }
     if (filters.action_type) {
-      sql += ' AND action_type = @action_type'
-      params.action_type = filters.action_type
+      conditions.push(eq(pipelineAuditLogs.actionType, filters.action_type))
     }
     if (filters.from_timestamp) {
-      sql += ' AND timestamp >= @from_timestamp'
-      params.from_timestamp = filters.from_timestamp
+      conditions.push(gte(pipelineAuditLogs.timestamp, new Date(filters.from_timestamp)))
     }
     if (filters.to_timestamp) {
-      sql += ' AND timestamp <= @to_timestamp'
-      params.to_timestamp = filters.to_timestamp
+      conditions.push(lte(pipelineAuditLogs.timestamp, new Date(filters.to_timestamp)))
     }
 
-    sql += ' ORDER BY timestamp ASC'
+    const rows = await db
+      .select()
+      .from(pipelineAuditLogs)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(pipelineAuditLogs.timestamp)
 
-    const stmt = db.prepare(sql)
-    return stmt.all(params) as AuditLog[]
+    return rows.map((r) => this.rowToLog(r))
   }
 
-  public getRunSummary(pipeline_run_id: string): AuditRunSummary {
-    const events = this.query({ pipeline_run_id })
+  public async getRunSummary(pipeline_run_id: string): Promise<AuditRunSummary> {
+    const events = await this.query({ pipeline_run_id })
     const event_breakdown: Record<string, number> = {}
 
-    events.forEach(e => {
-      event_breakdown[e.action_type] = (event_breakdown[e.action_type] || 0) + 1
+    events.forEach((e) => {
+      event_breakdown[e.action_type] = (event_breakdown[e.action_type] ?? 0) + 1
     })
 
     return {
       pipeline_run_id,
       total_events: events.length,
       event_breakdown,
-      events
+      events,
     }
+  }
+
+  private rowToLog(row: typeof pipelineAuditLogs.$inferSelect): AuditLog {
+    return {
+      log_id: row.logId,
+      pipeline_run_id: row.pipelineRunId,
+      user_id: row.userId,
+      timestamp: row.timestamp instanceof Date ? row.timestamp.toISOString() : row.timestamp,
+      agent_id: row.agentId as AgentId,
+      action_type: row.actionType as AuditActionType,
+      oracle_confidence: row.oracleConfidence ?? undefined,
+      payload_hash: row.payloadHash,
+      payload_json: row.payloadJson,
+    }
+  }
+
+  /** Application-layer guard: updates and deletes are rejected because the DB triggers enforce immutability. */
+  public async update(): Promise<never> {
+    throw new Error('AUDIT TRAIL IS IMMUTABLE — NO MODIFICATIONS PERMITTED')
+  }
+
+  public async delete(): Promise<never> {
+    throw new Error('AUDIT TRAIL IS IMMUTABLE — NO MODIFICATIONS PERMITTED')
   }
 }
 
 export const auditTrail = new AuditTrail()
-
-// Initial system log
-auditTrail.log({
-  pipeline_run_id: 'SYSTEM_STARTUP',
-  agent_id: 'SYSTEM',
-  action_type: AuditActionType.PIPELINE_START,
-  payload: {
-    message: `Audit trail initialised. Database integrity: OK.`
-  }
-})

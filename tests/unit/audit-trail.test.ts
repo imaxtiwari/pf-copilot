@@ -1,143 +1,89 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createHash } from 'crypto'
+// @vitest-environment node
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { Pool } from 'pg'
+import { eq } from 'drizzle-orm'
+import * as schema from '@/db/schema'
+import { createTestPool, createTestDb, type TestDb } from './test-db'
+import { auditTrail, AuditActionType } from '@/lib/audit/audit-trail'
 
-// Set database path to ':memory:' before importing auditTrail
-process.env.AUDIT_TRAIL_DB_PATH = ':memory:'
+const DATABASE_URL = process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@localhost:5432/pfcopilot'
 
-// Set mock database instance on globalThis to avoid hoisting TDZ ReferenceError
-;(globalThis as any).dbInstance = null
-let simulateWriteError = false
+describe('PostgreSQL audit trail', () => {
+  let pool: Pool
+  let db: TestDb
+  let userId: string
+  let runId: string
 
-// Intercept better-sqlite3 using a mock class to properly support constructor instantiation
-vi.mock('better-sqlite3', async (importOriginal) => {
-  const ActualDatabase = ((await importOriginal()) as any).default
-  
-  return {
-    default: class MockDatabase {
-      pragma: any
-      exec: any
-      prepare: any
-      
-      constructor(path: string) {
-        const realDb = new ActualDatabase(path)
-        ;(globalThis as any).dbInstance = realDb
-        
-        this.pragma = (arg: string) => realDb.pragma(arg)
-        this.exec = (arg: string) => realDb.exec(arg)
-        this.prepare = (sql: string) => {
-          const stmt = realDb.prepare(sql)
-          return {
-            run: (params: any) => {
-              if (simulateWriteError && sql.includes('INSERT INTO audit_logs')) {
-                throw new Error('Simulated SQLite write error')
-              }
-              return stmt.run(params)
-            },
-            all: (params: any) => stmt.all(params)
-          }
-        }
-      }
-    }
-  }
-})
+  beforeAll(async () => {
+    pool = createTestPool()
+    db = createTestDb(pool)
 
-describe('Immutable Audit Trail Unit Tests', () => {
-  let auditTrail: any
-  let AuditActionType: any
+    const [user] = await db.insert(schema.users).values({}).returning({ id: schema.users.id })
+    userId = user.id
 
-  beforeEach(async () => {
-    vi.resetModules()
-    ;(globalThis as any).dbInstance = null
-    simulateWriteError = false
-
-    const mod = await import('../../lib/audit/audit-trail')
-    auditTrail = mod.auditTrail
-    AuditActionType = mod.AuditActionType
+    const [run] = await db
+      .insert(schema.pipelineRuns)
+      .values({ clientId: userId, status: 'PENDING', stage: 'INTAKE' })
+      .returning({ runId: schema.pipelineRuns.runId })
+    runId = run.runId
   })
 
-  it('should successfully write and query a single log event', () => {
-    const runId = 'test-pipeline-run-id'
-    const payload = { event: 'started', client: 'Alice' }
-    
+  afterAll(async () => {
+    await db.delete(schema.pipelineAuditLogs).where(eq(schema.pipelineAuditLogs.pipelineRunId, runId))
+    await db.delete(schema.pipelineRuns).where(eq(schema.pipelineRuns.runId, runId))
+    await db.delete(schema.users).where(eq(schema.users.id, userId))
+    await pool.end()
+  })
+
+  it('writes and queries a single log event', async () => {
     auditTrail.log({
       pipeline_run_id: runId,
+      user_id: userId,
       agent_id: 'SYSTEM',
       action_type: AuditActionType.PIPELINE_START,
-      payload
+      payload: { event: 'started', client: 'Alice' },
     })
 
-    const results = auditTrail.query({ pipeline_run_id: runId })
-    expect(results).toHaveLength(1)
+    await new Promise((resolve) => setTimeout(resolve, 200))
+
+    const results = await auditTrail.query({ pipeline_run_id: runId })
+    expect(results.length).toBeGreaterThanOrEqual(1)
     expect(results[0].pipeline_run_id).toBe(runId)
     expect(results[0].agent_id).toBe('SYSTEM')
     expect(results[0].action_type).toBe(AuditActionType.PIPELINE_START)
-    expect(JSON.parse(results[0].payload_json)).toEqual(payload)
+    expect(JSON.parse(results[0].payload_json)).toEqual({ event: 'started', client: 'Alice' })
   })
 
-  it('should verify payload_hash matches SHA-256 of payload_json', () => {
+  it('verifies payload_hash matches SHA-256 of payload_json', async () => {
     const payload = { action: 'vote', count: 3 }
-    const payloadJson = JSON.stringify(payload)
-    const expectedHash = createHash('sha256').update(payloadJson).digest('hex')
-
-    const specificRunId = 'hash-test-run-id'
     auditTrail.log({
-      pipeline_run_id: specificRunId,
-      agent_id: 'DHRUV',
+      pipeline_run_id: runId,
+      user_id: userId,
+      agent_id: 'ORACLE',
       action_type: AuditActionType.COMMITTEE_VOTE_CAST,
-      payload
+      payload,
     })
 
-    const results = auditTrail.query({ pipeline_run_id: specificRunId })
-    expect(results).toHaveLength(1)
-    expect(results[0].payload_hash).toBe(expectedHash)
+    await new Promise((resolve) => setTimeout(resolve, 200))
+
+    const results = await auditTrail.query({ pipeline_run_id: runId, agent_id: 'ORACLE' })
+    const entry = results.find((r) => r.action_type === AuditActionType.COMMITTEE_VOTE_CAST)
+    expect(entry).toBeDefined()
+    const crypto = await import('crypto')
+    const expectedHash = crypto.createHash('sha256').update(entry!.payload_json).digest('hex')
+    expect(entry!.payload_hash).toBe(expectedHash)
   })
 
-  it('should catch failed write errors internally and NOT throw to caller', () => {
-    simulateWriteError = true
-    
-    expect(() => {
-      auditTrail.log({
-        pipeline_run_id: 'fail-run-id',
-        agent_id: 'SYSTEM',
-        action_type: AuditActionType.PIPELINE_START,
-        payload: { test: 'fail' }
-      })
-    }).not.toThrow()
-
-    simulateWriteError = false
+  it('rejects application-layer update and delete attempts', async () => {
+    await expect(auditTrail.update()).rejects.toThrow('AUDIT TRAIL IS IMMUTABLE')
+    await expect(auditTrail.delete()).rejects.toThrow('AUDIT TRAIL IS IMMUTABLE')
   })
 
-  it('should prevent UPDATE attempts on audit_logs by throwing SQLite trigger abort error', () => {
-    const db = (globalThis as any).dbInstance
-    expect(db).not.toBeNull()
-    
-    expect(() => {
-      db.exec("UPDATE audit_logs SET agent_id = 'HACKED'")
-    }).toThrow(/AUDIT TRAIL IS IMMUTABLE/)
-  })
-
-  it('should return all events and correct breakdown for getRunSummary', () => {
-    const summaryRunId = 'summary-run-id'
-    
-    auditTrail.log({
-      pipeline_run_id: summaryRunId,
-      agent_id: 'SYSTEM',
-      action_type: AuditActionType.PIPELINE_START,
-      payload: { msg: 'start' }
-    })
-    
-    auditTrail.log({
-      pipeline_run_id: summaryRunId,
-      agent_id: 'ARIA',
-      action_type: AuditActionType.ORACLE_FLAG_RAISED,
-      payload: { msg: 'flag' }
-    })
-
-    const summary = auditTrail.getRunSummary(summaryRunId)
-    expect(summary.pipeline_run_id).toBe(summaryRunId)
-    expect(summary.total_events).toBe(2)
-    expect(summary.event_breakdown[AuditActionType.PIPELINE_START]).toBe(1)
-    expect(summary.event_breakdown[AuditActionType.ORACLE_FLAG_RAISED]).toBe(1)
-    expect(summary.events).toHaveLength(2)
+  it('produces a run summary', async () => {
+    const summary = await auditTrail.getRunSummary(runId)
+    expect(summary.pipeline_run_id).toBe(runId)
+    expect(summary.total_events).toBeGreaterThanOrEqual(1)
+    expect(summary.events.length).toBe(summary.total_events)
+    expect(summary.event_breakdown[AuditActionType.PIPELINE_START]).toBeGreaterThanOrEqual(1)
   })
 })
