@@ -25,10 +25,6 @@ export default function EquityPage() {
     const [loading, setLoading] = useState(true)
     const [upload, setUpload] = useState<UploadState>({ status: 'idle' })
 
-    useEffect(() => {
-        fetchHoldings()
-    }, [])
-
     async function fetchHoldings() {
         setLoading(true)
         try {
@@ -41,6 +37,10 @@ export default function EquityPage() {
             setLoading(false)
         }
     }
+
+    useEffect(() => {
+        void fetchHoldings()
+    }, [])
 
     async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0]

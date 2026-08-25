@@ -325,3 +325,93 @@ describe('validateRagResponse — Hinglish citation preservation', () => {
     expect(r.ok).toBe(true)
   })
 })
+
+// ── multi-fund citation coverage ───────────────────────────────────────────────
+
+describe('validateRagResponse — scheme coverage', () => {
+  it('passes when every requested scheme has a citation', () => {
+    const r = validateRagResponse(
+      {
+        ...BASE_VALID,
+        answer: 'Fund A charges 1.2% [chunk_1]. Fund B charges 1.5% [chunk_2].',
+        citations: [
+          { chunk_id: 'chunk_1', factsheet_date: '2025-05-01', section: 'expense_ratio' },
+          { chunk_id: 'chunk_2', factsheet_date: '2025-05-01', section: 'expense_ratio' },
+        ],
+      },
+      CHUNK_IDS,
+      {
+        requiredSchemeCodes: ['SCHEMA', 'SCHEMB'],
+        chunksByScheme: { SCHEMA: ['chunk_1'], SCHEMB: ['chunk_2'] },
+      },
+    )
+    expect(r.ok).toBe(true)
+  })
+
+  it('fails when a requested scheme has no citation', () => {
+    const r = validateRagResponse(
+      {
+        ...BASE_VALID,
+        answer: 'Fund A charges 1.2% [chunk_1].',
+        citations: [{ chunk_id: 'chunk_1', factsheet_date: '2025-05-01', section: 'expense_ratio' }],
+      },
+      CHUNK_IDS,
+      {
+        requiredSchemeCodes: ['SCHEMA', 'SCHEMB'],
+        chunksByScheme: { SCHEMA: ['chunk_1'], SCHEMB: ['chunk_2'] },
+      },
+    )
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.errors.some((e) => e.includes('SCHEMB'))).toBe(true)
+  })
+
+  it('skips scheme coverage check when refused', () => {
+    const r = validateRagResponse(
+      {
+        answer: 'No data',
+        citations: [],
+        refused: true,
+        refusal_reason: 'no_data',
+      },
+      CHUNK_IDS,
+      {
+        requiredSchemeCodes: ['SCHEMA'],
+        chunksByScheme: { SCHEMA: ['chunk_1'] },
+      },
+    )
+    expect(r.ok).toBe(true)
+  })
+
+  it('tolerates unknown inline refs inside <user_question> quotes', () => {
+    const r = validateRagResponse(
+      {
+        ...BASE_VALID,
+        answer: '<user_question>What about [chunk_99]?</user_question> The expense ratio is 1.42% [chunk_1].',
+      },
+      CHUNK_IDS,
+    )
+    expect(r.ok).toBe(true)
+  })
+
+  it('flags forbidden words outside but not inside <user_question> quotes', () => {
+    const r = validateRagResponse(
+      {
+        ...BASE_VALID,
+        answer: '<user_question>Should I buy this fund?</user_question> The expense ratio is 1.42% [chunk_1].',
+      },
+      CHUNK_IDS,
+    )
+    expect(r.ok).toBe(true)
+  })
+
+  it('flags a numeric claim that follows an uncited sentence', () => {
+    const r = validateRagResponse(
+      {
+        ...BASE_VALID,
+        answer: 'The fund is popular. It returned 12.5% over 3 years [chunk_1].',
+      },
+      CHUNK_IDS,
+    )
+    expect(r.ok).toBe(true)
+  })
+})

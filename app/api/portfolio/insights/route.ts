@@ -39,7 +39,6 @@ export async function GET() {
             },
         ) as NextResponse<InsightsApiResponse>
     } catch (e) {
-        // eslint-disable-next-line no-console
         console.error('insights api error', e)
         return NextResponse.json(
             {

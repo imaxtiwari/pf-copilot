@@ -40,30 +40,32 @@ export function PortfolioAllocationChart({ buckets, totalValue }: { buckets: Buc
     const size = 200
     const center = size / 2
     const radius = size / 2 - 2
-    let currentAngle = -Math.PI / 2
 
-    const slices = chartBuckets.map((b) => {
-        const fraction = totalValue > 0 ? b.value / totalValue : 0
-        const angle = fraction * Math.PI * 2
-        const startAngle = currentAngle
-        const endAngle = currentAngle + angle
-        currentAngle = endAngle
+    const slices = chartBuckets.reduce<{ currentAngle: number; slices: Array<{ bucket: string; value: number; weight: number; path: string; color: string }> }>(
+        (acc, b) => {
+            const fraction = totalValue > 0 ? b.value / totalValue : 0
+            const angle = fraction * Math.PI * 2
+            const startAngle = acc.currentAngle
+            const endAngle = acc.currentAngle + angle
 
-        const x1 = center + radius * Math.cos(startAngle)
-        const y1 = center + radius * Math.sin(startAngle)
-        const x2 = center + radius * Math.cos(endAngle)
-        const y2 = center + radius * Math.sin(endAngle)
-        const largeArc = angle > Math.PI ? 1 : 0
-        const path = `M ${center} ${center} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`
+            const x1 = center + radius * Math.cos(startAngle)
+            const y1 = center + radius * Math.sin(startAngle)
+            const x2 = center + radius * Math.cos(endAngle)
+            const y2 = center + radius * Math.sin(endAngle)
+            const largeArc = angle > Math.PI ? 1 : 0
+            const path = `M ${center} ${center} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`
 
-        return {
-            bucket: b.bucket,
-            value: b.value,
-            weight: b.weight,
-            path,
-            color: BUCKET_COLORS[b.bucket] ?? '#94a3b8',
-        }
-    })
+            acc.slices.push({
+                bucket: b.bucket,
+                value: b.value,
+                weight: b.weight,
+                path,
+                color: BUCKET_COLORS[b.bucket] ?? '#94a3b8',
+            })
+            return { currentAngle: endAngle, slices: acc.slices }
+        },
+        { currentAngle: -Math.PI / 2, slices: [] },
+    ).slices
 
     return (
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">

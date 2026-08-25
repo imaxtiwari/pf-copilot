@@ -104,4 +104,55 @@ describe('memoryRatelimit edge cases', () => {
     expect(second.success).toBe(true)
     expect(second.reset).toBe(start + 120)
   })
+
+  it('isolates different keys', async () => {
+    const a = await memoryRatelimit('key:a', 1, 60)
+    const b = await memoryRatelimit('key:b', 1, 60)
+    expect(a.success).toBe(true)
+    expect(b.success).toBe(true)
+
+    const a2 = await memoryRatelimit('key:a', 1, 60)
+    expect(a2.success).toBe(false)
+
+    const b2 = await memoryRatelimit('key:b', 1, 60)
+    expect(b2.success).toBe(false)
+  })
+
+  it('allows burst up to the limit then blocks immediately', async () => {
+    const limit = 3
+    for (let i = 0; i < limit; i++) {
+      const r = await memoryRatelimit('burst:key', limit, 60)
+      expect(r.success).toBe(true)
+      expect(r.remaining).toBe(limit - (i + 1))
+    }
+    const blocked = await memoryRatelimit('burst:key', limit, 60)
+    expect(blocked.success).toBe(false)
+    expect(blocked.remaining).toBe(0)
+  })
+
+  it('reports correct retryAfter and reset for blocked requests', async () => {
+    const start = nowSeconds()
+    vi.setSystemTime(start * 1000)
+    await memoryRatelimit('retry:key', 1, 120)
+    const blocked = await memoryRatelimit('retry:key', 1, 120)
+    expect(blocked.success).toBe(false)
+    expect(blocked.retryAfter).toBe(120)
+    expect(blocked.reset).toBe(start + 120)
+  })
+
+  it('returns Infinity retryAfter when production lacks Upstash config', async () => {
+    const originalNodeEnv = process.env.NODE_ENV
+    process.env.NODE_ENV = 'production'
+    vi.stubEnv('UPSTASH_REDIS_REST_URL', '')
+    vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', '')
+    vi.resetModules()
+    const { rateLimit: rateLimitDynamic } = await import('@/lib/rate-limit')
+    const req = makeRequest({ forwardedFor: '1.2.3.4' })
+    const result = await rateLimitDynamic(req, { key: 'prod', limit: 5, window: 60 })
+    expect(result.success).toBe(false)
+    expect(result.retryAfter).toBe(Infinity)
+    process.env.NODE_ENV = originalNodeEnv
+    vi.unstubAllEnvs()
+    vi.resetModules()
+  })
 })

@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { getCurrentUser, requireAuth, linkLegacyUserId } from '@/lib/auth/user'
+import { unauthorizedResponse, forbiddenResponse } from '@/lib/auth/errors'
 import { withAuthContext, db } from '@/lib/db'
 import * as schema from '@/db/schema'
 import { eq } from 'drizzle-orm'
 
 const mockGetUser = vi.hoisted(() => vi.fn())
+const mockCookiesGet = vi.hoisted(() => vi.fn())
 
 vi.mock('@/lib/auth/supabase', () => ({
   createClient: vi.fn().mockImplementation(() => ({
@@ -14,10 +16,20 @@ vi.mock('@/lib/auth/supabase', () => ({
   })),
 }))
 
+vi.mock('next/headers', () => ({
+  cookies: vi.fn().mockImplementation(() => ({
+    get: (name: string) => mockCookiesGet(name),
+    getAll: () => [],
+    set: vi.fn(),
+  })),
+}))
+
 describe('getCurrentUser', () => {
   beforeEach(() => {
     mockGetUser.mockReset()
+    mockCookiesGet.mockReset()
     delete process.env.ALLOW_LEGACY_DEV_USER
+    process.env.NODE_ENV = 'test'
   })
 
   it('returns null when there is no authenticated user and no legacy fallback', async () => {
@@ -35,6 +47,23 @@ describe('getCurrentUser', () => {
     expect(user).toEqual({ userId: 'auth-user-1', isNew: false, email: 'test@example.com' })
   })
 
+  it('falls back to legacy cookie when ALLOW_LEGACY_DEV_USER is true', async () => {
+    process.env.ALLOW_LEGACY_DEV_USER = 'true'
+    mockGetUser.mockResolvedValue({ data: { user: null }, error: new Error('no session') })
+    mockCookiesGet.mockReturnValue({ value: 'legacy-user-1' })
+    const user = await getCurrentUser()
+    expect(user).toEqual({ userId: 'legacy-user-1', isNew: false })
+  })
+
+  it('does not fall back to legacy cookie in production', async () => {
+    process.env.NODE_ENV = 'production'
+    process.env.ALLOW_LEGACY_DEV_USER = 'true'
+    mockGetUser.mockResolvedValue({ data: { user: null }, error: new Error('no session') })
+    mockCookiesGet.mockReturnValue({ value: 'legacy-user-1' })
+    const user = await getCurrentUser()
+    expect(user).toBeNull()
+  })
+
   it('requireAuth throws UnauthorizedError when not authenticated', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null }, error: new Error('no session') })
     await expect(requireAuth()).rejects.toThrow('Unauthorized')
@@ -47,6 +76,24 @@ describe('getCurrentUser', () => {
     })
     const user = await requireAuth()
     expect(user.userId).toBe('auth-user-2')
+  })
+})
+
+describe('auth error envelopes', () => {
+  it('unauthorizedResponse returns a 401 envelope', async () => {
+    const response = unauthorizedResponse()
+    expect(response.status).toBe(401)
+    const body = await response.json()
+    expect(body.ok).toBe(false)
+    expect(body.error.code).toBe('unauthorized')
+  })
+
+  it('forbiddenResponse returns a 403 envelope', async () => {
+    const response = forbiddenResponse()
+    expect(response.status).toBe(403)
+    const body = await response.json()
+    expect(body.ok).toBe(false)
+    expect(body.error.code).toBe('forbidden')
   })
 })
 

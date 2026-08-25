@@ -1,19 +1,11 @@
 import { test, expect } from '@playwright/test'
 import * as path from 'path'
-import * as fs from 'fs'
 
-const CAS_PDF_PATH = path.join(__dirname, '../eval/golden-cas/nsdl-real-anonymized-1.pdf')
-
-// ── helpers ────────────────────────────────────────────────────────────────────
-
-function casFileExists(): boolean {
-  return fs.existsSync(CAS_PDF_PATH)
-}
+const CAS_PDF_PATH = path.join(__dirname, '../fixtures/cas-sample.pdf')
 
 // ── happy path ────────────────────────────────────────────────────────────────
 
 test.describe('Happy path: onboard → upload CAS → real returns → chat', () => {
-  test.skip(!casFileExists, 'CAS PDF not found — run: npm run eval:setup')
 
   test('1. Onboarding — fill form and compute inflation rate', async ({ page }) => {
     await page.goto('http://localhost:3000/onboarding')

@@ -149,4 +149,55 @@ describe('Orchestrator token budget', () => {
     expect(result.assistant_message).toBe('I got stuck working through your question. Could you rephrase?')
     expect(mockCreate).toHaveBeenCalledTimes(1)
   })
+
+  it('handles an unknown tool call gracefully', async () => {
+    mockCreate
+      .mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              role: 'assistant',
+              content: null,
+              tool_calls: [
+                { id: 'call-unknown', type: 'function', function: { name: 'nonexistent_tool', arguments: '{}' } },
+              ],
+            },
+          },
+        ],
+        usage: { prompt_tokens: 5, completion_tokens: 5, total_tokens: 10 },
+      })
+      .mockResolvedValueOnce(makeCompletion('I could not use that tool.', 10))
+
+    const result = await runOrchestrator('user-1', 'hello', 'en', { maxToolIterations: 2 })
+    expect(result.assistant_message).toBe('I could not use that tool.')
+    expect(result.tool_traces.some((t) => t.tool === 'nonexistent_tool')).toBe(true)
+  })
+
+  it('handles malformed tool arguments by falling back to empty args', async () => {
+    mockCreate
+      .mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              role: 'assistant',
+              content: null,
+              tool_calls: [
+                { id: 'call-bad-args', type: 'function', function: { name: 'get_portfolio', arguments: 'not-json' } },
+              ],
+            },
+          },
+        ],
+        usage: { prompt_tokens: 5, completion_tokens: 5, total_tokens: 10 },
+      })
+      .mockResolvedValueOnce(makeCompletion('Fallback answer.', 10))
+
+    const result = await runOrchestrator('user-1', 'hello', 'en', { maxToolIterations: 2 })
+    expect(result.assistant_message).toBe('Fallback answer.')
+  })
+
+  it('detects Hinglish and passes language to tools', async () => {
+    mockCreate.mockResolvedValue(makeCompletion('Namaste.', 10))
+    const result = await runOrchestrator('user-1', 'मेरा पोर्टफोलियो कैसा है', undefined)
+    expect(result.assistant_message).toBe('Namaste.')
+  })
 })

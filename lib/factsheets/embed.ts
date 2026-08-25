@@ -28,9 +28,7 @@ export type EmbedAndInsertArgs = {
   factsheetDate: string // YYYY-MM-DD
   chunks: Chunk[]
   // db and factsheetChunks table passed in to avoid module-level pool init
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   db: any
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   factsheetChunksTable: any
 }
 

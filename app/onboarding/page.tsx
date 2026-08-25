@@ -249,7 +249,7 @@ export default function OnboardingPage() {
             ))}
           </div>
           <p className="mt-1 text-xs text-gray-400">
-            "Prefer not to say" is treated as no medical conditions for this estimate.
+            &quot;Prefer not to say&quot; is treated as no medical conditions for this estimate.
           </p>
         </fieldset>
 

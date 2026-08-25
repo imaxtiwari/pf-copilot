@@ -241,14 +241,6 @@ export default function ChatPage() {
     void loadHistory()
   }, [])
 
-  // Auto-detect language from user input
-  useEffect(() => {
-    if (input.trim().length > 0) {
-      const detected = detectDevanagari(input) ? 'hi-en' : 'en'
-      if (detected !== language) setLanguage(detected)
-    }
-  }, [input, language])
-
   // Scroll to bottom whenever messages change
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -327,9 +319,12 @@ export default function ChatPage() {
     streamCloseRef.current = closeStream
   }
 
-  // Auto-grow textarea
+  // Auto-grow textarea and auto-detect language from user input
   function handleInputChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    setInput(e.target.value)
+    const next = e.target.value
+    setInput(next)
+    const detected = detectDevanagari(next) ? 'hi-en' : 'en'
+    if (detected !== language) setLanguage(detected)
     e.target.style.height = 'auto'
     e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`
   }
@@ -400,11 +395,11 @@ export default function ChatPage() {
               </h2>
               <p className="max-w-sm text-sm text-gray-500">
                 Try: &ldquo;What does my portfolio look like?&rdquo;,
-                &ldquo;What's my real return on Parag Parikh Flexi?&rdquo;, or
+                &ldquo;What&apos;s my real return on Parag Parikh Flexi?&rdquo;, or
                 &ldquo;Explain the expense ratio of HDFC Top 100.&rdquo;
               </p>
               <p className="mt-1 rounded bg-yellow-50 px-3 py-1.5 text-xs text-yellow-800">
-                I explain. I don't advise. Always verify with your financial advisor.
+                I explain. I don&apos;t advise. Always verify with your financial advisor.
               </p>
             </div>
           )}

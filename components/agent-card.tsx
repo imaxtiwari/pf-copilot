@@ -42,17 +42,21 @@ type AgentCardProps = {
     defaultExpanded?: boolean;
 };
 
+function getInitialReducedMotion() {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
 export function AgentCard({ agent, defaultExpanded = false }: AgentCardProps) {
     const [expanded, setExpanded] = useState(defaultExpanded);
-    const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+    const [prefersReducedMotion, setPrefersReducedMotion] = useState(getInitialReducedMotion);
     const statusStyle = STATUS_STYLES[agent.status];
 
     useEffect(() => {
-        const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-        setPrefersReducedMotion(mq.matches);
+        const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
         const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
-        mq.addEventListener("change", handler);
-        return () => mq.removeEventListener("change", handler);
+        mq.addEventListener('change', handler);
+        return () => mq.removeEventListener('change', handler);
     }, []);
 
     return (

@@ -440,7 +440,7 @@ export default async function PortfolioPage() {
       {/* Missing data note */}
       {missingCount > 0 && (
         <p className="mb-6 text-xs text-gray-400">
-          "—" means no factsheet returns data is available for that holding.{' '}
+          &quot;—&quot; means no factsheet returns data is available for that holding.{' '}
           {missingCount === holdingRows.length
             ? 'Run the factsheet ingestion script to populate return data.'
             : `${missingCount} of ${holdingRows.length} holdings missing.`}
