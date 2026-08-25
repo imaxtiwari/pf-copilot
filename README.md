@@ -1,5 +1,7 @@
 # PF Copilot
 
+[![CI](https://github.com/imaxtiwari/pf-copilot/actions/workflows/ci.yml/badge.svg)](https://github.com/imaxtiwari/pf-copilot/actions/workflows/ci.yml)
+
 Personal Finance Copilot for Indian retail investors.
 **Educational tool — NOT investment advice.**
 
@@ -174,18 +176,33 @@ Agents:
 ## Testing
 
 ```bash
-npm test                     # vitest unit tests
-npm run test:e2e            # playwright e2e suite
+npm test                     # vitest unit + integration tests (watch mode)
+npm run test:coverage       # full suite with coverage thresholds
+npm run lint                # eslint
+npx tsc --noEmit            # typecheck
+npm run build               # production build
+npm run test:e2e            # playwright e2e suite (requires dev server)
 npm run eval:setup          # generate golden CAS PDFs (run once)
 npm run eval                # LLM eval suite (requires .env.local + running DB)
 ```
+
+CI runs typecheck, lint, a TruffleHog secret scan, the full test suite with coverage thresholds, and a production build on every push and PR.
+
+Coverage targets (enforced in `vitest.config.ts`):
+
+| Metric | Threshold |
+|--------|-----------|
+| Lines | 70% |
+| Statements | 70% |
+| Branches | 60% |
+| Functions | 60% |
 
 Test matrix:
 
 | Suite | Files | Notes |
 |-------|-------|-------|
-| Unit | 20 files, 316 tests | Pure functions, components, API contracts. |
-| E2E | `tests/e2e/chat-stream.spec.ts`, `tests/e2e/happy-path.spec.ts` | Requires running dev server; happy-path requires golden CAS PDFs. |
+| Unit + Integration | 54 files, 510+ tests | Pure functions, auth, rate-limiting, CAS/demat parsing, orchestrator tooling, and API route integration tests with mocked DB/auth/orchestrator. |
+| E2E | `tests/e2e/chat-stream.spec.ts`, `tests/e2e/happy-path.spec.ts` | Requires running dev server; `happy-path` uses the committed synthetic CAS fixture (`tests/fixtures/cas-sample.pdf`). |
 | Eval | `tests/eval/runner.ts` + golden fixtures | LLM-based evals for CAS extraction and fund explanation. |
 
 Some component tests are sensitive to parallel execution and may time out when the full suite runs concurrently. They pass reliably when run in isolation. If you see a timeout in `agent-panel.test.tsx` or `chat-page-workspace.test.tsx`, rerun the affected file.

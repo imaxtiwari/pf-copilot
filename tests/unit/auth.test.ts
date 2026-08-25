@@ -28,8 +28,8 @@ describe('getCurrentUser', () => {
   beforeEach(() => {
     mockGetUser.mockReset()
     mockCookiesGet.mockReset()
-    delete process.env.ALLOW_LEGACY_DEV_USER
-    process.env.NODE_ENV = 'test'
+    vi.unstubAllEnvs()
+    vi.stubEnv('NODE_ENV', 'test')
   })
 
   it('returns null when there is no authenticated user and no legacy fallback', async () => {
@@ -56,8 +56,8 @@ describe('getCurrentUser', () => {
   })
 
   it('does not fall back to legacy cookie in production', async () => {
-    process.env.NODE_ENV = 'production'
-    process.env.ALLOW_LEGACY_DEV_USER = 'true'
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('ALLOW_LEGACY_DEV_USER', 'true')
     mockGetUser.mockResolvedValue({ data: { user: null }, error: new Error('no session') })
     mockCookiesGet.mockReturnValue({ value: 'legacy-user-1' })
     const user = await getCurrentUser()

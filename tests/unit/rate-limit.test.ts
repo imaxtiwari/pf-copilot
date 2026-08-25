@@ -141,8 +141,7 @@ describe('memoryRatelimit edge cases', () => {
   })
 
   it('returns Infinity retryAfter when production lacks Upstash config', async () => {
-    const originalNodeEnv = process.env.NODE_ENV
-    process.env.NODE_ENV = 'production'
+    vi.stubEnv('NODE_ENV', 'production')
     vi.stubEnv('UPSTASH_REDIS_REST_URL', '')
     vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', '')
     vi.resetModules()
@@ -151,7 +150,6 @@ describe('memoryRatelimit edge cases', () => {
     const result = await rateLimitDynamic(req, { key: 'prod', limit: 5, window: 60 })
     expect(result.success).toBe(false)
     expect(result.retryAfter).toBe(Infinity)
-    process.env.NODE_ENV = originalNodeEnv
     vi.unstubAllEnvs()
     vi.resetModules()
   })
