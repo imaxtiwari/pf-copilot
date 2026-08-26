@@ -76,10 +76,18 @@ jobs:
         run: |
           psql "$DATABASE_URL" -c "DO \$\$ BEGIN CREATE ROLE authenticated NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END \$\$;"
           psql "$DATABASE_URL" -c "CREATE SCHEMA IF NOT EXISTS auth;"
-          psql "$DATABASE_URL" -c "CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid AS 'SELECT NULL::uuid;' LANGUAGE sql SECURITY DEFINER;"
+          psql "$DATABASE_URL" -c "CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid AS 'SELECT current_setting(''request.jwt.claims.sub'', true)::uuid;' LANGUAGE sql SECURITY DEFINER;"
 
       - name: Run database migrations
         run: npm run db:migrate
+
+      - name: Grant table privileges to authenticated role
+        run: |
+          psql "$DATABASE_URL" -c "GRANT USAGE ON SCHEMA public TO authenticated;"
+          psql "$DATABASE_URL" -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO authenticated;"
+          psql "$DATABASE_URL" -c "GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO authenticated;"
+          psql "$DATABASE_URL" -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO authenticated;"
+          psql "$DATABASE_URL" -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO authenticated;"
 
       - name: Run tests with coverage
         run: npm run test:coverage -- --run
