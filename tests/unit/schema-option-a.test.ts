@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import * as schema from '@/db/schema'
 
-describe('Option A schema surface', () => {
+describe('Unified schema surface', () => {
   it('exports chat/portfolio tables', () => {
     expect(schema.users).toBeDefined()
     expect(schema.userProfile).toBeDefined()
@@ -16,9 +16,8 @@ describe('Option A schema surface', () => {
     expect(schema.stockDocuments).toBeDefined()
   })
 
-  it('does not export pipeline-only tables', () => {
-    const exports = Object.keys(schema)
-    const removed = [
+  it('exports pipeline, scheduler, and research tables', () => {
+    const expected = [
       'pipelineRuns',
       'pipelineResults',
       'portfolioDrafts',
@@ -27,6 +26,7 @@ describe('Option A schema surface', () => {
       'comparisonReports',
       'complianceReports',
       'behavioralFingerprints',
+      'pipelineAuditLogs',
       'agentFunds',
       'fundSnapshots',
       'fundCompositions',
@@ -36,8 +36,8 @@ describe('Option A schema surface', () => {
       'schedulerRuns',
       'knowledgeCommons',
     ]
-    for (const table of removed) {
-      expect(exports).not.toContain(table)
+    for (const table of expected) {
+      expect(schema[table as keyof typeof schema]).toBeDefined()
     }
   })
 
