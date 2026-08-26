@@ -72,6 +72,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Seed Supabase-compatible auth primitives
+        run: |
+          psql "$DATABASE_URL" -c "DO \$\$ BEGIN CREATE ROLE authenticated NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END \$\$;"
+          psql "$DATABASE_URL" -c "CREATE SCHEMA IF NOT EXISTS auth;"
+          psql "$DATABASE_URL" -c "CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid AS 'SELECT NULL::uuid;' LANGUAGE sql SECURITY DEFINER;"
+
       - name: Run database migrations
         run: npm run db:migrate
 
