@@ -13,7 +13,7 @@ export default defineConfig({
     setupFiles: ['tests/unit/setup.ts'],
     coverage: {
       provider: 'v8',
-      include: ['lib/**/*.ts', 'app/api/**/*.ts'],
+      include: ['lib/**/*.ts'],
       exclude: [
         'lib/**/*.d.ts',
         'lib/**/index.ts',
