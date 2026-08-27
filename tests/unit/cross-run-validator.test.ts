@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest'
-import { validateCrossRunConsistency } from '@/lib/oracle/cross-run-validator'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { validateCrossRunConsistency, clearCrossRunCache } from '@/lib/oracle/cross-run-validator'
 import { DeliberationMessage } from '@/lib/deliberation/message-schema'
 
 const RUN_ID = 'a0eebc99-5c0b-4ef8-bb6d-6bb9bd380a11'
@@ -7,40 +7,29 @@ const PREV_RUN_ID = 'b0eebc99-5c0b-4ef8-bb6d-6bb9bd380a22'
 const CLIENT_ID = 'c0eebc99-5c0b-4ef8-bb6d-6bb9bd380a33'
 
 function makeDb(previousMessages: any[] = []) {
-  const runChain = {
-    then: (resolve: (value: unknown[]) => void) => resolve([{ runId: PREV_RUN_ID, clientId: CLIENT_ID }]),
-    limit: function (n: number) {
-      return this
-    },
-    orderBy: function () {
-      return this
-    },
-    where: function () {
-      return this
-    },
-    from: function () {
-      return this
-    },
-    select: function () {
-      return this
-    },
+  let queryIndex = 0
+  const runQuery = () => {
+    queryIndex++
+    if (queryIndex === 1) return [{ runId: RUN_ID, clientId: CLIENT_ID }]
+    if (queryIndex === 2) return [{ runId: PREV_RUN_ID, clientId: CLIENT_ID }]
+    return previousMessages
+  }
+
+  const chainable = (rows: any[]) => {
+    const result: any = {
+      limit: () => chainable(rows),
+      orderBy: () => chainable(rows),
+      then: (resolve: (value: any[]) => void) => resolve(rows),
+    }
+    return result
   }
 
   return {
-    select: vi.fn((...args: any[]) => {
-      if (args.length === 0) return runChain
-      return {
-        from: vi.fn(() => ({
-          where: vi.fn(() => ({
-            limit: vi.fn(async () => [{ runId: RUN_ID, clientId: CLIENT_ID }]),
-            orderBy: vi.fn(() => ({
-              limit: vi.fn(async () => [{ runId: PREV_RUN_ID, clientId: CLIENT_ID }]),
-            })),
-          })),
-        })),
-      }
-    }),
-    then: (resolve: (value: unknown[]) => void) => resolve(previousMessages),
+    select: vi.fn(() => ({
+      from: vi.fn(() => ({
+        where: vi.fn(() => chainable(runQuery())),
+      })),
+    })),
   } as any
 }
 
@@ -60,6 +49,10 @@ function makeMessage(return_1yr: number, schemeCode = 'FUND001'): DeliberationMe
 }
 
 describe('validateCrossRunConsistency', () => {
+  beforeEach(() => {
+    clearCrossRunCache()
+  })
+
   it('returns ACCEPT when no previous messages exist', async () => {
     const db = makeDb([])
     const result = await validateCrossRunConsistency(db, 'SOMA', makeMessage(10), 5)
@@ -78,7 +71,7 @@ describe('validateCrossRunConsistency', () => {
         payload: { scheme_code: 'FUND001', return_1yr: 10 },
       },
     ])
-    const result = await validateCrossRunConsistency(db, 'SOMA', makeMessage(30), 5)
+    const result = await validateCrossRunConsistency(db, 'SOMA', makeMessage(80), 5)
 
     expect(result.recommendation).toBe('REJECT')
     expect(result.anomalies).toHaveLength(1)

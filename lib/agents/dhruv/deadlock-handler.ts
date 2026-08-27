@@ -12,8 +12,8 @@ export type DeadlockTrigger =
   | { stage: 'SEBI_COMPLIANCE'; revisions: number; complianceBlockReason: string; mostProblematicGoal: string; shortestGoalTimeline: number }
   | { stage: 'ARIA_CRITIQUE'; revisions: number; persistentFaultCategory: string }
   | { stage: 'PRIYA_DRAFTING'; revisions: number; impossibilityReason: string; bestDraftId: string; bestConfidence: number; riskDisclosures: string[] }
-  | { stage: 'ARIA_PREFLIGHT'; impossibilityReason: string }
-  | { stage: 'COMMITTEE_VOTE'; revisions: number; bestDraftId: string; bestConfidence: number; riskDisclosures: string[] }
+  | { stage: 'ARIA_PREFLIGHT'; revisions: number; impossibilityReason: string }
+  | { stage: 'COMMITTEE_VOTE'; revisions: number; impossibilityReason: string; bestDraftId: string; bestConfidence: number; riskDisclosures: string[] }
 
 export class DeadlockHandler {
   constructor(

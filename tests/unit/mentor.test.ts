@@ -14,10 +14,10 @@ vi.mock('@/lib/azure-openai', () => ({
 }))
 
 vi.mock('@/lib/research/knowledge-commons', () => ({
-  KnowledgeCommons: vi.fn().mockImplementation(() => ({
-    contribute: vi.fn(async () => undefined),
-    queryCommons: vi.fn(async () => []),
-  })),
+  KnowledgeCommons: class {
+    contribute = vi.fn(async () => undefined)
+    queryCommons = vi.fn(async () => [])
+  },
 }))
 
 const RUN_ID = 'a0eebc99-5c0b-4ef8-bb6d-6bb9bd380a11'

@@ -21,6 +21,11 @@ export interface CrossRunValidationResult {
 const previousMessagesCache = new Map<string, { previousMessages: any[]; timestamp: number }>()
 const CACHE_TTL_MS = 60 * 60 * 1000 // 1 hour TTL
 
+/** Clear the in-memory cross-run cache. Exported for tests only. */
+export function clearCrossRunCache(): void {
+  previousMessagesCache.clear()
+}
+
 const MAX_DRIFT: Record<string, number> = {
   fund_1yr_return: 15,
   fund_3yr_return: 5,

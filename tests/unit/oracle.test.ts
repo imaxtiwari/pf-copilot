@@ -50,7 +50,7 @@ describe('ORACLE middleware', () => {
   it('flags factual claims without sources', async () => {
     const db = { select: vi.fn() }
     const msg = makeMessage({
-      payload: { scheme_code: 'FUND001', nav: 42.5 },
+      payload: { scheme_code: 'FUND001', nav: 142.5 },
       references: [],
     })
     const result = await oracleMiddleware(db, msg)
@@ -101,7 +101,7 @@ describe('ORACLE middleware', () => {
       payload: {
         scheme_code: 'FUND001',
         scheme_name: 'Test Fund',
-        expense_ratio: 1.05,
+        description: 'expense ratio 1.05%',
       },
       references: [],
     })

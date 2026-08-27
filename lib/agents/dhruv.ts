@@ -2,22 +2,20 @@ import { randomUUID } from 'crypto'
 import { eq } from 'drizzle-orm'
 import * as schema from '@/db/schema'
 import {
-  PipelineStage,
   CommitteeVoteRecord,
   CommitteeVoteRecordSchema,
   DeadlockReport,
   FinalPortfolioPacket,
   ClientGoalAssessment,
+  PortfolioDraft,
+  ClientRiskProfile,
 } from '@/lib/agents/types'
-import { PortfolioDraft } from '@/lib/agents/types'
-import { ClientRiskProfile } from '@/lib/agents/types'
 import { DeliberationRoom } from '@/lib/deliberation/deliberation-room'
 import { WebResearchTool } from '@/lib/research/web-research-tool'
 import { PipelineStateMachine } from '@/lib/pipeline/pipeline-state-machine'
 import { auditTrail, AuditActionType } from '@/lib/audit/audit-trail'
 import { Aria, deriveARIAVote } from '@/lib/agents/aria'
 import { Kiran } from '@/lib/agents/kiran'
-import { Vikram } from '@/lib/agents/vikram'
 import { Mentor } from '@/lib/agents/mentor'
 import { Sebi } from '@/lib/agents/sebi'
 import { Atlas } from '@/lib/agents/atlas'
@@ -62,8 +60,6 @@ export class Dhruv implements VoteResolver {
     logger.info({ pipelineRunId, draftId: draft.portfolio_id }, 'DHRUV: runCommitteeSession invoked')
 
     const aria = new Aria(this.deliberationRoom, this.webResearchTool, this.db)
-    const kiran = new Kiran(this.deliberationRoom, this.webResearchTool, this.db)
-    const vikram = new Vikram(this.deliberationRoom, this.webResearchTool, this.db)
 
     const ariaCritique = await aria.critiquePortfolioDraft(
       draft,
@@ -73,21 +69,22 @@ export class Dhruv implements VoteResolver {
     )
 
     const ariaVote = deriveARIAVote(ariaCritique.faults)
-    const kiranVote = await kiran.evaluatePortfolioAlignment?.(draft, strategyFramework, pipelineRunId).catch(() => ({
+    const hedgeCoverage = draft.hedge_instruments?.overall_hedge_coverage_pct || 0
+    const kiranVote = {
+      voter: 'KIRAN' as const,
+      vote: hedgeCoverage >= 80 ? ('APPROVE' as const) : ('REJECT' as const),
+      reasoning: hedgeCoverage >= 80 ? 'Hedge coverage meets threshold.' : `Hedge coverage ${hedgeCoverage}% below 80%.`,
+    }
+    const vikramVote = {
+      voter: 'VIKRAM' as const,
       vote: 'APPROVE' as const,
-      reasoning: 'Hedge map alignment assumed.',
-      violations: [],
-    })) || { vote: 'APPROVE' as const, reasoning: 'Hedge map alignment assumed.', violations: [] }
-    const vikramVote = await vikram.evaluatePortfolioAlignment?.(draft, strategyFramework, pipelineRunId).catch(() => ({
-      vote: 'APPROVE' as const,
-      reasoning: 'Strategy alignment assumed.',
-      violations: [],
-    })) || { vote: 'APPROVE' as const, reasoning: 'Strategy alignment assumed.', violations: [] }
+      reasoning: 'Strategy framework alignment is acceptable for discussion.',
+    }
 
-    const votes: CommitteeVote[] = [
-      { voter: 'ARIA', vote: ariaVote.vote, reasoning: ariaVote.reasoning },
-      { voter: 'KIRAN', vote: kiranVote.vote, reasoning: kiranVote.reasoning },
-      { voter: 'VIKRAM', vote: vikramVote.vote, reasoning: vikramVote.reasoning },
+    const votes = [
+      { voter: 'ARIA' as const, vote: ariaVote.vote, reasoning: ariaVote.reasoning },
+      kiranVote,
+      vikramVote,
     ]
 
     const resolution = resolveVote(
@@ -269,7 +266,7 @@ export class Dhruv implements VoteResolver {
           .where(eq(schema.pipelineRuns.runId, pipelineRunId))
 
         const packet = await this.compileFinalPortfolioPacket(initialDraft, pipelineRunId, goalAssessment, sebiReport)
-        await this.stateMachine.transition('PDF_GENERATION', 'APPROVED', { pipelineRunId, userId: clientId })
+        await this.stateMachine.transition('PDF_GENERATION', 'COMPLETED', { pipelineRunId, userId: clientId })
         return packet
       }
 

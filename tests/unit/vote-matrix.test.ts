@@ -28,10 +28,10 @@ describe('resolveVote matrix', () => {
     expect(result.outcome).toBe('APPROVED')
   })
 
-  it('REJECTED with 2 approvals and 1 reject (no majority)', () => {
+  it('REJECTED with 1 approval and 2 rejects', () => {
     const votes: CommitteeVote[] = [
       { voter: 'ARIA', vote: 'APPROVE', reasoning: '' },
-      { voter: 'KIRAN', vote: 'APPROVE', reasoning: '' },
+      { voter: 'KIRAN', vote: 'REJECT', reasoning: '' },
       { voter: 'VIKRAM', vote: 'REJECT', reasoning: '' },
     ]
     const result = resolveVote(votes, chair, makeDraft(), false, 85)

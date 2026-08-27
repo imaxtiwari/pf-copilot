@@ -1,4 +1,3 @@
-import { eq } from 'drizzle-orm'
 import { getGpt4oMini } from '@/lib/azure-openai'
 import * as schema from '@/db/schema'
 import { ATLAS_SYSTEM_PROMPT_V1 } from '@/lib/agents/prompts'

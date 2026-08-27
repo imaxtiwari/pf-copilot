@@ -171,7 +171,7 @@ Instructions:
     auditTrail.log({
       pipeline_run_id: pipelineRunId,
       user_id: run?.clientId,
-      agent_id: 'MENTOR',
+      agent_id: 'DHRUV',
       action_type: AuditActionType.KNOWLEDGE_COMMONS_WRITE,
       payload: { learnings_count: learnings.length, outcome },
     })
