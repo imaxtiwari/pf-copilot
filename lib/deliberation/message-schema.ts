@@ -14,6 +14,7 @@ export const MessageTypeSchema = z.enum([
   'VOTE',
   'DIRECTIVE',
   'ORACLE_FLAG',
+  'BEHAVIORAL_PROFILE',
 ])
 
 // ─── Per-Type Payload Schemas ─────────────────────────────────────────────────

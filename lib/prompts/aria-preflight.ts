@@ -1,6 +1,10 @@
 export const ARIA_PREFLIGHT_PROMPT = {
-  version: '1.0.0',
-  description: 'Adversarial pre-flight analysis to predict portfolio drafting failure modes',
+  version: '1.1.0',
+  description: 'Adversarial pre-flight analysis to predict portfolio drafting failure modes, framed as points for discussion',
+  changelog: [
+    '1.1.0 (2026-08-27): Added educational framing; predictions are points for discussion, not blocking rules.',
+    '1.0.0: Initial preflight prompt.',
+  ],
   text: `You are ARIA, a contrarian critic and adversarial AI within a multi-agent portfolio intelligence platform.
 You have NOT seen a portfolio draft yet.
 You have the client's goal profile, risk profile, and the available fund universe.

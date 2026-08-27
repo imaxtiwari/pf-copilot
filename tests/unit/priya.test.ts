@@ -351,7 +351,7 @@ describe('Priya', () => {
 
     const inputs = makeInputs()
     inputs.hedgeMap.overall_hedge_coverage_pct = 50
-    inputs.critiques[0].faults.push({
+    ;(inputs.critiques[0].faults as any[]).push({
       fault_id: 'f0eebc99-5c0b-4ef8-bb6d-6bb9bd380a99',
       fault_category: 'CONCENTRATION',
       fault_description: 'Single fund concentration is too high',
