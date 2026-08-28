@@ -38,3 +38,20 @@ export type IngestionJobPayloadMap = {
   [IngestionJobType.FACTSHEETS]: z.infer<typeof IngestFactsheetsPayloadSchema>
   [IngestionJobType.ANNUAL_REPORTS]: z.infer<typeof IngestAnnualReportsPayloadSchema>
 }
+
+export const PipelineJobType = {
+  PIPELINE_START: 'pipeline.start',
+} as const
+
+export const PipelineStartPayloadSchema = z.object({
+  userId: z.string().uuid(),
+  uploadId: z.string().uuid(),
+})
+
+export const pipelinePayloadSchemas = {
+  [PipelineJobType.PIPELINE_START]: PipelineStartPayloadSchema,
+}
+
+export type PipelineJobPayloadMap = {
+  [PipelineJobType.PIPELINE_START]: z.infer<typeof PipelineStartPayloadSchema>
+}

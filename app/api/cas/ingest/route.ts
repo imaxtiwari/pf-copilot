@@ -9,6 +9,8 @@ import { refreshSnapshots } from '../../../../lib/portfolio/snapshots'
 import { generateInsight, persistInsight } from '../../../../lib/portfolio/insights'
 import logger from '../../../../lib/logger'
 import { rateLimit, rateLimitJsonResponse } from '../../../../lib/rate-limit'
+import { inngest } from '../../../../lib/jobs/client'
+import { PipelineJobType } from '../../../../lib/jobs/definitions'
 
 const MAX_BYTES = 10 * 1024 * 1024 // 10 MB
 
@@ -129,6 +131,28 @@ export async function POST(req: NextRequest) {
       err('db_error', 'Failed to persist holdings'),
       { status: 500 },
     )
+  }
+
+  // Enqueue background recommendation pipeline (rate-limited: one per user per 10 min).
+  // This is fire-and-forget; failures are logged but do not fail the upload.
+  try {
+    const pipelineLimit = await rateLimit(req, {
+      key: 'pipeline:start',
+      limit: 1,
+      window: 600,
+      identifier: `user:${userId}`,
+    })
+    if (pipelineLimit.success) {
+      await inngest.send({ name: PipelineJobType.PIPELINE_START, data: { userId, uploadId } })
+      logger.info({ userId, uploadId }, 'cas ingest: pipeline.start enqueued')
+    } else {
+      logger.warn(
+        { userId, uploadId, retryAfter: pipelineLimit.retryAfter },
+        'cas ingest: pipeline.start rate limited',
+      )
+    }
+  } catch (e) {
+    logger.warn({ userId, uploadId, err: e }, 'cas ingest: failed to enqueue pipeline')
   }
 
   // Build portfolio snapshots for the new/updated holdings

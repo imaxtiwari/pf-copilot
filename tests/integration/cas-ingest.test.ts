@@ -13,6 +13,7 @@ const mockPersistInsight = vi.hoisted(() => vi.fn())
 const mockDbTransaction = vi.hoisted(() => vi.fn())
 const mockDbInsert = vi.hoisted(() => vi.fn())
 const mockDbQuery = vi.hoisted(() => vi.fn())
+const mockInngestSend = vi.hoisted(() => vi.fn())
 
 vi.mock('@/lib/auth/dev-user', () => ({
   getCurrentUser: mockGetCurrentUser,
@@ -52,6 +53,10 @@ vi.mock('@/db/schema', () => ({
   portfolioHoldings: {},
 }))
 
+vi.mock('@/lib/jobs/client', () => ({
+  inngest: { send: mockInngestSend },
+}))
+
 import { POST } from '@/app/api/cas/ingest/route'
 
 function makeRequest(file: File): NextRequest {
@@ -76,6 +81,7 @@ describe('POST /api/cas/ingest', () => {
     mockDbTransaction.mockReset()
     mockDbInsert.mockReset()
     mockDbQuery.mockReset()
+    mockInngestSend.mockReset()
 
     mockGetCurrentUser.mockResolvedValue({ userId: 'user-1' })
     mockRateLimit.mockResolvedValue({ success: true, limit: 5, remaining: 4, reset: Date.now() / 1000 + 3600, retryAfter: 3600 })
@@ -93,6 +99,7 @@ describe('POST /api/cas/ingest', () => {
     mockGenerateInsight.mockResolvedValue({ userId: 'user-1', uploadId: 'upload-1', title: 'Mock', body: 'Mock body' })
     mockPersistInsight.mockResolvedValue(undefined)
     mockDbInsert.mockReturnValue({ values: () => ({ returning: () => Promise.resolve([{ id: 'failure-upload-1' }]) }) })
+    mockInngestSend.mockResolvedValue({ ids: ['event-1'] })
   })
 
   afterEach(() => {
@@ -190,5 +197,10 @@ describe('POST /api/cas/ingest', () => {
     expect(mockDbTransaction).toHaveBeenCalled()
     expect(mockRefreshSnapshots).toHaveBeenCalledWith('user-1')
     expect(mockPersistInsight).toHaveBeenCalled()
+    expect(mockInngestSend).toHaveBeenCalledTimes(1)
+    expect(mockInngestSend).toHaveBeenCalledWith({
+      name: 'pipeline.start',
+      data: { userId: 'user-1', uploadId: 'upload-1' },
+    })
   })
 })
